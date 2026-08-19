@@ -6757,6 +6757,7 @@ const d = new Date(fecha + 'T00:00:00');
 return !isNaN(d.getTime());
 }
 let guardadoLocalPendiente = null;
+let sincronizandoConFirebase = false;
 let aplicandoCambioRemoto = false; 
 let primeraCargaGlobalHecha = false;
 let resolverPrimeraCargaGlobal;
@@ -6794,6 +6795,8 @@ badge.textContent = n;
 async function sincronizarConFirebase(){
 if (!window.firebaseListo || typeof window.firebaseGuardarGlobal !== 'function') return;
 if (!navigator.onLine) return;
+sincronizandoConFirebase = true;
+try {
 const pendientes = estado.colaSincronizacion.length;
 const exitoGlobal = await window.firebaseGuardarGlobal(construirPayloadGlobal());
 let exitoCuenta = true;
@@ -6806,6 +6809,9 @@ estado.ultimaSincronizacion = new Date().toISOString();
 localStorage.setItem(CLAVE_ALMACENAMIENTO_LOCAL, JSON.stringify(estado));
 actualizarBadgeSincronizacion();
 if (pendientes > 0 && typeof mostrarToast === 'function') mostrarToast(`${pendientes} cambio(s) sincronizado(s) con Firebase`);
+} finally {
+sincronizandoConFirebase = false;
+}
 }
 window.addEventListener('online', sincronizarConFirebase);
 cargarEstadoLocal();
@@ -6822,6 +6828,11 @@ if (!estado.cuentaActivaId || typeof window.firebaseEscucharCuenta !== 'function
 cancelarEscuchaCuenta = window.firebaseEscucharCuenta(estado.cuentaActivaId, (datosCuenta, actualizado) => {
 if (actualizado && estado.ultimaSincronizacionCuenta === actualizado) return;
 if (!datosCuenta || datosCuenta.id !== estado.cuentaActivaId) return;
+// Mismo resguardo que en el escucha global: si hay un guardado local pendiente
+// o una sincronización en curso, este dato remoto podría ser anterior a un
+// cambio que aún no termina de subirse (ej. un animal recién agregado) y lo
+// borraría. Se ignora aquí y llegará de nuevo, ya actualizado, cuando termine.
+if (guardadoLocalPendiente || sincronizandoConFirebase) return;
 aplicandoCambioRemoto = true;
 ARREGLOS_POR_CUENTA.forEach(clave => {
 const claveEstado = MAPA_CLAVE_ESTADO[clave] || clave;
@@ -6841,6 +6852,12 @@ if (typeof window.firebaseEscucharGlobal === 'function'){
 window.firebaseEscucharGlobal((datosRemotos, actualizado) => {
 if (!primeraCargaGlobalHecha){ primeraCargaGlobalHecha = true; resolverPrimeraCargaGlobal(); }
 if (actualizado && estado.ultimaSincronizacion === actualizado) return;
+// Si hay un guardado local pendiente (debounce) o una sincronización en curso,
+// NO aplicamos el dato remoto todavía: podría ser una versión anterior a nuestro
+// cambio local (ej. una cuenta recién creada) y lo borraría antes de terminar de
+// subirse. En cuanto termine nuestra propia sincronización, el eco de ese guardado
+// llegará por este mismo canal y sí se aplicará con normalidad.
+if (guardadoLocalPendiente || sincronizandoConFirebase) return;
 aplicandoCambioRemoto = true;
 const cuentaActivaIdAntes = estado.cuentaActivaId;
 Object.assign(estado, datosRemotos);
@@ -6961,6 +6978,7 @@ fecha: hoyISO(), hora: ahora.getHours(), diaSemana: ahora.getDay(), ts: ahora.to
 });
 // Limita el historial para no inflar el documento compartido de Firestore.
 if (estado.eventosUso.length > 3000) estado.eventosUso.splice(0, estado.eventosUso.length - 3000);
+guardarEstadoLocal();
 }
 function detectarAccesoPorQR(){
 try {
@@ -7633,6 +7651,7 @@ if (selectLechero) selectLechero.innerHTML = lecherosDelAmbito().map(l => `<opti
 }
 function eliminarLechero(id){
 estado.lecheros = estado.lecheros.filter(l => l.id !== id);
+guardarEstadoLocal();
 renderListaLecherosAdmin();
 }
 function renderListaLecherosAdmin(){
@@ -7659,6 +7678,7 @@ mostrarToast(`✓ ${tr('queseria_productores__solicitud_de_vinculacion_enviada')
 }
 function eliminarProductorLeche(id){
 estado.productoresLeche = estado.productoresLeche.filter(p => p.id !== id);
+guardarEstadoLocal();
 renderListaProductoresRegistrados();
 }
 function renderListaProductoresRegistrados(){
@@ -10464,6 +10484,7 @@ if (!vet || !vet.notas) return;
 const i = vet.notas.findIndex(n => n.id === id);
 if (i === -1) return;
 vet.notas.splice(i, 1);
+guardarEstadoLocal();
 renderListaVetNotas();
 }
 function renderListaVetNotas(){
@@ -11435,6 +11456,7 @@ ${!m.enviado ? `<button onclick="eliminarMensajeProgramado('${m.id}')" style="co
 }
 function eliminarMensajeProgramado(id){
 estado.mensajesProgramados = estado.mensajesProgramados.filter(m => m.id !== id);
+guardarEstadoLocal();
 renderListaMensajesProgramados();
 }
 function revisarMensajesProgramadosDebidos(){
@@ -12049,6 +12071,7 @@ folio: valor('adm-folio'), vencimientoFierro: valor('adm-vencimientofierro'),
 estado: valor('adm-estado'), municipio: valor('adm-municipio'),
 ejido: valor('adm-ejido'), actividad: valor('adm-actividad'), curp: valor('adm-curp').toUpperCase(),
 };
+guardarEstadoLocal();
 }
 function abrirEdicionProductor(){
 const p = estado.productor;
@@ -12340,6 +12363,7 @@ function eliminarTarea(id){
 const i = estado.tareas.findIndex(t => t.id === id);
 if (i === -1) return;
 estado.tareas.splice(i, 1);
+guardarEstadoLocal();
 renderListaTareasAdmin();
 renderMisTareas();
 }
@@ -12496,12 +12520,14 @@ const texto = valor('nueva-nota-ventana').trim();
 if (!v || !texto) return;
 v.notas.push(texto);
 establecerValor('nueva-nota-ventana', '');
+guardarEstadoLocal();
 renderNotasVentana();
 }
 function eliminarNotaVentana(i){
 const v = estado.ventanasExtra.find(x => x.id === ventanaExtraActualId);
 if (!v) return;
 v.notas.splice(i, 1);
+guardarEstadoLocal();
 renderNotasVentana();
 }
 async function agregarBanner(){
