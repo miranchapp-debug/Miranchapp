@@ -530,8 +530,21 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="subtab" data-i18n="admin_cuentas_productores__carne" id="reg-tipo-btn-carne" onclick="seleccionarTipoRegistro('carne')" style="font-size:.72rem; padding:.6rem .2rem;" type="button">Carne</button>
 <button class="subtab" data-i18n="login_seleccion_rol__punto_receptor_de_leche" id="reg-tipo-btn-punto" onclick="seleccionarTipoRegistro('punto')" style="font-size:.72rem; padding:.6rem .2rem;" type="button">Punto receptor de leche</button>
 <button class="subtab" data-i18n="login_seleccion_rol__mvz" id="reg-tipo-btn-mvz" onclick="seleccionarTipoRegistro('mvz')" style="font-size:.72rem; padding:.6rem .2rem;" type="button">MVZ</button>
+<button class="subtab col-span-4" id="reg-tipo-btn-cefp" onclick="seleccionarTipoRegistro('cefp')" style="font-size:.72rem; padding:.6rem .2rem;" type="button">CEFPP (Comité Estatal de Fomento y Protección Pecuaria)</button>
 </div>
 <input id="reg-tipo" type="hidden" value="leche"/>
+</div>
+<div class="hidden" id="reg-grupo-cefp">
+<label class="campo-label">Puesto en el CEFPP</label>
+<select id="reg-cefp-puesto">
+<option value="capturista">Capturista</option>
+<option value="almita">Emisora de solicitudes</option>
+</select>
+<label class="campo-label">Centro de trabajo</label>
+<input id="reg-cefp-centro" type="text"/>
+<label class="campo-label">CURP</label>
+<input id="reg-cefp-curp" maxlength="18" style="text-transform:uppercase;" type="text"/>
+<p class="text-xs mt-2" style="color:var(--yellow-d, #8a6d1f);"><i class="fa-solid fa-circle-info mr-1"></i>Este tipo de cuenta necesita que un administrador la autorice antes de poder usarse.</p>
 </div>
 <div id="reg-grupo-local" class="hidden">
 <label class="campo-label" data-i18n="login_seleccion_rol__nombre_del_local">Nombre del local</label>
@@ -740,6 +753,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <span class="hidden text-xs font-bold px-2 py-0.5 rounded-full absolute z-10" id="badge-pruebas-campo-productor" style="background:var(--red); color:#fff; top:10px; right:10px;">0</span>
 <span class="tile-icono-grande"><i class="fa-solid fa-vial-circle-check"></i></span>
 </button>
+<button class="tile-btn" onclick="irA('solicitudaretes')" style="background:var(--teal); --tile-color:var(--teal); position:relative;">
+<span class="tile-texto">Solicitud de aretes</span>
+<span class="tile-icono-grande"><i class="fa-solid fa-tags"></i></span>
+</button>
 <div class="space-y-2" id="grid-menu-mas"></div>
 </div>
 <!-- ---------- PRUEBAS DE CAMPO COMPARTIDAS (PRODUCTOR) ---------- -->
@@ -748,6 +765,35 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <h2 class="font-display text-2xl font-bold">Pruebas de campo compartidas</h2>
 <p class="text-sm" style="color:var(--sage);">Cuando tu veterinario comparte una prueba o areteo contigo, decides si la guardas en tu cuenta.</p>
 <div class="space-y-3" id="lista-pruebas-campo-productor"></div>
+</div>
+<!-- ---------- SOLICITUD DE ARETES (PRODUCTOR) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-solicitudaretes">
+<button class="btn-volver" onclick="volverAtras('mas')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Solicitud de aretes</h2>
+<p class="text-sm" style="color:var(--sage);">Pide aretes nuevos para tus nacimientos sin arete SINIIGA. Tu veterinario recibirá la lista con sexo, edad, madre y padre de cada uno.</p>
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<label class="campo-label">Buscar veterinario</label>
+<input id="sa-buscar-vet" oninput="buscarVetParaSolicitudAretes()" placeholder="Nombre del veterinario..." type="text"/>
+<div class="space-y-1 mt-1" id="resultado-buscar-vet-sa"></div>
+<div class="hidden bg-white rounded-2xl p-3" id="vet-seleccionado-sa" style="border:2px solid var(--green);"></div>
+</div>
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<div class="flex items-center justify-between">
+<h3 class="font-display font-bold">Animales sin arete</h3>
+<div class="flex gap-2">
+<button onclick="cargarAnimalesSinAreteAutomatico()" class="text-xs font-bold px-3 py-1.5 rounded-full" style="background:var(--teal); color:#fff;"><i class="fa-solid fa-wand-magic-sparkles"></i> Cargar automático</button>
+<button onclick="agregarFilaSolicitudAretes()" class="text-xs font-bold px-3 py-1.5 rounded-full" style="background:var(--pine); color:#fff;"><i class="fa-solid fa-plus"></i> Agregar</button>
+</div>
+</div>
+<div class="space-y-3" id="lista-filas-solicitud-aretes"></div>
+</div>
+<button class="w-full btn-primario-plano" onclick="enviarSolicitudAretes()" style="background:var(--teal);">
+<i class="fa-solid fa-paper-plane"></i> Enviar solicitud
+</button>
+<div class="pt-4">
+<h3 class="font-display font-bold mb-2">Mis solicitudes</h3>
+<div class="space-y-3" id="lista-mis-solicitudes-aretes"></div>
+</div>
 </div>
 <!-- ---------- TRANSFERENCIAS DE ARETES (compra-venta entre productores) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-transferencias">
@@ -902,19 +948,42 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="btn-volver" onclick="volverAtras('datos-productor')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold" data-i18n="editar_datos_productor__editar_datos_del_productor">Editar datos del productor</h2>
 <div class="bg-white rounded-3xl p-5 space-y-4" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">1. Propietario</h3>
 <div class="grid grid-cols-2 gap-3">
-<div><label class="campo-label" data-i18n="editar_datos_productor__nombre">Nombre</label><input id="ed-nombre" type="text"/></div>
-<div><label class="campo-label" data-i18n="editar_datos_productor__nombre_del_predio">Nombre del predio</label><input id="ed-predio" type="text"/></div>
-<div><label class="campo-label">UPP</label><input id="ed-upp" type="text"/></div>
+<div><label class="campo-label">Apellido paterno</label><input id="ed-apellidopaterno" oninput="previsualizarNombreCompleto('ed')" type="text"/></div>
+<div><label class="campo-label">Apellido materno</label><input id="ed-apellidomaterno" oninput="previsualizarNombreCompleto('ed')" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Nombre(s)</label><input id="ed-nombres" oninput="previsualizarNombreCompleto('ed')" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Domicilio</label><input id="ed-domicilio" type="text" value="Conocido"/></div>
+<div>
+<label class="campo-label">Estado</label>
+<select id="ed-estado" onchange="cargarMunicipiosSelector('ed')"><option value="">Selecciona...</option></select>
+</div>
+<div>
+<label class="campo-label">Municipio</label>
+<select id="ed-municipio" onchange="mostrarMunicipioManual('ed')"><option value="">Selecciona el estado primero</option></select>
+<input class="hidden mt-1" id="ed-municipio-manual" placeholder="Escribe el municipio" type="text"/>
+</div>
+<div class="col-span-2"><label class="campo-label">Localidad / Población</label><input id="ed-localidad" placeholder="Obligatorio" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Correo electrónico (opcional)</label><input id="ed-correo" type="email"/></div>
+<div><label class="campo-label">CURP</label><input id="ed-curp" maxlength="18" style="text-transform:uppercase;" type="text"/></div>
+</div>
+</div>
+<div class="bg-white rounded-3xl p-5 space-y-4" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">2. Unidad de producción</h3>
+<div class="grid grid-cols-2 gap-3">
+<div><label class="campo-label">UPP</label><input id="ed-upp" placeholder="Obligatorio" type="text"/></div>
+<div><label class="campo-label" data-i18n="editar_datos_productor__nombre_del_predio">Nombre del predio</label><input id="ed-predio" placeholder="Obligatorio" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__ultima_actualizacion_upp">Última actualización UPP</label><input id="ed-actualizacionupp" type="date"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__folio_fierro_de_herrar">Folio fierro de herrar</label><input id="ed-folio" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__vencimiento_credencial_fierro">Vencimiento credencial fierro</label><input id="ed-vencimientofierro" type="date"/></div>
-<div><label class="campo-label" data-i18n="editar_datos_productor__estado">Estado</label><input id="ed-estado" type="text"/></div>
-<div><label class="campo-label" data-i18n="editar_datos_productor__municipio">Municipio</label><input id="ed-municipio" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__ejido_parcela">Ejido / parcela</label><input id="ed-ejido" type="text"/></div>
-<div><label class="campo-label">CURP</label><input id="ed-curp" maxlength="18" style="text-transform:uppercase;" type="text"/></div>
 <div class="col-span-2"><label class="campo-label" data-i18n="editar_datos_productor__actividad_pecuaria">Actividad pecuaria</label><input id="ed-actividad" type="text"/></div>
 </div>
+<button class="w-full text-sm font-bold py-2 rounded-full" onclick="registrarUbicacionUPP('ed')" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);">
+<i class="fa-solid fa-location-crosshairs mr-1"></i><span id="ed-gps-texto">Registrar ubicación GPS</span>
+</button>
+</div>
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <div class="grid grid-cols-2 gap-3" id="ed-campos-personalizados"></div>
 <p class="text-xs" style="color:var(--sage);"><i class="fa-solid fa-circle-info mr-1"></i><span data-i18n="editar_datos_productor__el_numero_de_animales_activos">El número de animales activos se cuenta solo, según lo que registres en el módulo A.</span></p>
 <button class="w-full btn-primario-plano" onclick="guardarEdicionProductor()" style="background:var(--pine);">
@@ -931,6 +1000,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <i class="fa-solid fa-file-arrow-down mr-1"></i>Exportar
 </button>
 </div>
+<button class="w-full text-sm font-bold py-2.5 rounded-full" onclick="abrirSolicitarPruebaVet()" style="background:var(--teal); color:#fff;">
+<i class="fa-solid fa-vial-circle-check mr-1"></i>Hacer solicitud de prueba a mi veterinario
+</button>
+<div class="grid grid-cols-2 gap-2" id="resumen-vientres-toros"></div>
 <div class="flex items-center gap-2 bg-white rounded-2xl p-3" style="border:2px solid var(--line);">
 <i class="fa-solid fa-magnifying-glass" style="color:var(--sage);"></i>
 <input data-i18n-placeholder="hato_inventario_animales__buscar_animal" id="hato-search" oninput="renderHato()" placeholder="Buscar animal..." style="border:none; padding:0;" type="text"/>
@@ -1129,6 +1202,26 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </button>
 <nav class="fixed bottom-0 left-0 right-0 bg-white flex" id="navbar-productor" style="border-top:2px solid var(--line);"></nav>
 </div>
+<!-- ---- SOLICITAR PRUEBA AL VETERINARIO (MODAL) ---- -->
+<div class="hidden" id="modal-solicitar-prueba" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:80; align-items:flex-end;">
+<div class="w-full bg-white rounded-t-3xl p-5 space-y-3" style="max-height:88vh; overflow-y:auto;">
+<div class="flex items-center justify-between">
+<h3 class="font-display text-lg font-bold">Solicitud de prueba a mi veterinario</h3>
+<button onclick="document.getElementById('modal-solicitar-prueba').classList.add('hidden')" style="color:var(--sage);"><i class="fa-solid fa-xmark text-xl"></i></button>
+</div>
+<p class="text-xs" style="color:var(--sage);">Se compartirá tu inventario de animales vigentes (con y sin arete) para que tu veterinario planee la prueba.</p>
+<div>
+<label class="campo-label">Buscar veterinario</label>
+<input id="sp-buscar-vet" oninput="buscarVetParaSolicitudPrueba()" placeholder="Nombre del veterinario..." type="text"/>
+<div class="space-y-1 mt-1" id="resultado-buscar-vet-sp"></div>
+</div>
+<div class="hidden bg-white rounded-2xl p-3" id="vet-seleccionado-sp" style="border:2px solid var(--green);"></div>
+<p class="text-xs font-bold" id="sp-conteo-animales" style="color:var(--pine);"></p>
+<button class="w-full btn-primario-plano" onclick="enviarSolicitudPrueba()" style="background:var(--teal);">
+<i class="fa-solid fa-paper-plane"></i> Enviar solicitud
+</button>
+</div>
+</div>
 <!-- ============================================================ -->
 <!-- ============ APP ADMINISTRADOR ============ -->
 <!-- ============================================================ -->
@@ -1233,6 +1326,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <option data-i18n="admin_usuarios_contrasenas__productor" value="productor">Productor</option>
 <option data-i18n="admin_usuarios_contrasenas__administrador" value="admin">Administrador</option>
 <option data-i18n="admin_usuarios_contrasenas__veterinario_solo_salud" value="veterinario">Veterinario (solo salud)</option>
+<option value="capturista">Capturista (oficina)</option>
 </select>
 <button class="w-full btn-primario-plano" onclick="agregarUsuario()" style="background:var(--blue);">
 <i class="fa-solid fa-user-plus"></i><span data-i18n="admin_usuarios_contrasenas__crear_usuario">Crear usuario</span>
@@ -1268,11 +1362,120 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="btn-primario-plano" onclick="abrirNuevaPruebaCampo('prueba')" style="background:var(--purple);"><i class="fa-solid fa-vial-circle-check"></i> Nueva prueba</button>
 <button class="btn-primario-plano" onclick="abrirNuevaPruebaCampo('areteo')" style="background:var(--orange);"><i class="fa-solid fa-tag"></i> Nuevo areteo</button>
 </div>
+<button class="w-full text-sm font-bold py-2.5 rounded-full" onclick="irAdmin('pruebasrealizadas')" style="background:var(--teal); color:#fff;">
+<i class="fa-solid fa-list-check mr-1"></i>Ver pruebas realizadas
+</button>
 <div class="flex gap-2 rounded-full p-1" style="background:var(--parchment);">
 <button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-pc-prueba" onclick="cambiarTabPruebasCampo('prueba')" style="background:var(--pine); color:#fff;">Pruebas</button>
 <button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-pc-areteo" onclick="cambiarTabPruebasCampo('areteo')">Areteos</button>
 </div>
 <div class="space-y-3" id="lista-pruebas-campo"></div>
+<div class="pt-2">
+<h3 class="font-display font-bold mb-2"><i class="fa-solid fa-tags mr-1"></i>Solicitudes de aretes de productores</h3>
+<div class="space-y-3" id="lista-solicitudes-aretes-vet"></div>
+</div>
+<div class="pt-2">
+<h3 class="font-display font-bold mb-2"><i class="fa-solid fa-vial-circle-check mr-1"></i>Solicitudes de prueba de productores</h3>
+<div class="space-y-3" id="lista-solicitudes-prueba-vet"></div>
+</div>
+<div class="pt-2">
+<h3 class="font-display font-bold mb-2"><i class="fa-solid fa-building-shield mr-1"></i>Solicitudes autorizadas por el CEFPP</h3>
+<div class="space-y-3" id="lista-solicitudes-cefpp-vet"></div>
+</div>
+</div>
+<!-- ---------- PRUEBAS PARA CAPTURISTA ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-pruebascapturista">
+<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Pruebas listas para capturar</h2>
+<p class="text-sm" style="color:var(--sage);">Pruebas y areteos ya concretados por los veterinarios, con su dictamen. Extrae los datos y márcalos como capturados cuando termines.</p>
+<div class="grid grid-cols-2 gap-2">
+<select id="capt-filtro-estatus" onchange="renderPruebasCapturista()">
+<option value="pendientes">Recibidas (pendientes)</option>
+<option value="capturadas">Ya capturadas</option>
+<option value="impresas">Impresas</option>
+<option value="todas">Historial completo</option>
+</select>
+<input id="capt-buscar" oninput="renderPruebasCapturista()" placeholder="Buscar productor..." type="text"/>
+</div>
+<div class="space-y-3" id="lista-pruebas-capturista"></div>
+</div>
+<!-- ---------- PRUEBAS REALIZADAS (buscador, exportar, compartir) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-pruebasrealizadas">
+<button class="btn-volver" onclick="volverAtrasAdmin('pruebascampo')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Pruebas realizadas</h2>
+<p class="text-sm" style="color:var(--sage);">Busca cualquier prueba o areteo por productor o UPP, descarga el Excel, o compártelo directo por el chat.</p>
+<div class="flex items-center gap-2 bg-white rounded-2xl p-3" style="border:2px solid var(--line);">
+<i class="fa-solid fa-magnifying-glass" style="color:var(--sage);"></i>
+<input id="pr-buscar" oninput="renderPruebasRealizadas()" placeholder="Buscar por productor o UPP..." style="border:none; padding:0;" type="text"/>
+</div>
+<div class="space-y-3" id="lista-pruebas-realizadas"></div>
+</div>
+<!-- ---------- ALMITA (TB) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-almita">
+<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Solicitudes recibidas</h2>
+<p class="text-sm" style="color:var(--sage);">Reportes de pruebas concretadas que los veterinarios envían al centro de solicitudes del CEFPP.</p>
+<button class="w-full btn-primario-plano" onclick="abrirNuevaSolicitudCEFPP()" style="background:var(--teal);">
+<i class="fa-solid fa-file-circle-plus"></i> Dar de alta solicitud para veterinario
+</button>
+<div class="grid grid-cols-2 gap-2">
+<select id="almita-filtro-estatus" onchange="renderEnviosAlmita()">
+<option value="recibidos">Recibidos (pendientes de revisar)</option>
+<option value="revisados">Ya revisados</option>
+<option value="todos">Historial completo</option>
+</select>
+<input id="almita-buscar" oninput="renderEnviosAlmita()" placeholder="Buscar productor..." type="text"/>
+</div>
+<div class="space-y-3" id="lista-envios-almita"></div>
+<div class="pt-2">
+<h3 class="font-display font-bold mb-2"><i class="fa-solid fa-file-circle-plus mr-1"></i>Solicitudes generadas para veterinarios</h3>
+<div class="space-y-3" id="lista-solicitudes-cefpp-generadas"></div>
+</div>
+</div>
+<!-- ---------- NUEVA SOLICITUD CEFPP (formulario, emisora de solicitudes) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-nueva-solicitud-cefpp">
+<button class="btn-volver" onclick="volverAtrasAdmin('almita')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Nueva solicitud para veterinario</h2>
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<div class="grid grid-cols-2 gap-3">
+<div><label class="campo-label">Número de solicitud</label><input id="sc-numero-solicitud" readonly style="background:var(--parchment);" type="text"/></div>
+<div><label class="campo-label">Folio interno</label><input id="sc-folio-interno" type="text"/></div>
+</div>
+<label class="campo-label">Buscar veterinario</label>
+<input id="sc-buscar-vet" oninput="buscarVetParaSolicitudCEFPP()" placeholder="Nombre del veterinario..." type="text"/>
+<div class="space-y-1 mt-1" id="resultado-buscar-vet-sc"></div>
+<div class="hidden bg-white rounded-2xl p-3" id="vet-seleccionado-sc" style="border:2px solid var(--green);"></div>
+<label class="campo-label">Número de productores a trabajar</label>
+<input id="sc-num-productores" min="1" oninput="actualizarCamposSolicitudCEFPP()" type="number" value="1"/>
+<div>
+<div class="flex items-center justify-between">
+<label class="campo-label mb-0">Folio(s) de hoja de campo</label>
+<button class="text-xs font-bold" id="sc-btn-editar-folios" onclick="toggleEdicionManualFolios()" style="color:var(--pine);" type="button">Editar manualmente</button>
+</div>
+<input id="sc-folio-inicial" placeholder="Folio inicial (los demás se generan solos)" type="text"/>
+<textarea class="hidden mt-1" id="sc-folios-manual" placeholder="Folios separados por coma, ej: 1001,1003,1010" rows="2"></textarea>
+<p class="text-xs mt-1" id="sc-folios-preview" style="color:var(--sage);"></p>
+</div>
+<div>
+<div class="flex items-center justify-between">
+<label class="campo-label mb-0">UPP(s)</label>
+<button class="text-xs font-bold" id="sc-btn-editar-upps" onclick="toggleEdicionManualUpps()" style="color:var(--pine);" type="button">Editar manualmente</button>
+</div>
+<input id="sc-upp-unica" placeholder="UPP" type="text"/>
+<textarea class="hidden mt-1" id="sc-upps-manual" placeholder="UPPs separadas por coma" rows="2"></textarea>
+</div>
+<div><label class="campo-label">Motivo de la prueba</label><textarea id="sc-motivo" rows="2"></textarea></div>
+</div>
+<button class="w-full btn-primario-plano" onclick="guardarSolicitudCEFPP()" style="background:var(--pine);">
+<i class="fa-solid fa-check"></i> Enviar al veterinario
+</button>
+</div>
+<!-- ---------- SOLICITUDES CEFP PENDIENTES (ADMIN) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-solicitudescefp">
+<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Solicitudes de cuenta CEFPP</h2>
+<p class="text-sm" style="color:var(--sage);">Estas cuentas (capturista y emisora de solicitudes) no tienen costo ni vigencia — deben ser autorizadas manualmente antes de poder usarse.</p>
+<div class="space-y-3" id="lista-solicitudes-cefp"></div>
 </div>
 <!-- ---------- NUEVA PRUEBA DE CAMPO (formulario) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-admin-nueva-prueba-campo">
@@ -1287,12 +1490,51 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <option value="Brucelosis">Brucelosis</option>
 </select>
 </div>
-<div>
+<label class="campo-label">Modo de prueba</label>
+<div class="flex gap-2 rounded-full p-1" style="background:var(--parchment);">
+<button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-modo-individual" onclick="cambiarModoPruebaCampo('individual')" style="background:var(--pine); color:#fff;">Un productor</button>
+<button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-modo-ejido" onclick="cambiarModoPruebaCampo('ejido')">Modo ejido (varios productores)</button>
+</div>
+<div id="bloque-productor-individual">
 <label class="campo-label">Buscar productor</label>
 <input id="pc-buscar-productor" oninput="buscarProductorParaPrueba()" placeholder="Nombre, predio o UPP..." type="text"/>
 <div class="space-y-1 mt-1" id="resultado-buscar-productor-pc"></div>
-</div>
 <div class="hidden bg-white rounded-2xl p-3" id="productor-seleccionado-pc" style="border:2px solid var(--green);"></div>
+</div>
+<div class="hidden" id="bloque-modo-ejido">
+<p class="text-xs mb-2" style="color:var(--sage);">Agrega a todos los productores cuyo ganado se va a trabajar en este evento — con cuenta en la app o sin ella.</p>
+<div class="grid grid-cols-2 gap-2 mb-2">
+<button class="text-xs font-bold py-2 rounded-full" onclick="mostrarBuscadorProductorEjido()" style="background:var(--teal); color:#fff;" type="button"><i class="fa-solid fa-magnifying-glass"></i> Buscar cuenta</button>
+<button class="text-xs font-bold py-2 rounded-full" onclick="mostrarAltaManualProductorEjido()" style="background:var(--slate); color:#fff;" type="button"><i class="fa-solid fa-user-plus"></i> Agregar sin app</button>
+</div>
+<div class="hidden" id="ejido-buscador-cuenta">
+<input id="ejido-buscar-productor" oninput="buscarProductorParaEjido()" placeholder="Nombre, predio o UPP..." type="text"/>
+<div class="space-y-1 mt-1" id="resultado-buscar-productor-ejido"></div>
+</div>
+<div class="hidden bg-white rounded-2xl p-3 space-y-2" id="ejido-alta-manual" style="border:2px solid var(--line);">
+<p class="text-xs font-bold" style="color:var(--pine);">1. Propietario</p>
+<div class="grid grid-cols-2 gap-2">
+<input id="ejido-manual-apellidopaterno" placeholder="Apellido paterno" type="text"/>
+<input id="ejido-manual-apellidomaterno" placeholder="Apellido materno" type="text"/>
+<input class="col-span-2" id="ejido-manual-nombres" placeholder="Nombre(s)" type="text"/>
+<input class="col-span-2" id="ejido-manual-domicilio" placeholder="Domicilio" type="text" value="Conocido"/>
+<select id="ejido-manual-estado" onchange="cargarMunicipiosSelector('ejido-manual')"><option value="">Estado...</option></select>
+<select id="ejido-manual-municipio" onchange="mostrarMunicipioManual('ejido-manual')"><option value="">Municipio...</option></select>
+<input class="hidden col-span-2" id="ejido-manual-municipio-manual" placeholder="Escribe el municipio" type="text"/>
+<input id="ejido-manual-localidad" placeholder="Localidad / Población" type="text"/>
+<input id="ejido-manual-telefono" placeholder="Teléfono" type="tel"/>
+<input id="ejido-manual-curp" maxlength="18" placeholder="CURP" style="text-transform:uppercase;" type="text"/>
+</div>
+<p class="text-xs font-bold mt-2" style="color:var(--pine);">2. Unidad de producción</p>
+<div class="grid grid-cols-2 gap-2">
+<input id="ejido-manual-upp" placeholder="UPP" type="text"/>
+<input id="ejido-manual-predio" placeholder="Nombre del predio" type="text"/>
+</div>
+<button class="w-full text-xs font-bold py-2 rounded-full mt-2" onclick="agregarProductorManualEjido()" style="background:var(--pine); color:#fff;" type="button">Agregar a la sesión</button>
+</div>
+<p class="campo-label mt-2">Productores en esta sesión</p>
+<div class="space-y-2" id="lista-productores-ejido"></div>
+</div>
 </div>
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold mb-1">III. De la prueba</h3>
@@ -1342,21 +1584,47 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </div>
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold mb-1"><i class="fa-solid fa-magnifying-glass mr-1"></i>Buscar arete rápido</h3>
+<p class="text-xs" style="color:var(--sage);">Escribe los últimos 4 dígitos del arete — casi nunca se repiten en el mismo hato. Al confirmar, se agrega solo y el cuadro se limpia para el siguiente.</p>
+<div class="flex gap-2">
+<input id="ba-terminacion" maxlength="15" oninput="buscarPorTerminacionArete()" placeholder="Últimos 4 dígitos (o número completo)" style="flex:1;" type="text"/>
+</div>
+<div id="ba-resultado"></div>
+</div>
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold mb-1">IV. Resultados</h3>
 <div class="grid grid-cols-3 gap-2 text-center" id="resumen-pc">
 <div class="rounded-xl p-2" style="background:var(--parchment);"><p class="text-lg font-bold" id="resumen-pc-total">0</p><p class="text-xs" style="color:var(--sage);">Total probados</p></div>
 <div class="rounded-xl p-2" style="background:var(--parchment);"><p class="text-lg font-bold" id="resumen-pc-negativos">0</p><p class="text-xs" style="color:var(--sage);">Negativos</p></div>
 <div class="rounded-xl p-2" style="background:var(--parchment);"><p class="text-lg font-bold" id="resumen-pc-reactores">0</p><p class="text-xs" style="color:var(--sage);">Reactores</p></div>
 </div>
-<div class="flex items-center justify-between">
+<div class="flex items-center justify-between gap-2">
 <h3 class="font-display font-bold">Animales trabajados</h3>
+<div class="flex gap-2">
+<button onclick="abrirSelectorInventarioProductor()" class="text-xs font-bold px-3 py-1.5 rounded-full" style="background:var(--teal); color:#fff;"><i class="fa-solid fa-list-check"></i> Del inventario</button>
 <button onclick="agregarFilaAnimalPruebaCampo()" class="text-xs font-bold px-3 py-1.5 rounded-full" style="background:var(--pine); color:#fff;"><i class="fa-solid fa-plus"></i> Agregar</button>
+</div>
 </div>
 <div class="space-y-3" id="lista-animales-prueba-campo"></div>
 </div>
 <button class="w-full btn-primario-plano" onclick="guardarPruebaCampo()" style="background:var(--pine);">
 <i class="fa-solid fa-check"></i> Guardar
 </button>
+</div>
+<!-- ---- SELECTOR DE INVENTARIO DEL PRODUCTOR (para prueba de campo) ---- -->
+<div class="hidden" id="modal-selector-inventario" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:85; align-items:flex-end;">
+<div class="w-full bg-white rounded-t-3xl p-5 space-y-3" style="max-height:88vh; overflow-y:auto;">
+<div class="flex items-center justify-between">
+<h3 class="font-display text-lg font-bold">Animales vigentes del productor</h3>
+<button onclick="document.getElementById('modal-selector-inventario').classList.add('hidden')" style="color:var(--sage);"><i class="fa-solid fa-xmark text-xl"></i></button>
+</div>
+<p class="text-xs" style="color:var(--sage);">Se excluyen automáticamente los animales vendidos o dados de baja. Marca los que se trabajarán en esta prueba.</p>
+<input id="si-buscar" oninput="renderSelectorInventarioProductor()" placeholder="Buscar por arete o nombre..." type="text"/>
+<div class="space-y-2" id="lista-selector-inventario"></div>
+<button class="w-full btn-primario-plano" onclick="agregarSeleccionadosDeInventario()" style="background:var(--teal);">
+<i class="fa-solid fa-check"></i> Agregar seleccionados
+</button>
+</div>
 </div>
 <!-- ---------- CUENTAS DE PRODUCTORES (alta, vigencia, métricas) ---------- -->
 <div class="screen px-5 py-6 space-y-5" id="screen-admin-cuentas">
@@ -1461,19 +1729,40 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <h2 class="font-display text-2xl font-bold" data-i18n="datos_productor__datos_del_productor">Datos del productor</h2>
 <p class="text-sm" data-i18n="admin_info_general__esto_es_lo_que_vera" style="color:var(--sage);">Esto es lo que verá el productor en su resumen.</p>
 <div class="bg-white rounded-3xl p-5 space-y-4" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">1. Propietario</h3>
 <div class="grid grid-cols-2 gap-3">
-<div><label class="campo-label" data-i18n="editar_datos_productor__nombre">Nombre</label><input id="adm-nombre" oninput="guardarProductor()" type="text"/></div>
-<div><label class="campo-label" data-i18n="editar_datos_productor__nombre_del_predio">Nombre del predio</label><input id="adm-predio" oninput="guardarProductor()" type="text"/></div>
-<div><label class="campo-label">UPP</label><input id="adm-upp" oninput="guardarProductor()" type="text"/></div>
+<div><label class="campo-label">Apellido paterno</label><input id="adm-apellidopaterno" oninput="previsualizarNombreCompleto('adm'); guardarProductor();" type="text"/></div>
+<div><label class="campo-label">Apellido materno</label><input id="adm-apellidomaterno" oninput="previsualizarNombreCompleto('adm'); guardarProductor();" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Nombre(s)</label><input id="adm-nombres" oninput="previsualizarNombreCompleto('adm'); guardarProductor();" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Domicilio</label><input id="adm-domicilio" oninput="guardarProductor()" type="text" value="Conocido"/></div>
+<div>
+<label class="campo-label">Estado</label>
+<select id="adm-estado" onchange="cargarMunicipiosSelector('adm'); guardarProductor();"><option value="">Selecciona...</option></select>
+</div>
+<div>
+<label class="campo-label">Municipio</label>
+<select id="adm-municipio" onchange="mostrarMunicipioManual('adm'); guardarProductor();"><option value="">Selecciona el estado primero</option></select>
+<input class="hidden mt-1" id="adm-municipio-manual" oninput="guardarProductor()" placeholder="Escribe el municipio" type="text"/>
+</div>
+<div class="col-span-2"><label class="campo-label">Localidad / Población</label><input id="adm-localidad" oninput="guardarProductor()" placeholder="Obligatorio" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Correo electrónico (opcional)</label><input id="adm-correo" oninput="guardarProductor()" type="email"/></div>
+<div><label class="campo-label">CURP</label><input id="adm-curp" maxlength="18" oninput="guardarProductor()" style="text-transform:uppercase;" type="text"/></div>
+</div>
+</div>
+<div class="bg-white rounded-3xl p-5 space-y-4" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">2. Unidad de producción</h3>
+<div class="grid grid-cols-2 gap-3">
+<div><label class="campo-label">UPP</label><input id="adm-upp" oninput="guardarProductor()" placeholder="Obligatorio" type="text"/></div>
+<div><label class="campo-label" data-i18n="editar_datos_productor__nombre_del_predio">Nombre del predio</label><input id="adm-predio" oninput="guardarProductor()" placeholder="Obligatorio" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__ultima_actualizacion_upp">Última actualización UPP</label><input id="adm-actualizacionupp" oninput="guardarProductor()" type="date"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__folio_fierro_de_herrar">Folio fierro de herrar</label><input id="adm-folio" oninput="guardarProductor()" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__vencimiento_credencial_fierro">Vencimiento credencial fierro</label><input id="adm-vencimientofierro" oninput="guardarProductor()" type="date"/></div>
-<div><label class="campo-label" data-i18n="editar_datos_productor__estado">Estado</label><input id="adm-estado" oninput="guardarProductor()" type="text"/></div>
-<div><label class="campo-label" data-i18n="editar_datos_productor__municipio">Municipio</label><input id="adm-municipio" oninput="guardarProductor()" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__ejido_parcela">Ejido / parcela</label><input id="adm-ejido" oninput="guardarProductor()" type="text"/></div>
-<div><label class="campo-label">CURP</label><input id="adm-curp" maxlength="18" oninput="guardarProductor()" style="text-transform:uppercase;" type="text"/></div>
 <div class="col-span-2"><label class="campo-label" data-i18n="editar_datos_productor__actividad_pecuaria">Actividad pecuaria</label><input id="adm-actividad" oninput="guardarProductor()" type="text"/></div>
 </div>
+<button class="w-full text-sm font-bold py-2 rounded-full" onclick="registrarUbicacionUPP('adm')" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);">
+<i class="fa-solid fa-location-crosshairs mr-1"></i><span id="adm-gps-texto">Registrar ubicación GPS</span>
+</button>
 </div>
 </div>
 <!-- ---------- CONFIGURACION DE VENTANAS ---------- -->
@@ -6464,7 +6753,10 @@ const quiereAbrirChatDirecto = parametrosURLInicio.get('abrir') === 'chat';
 const estado = {
 rolActual: 'productor', 
 productor: {
-nombre:'', predio:'', upp:'', folio:'', estado:'', municipio:'', ejido:'', actividad:'',
+nombre:'', apellidoPaterno:'', apellidoMaterno:'', nombres:'',
+domicilio:'Conocido', localidad:'', correoElectronico:'',
+predio:'', upp:'', folio:'', estado:'', municipio:'', ejido:'', actividad:'',
+latitudUPP:null, longitudUPP:null,
 suscripcion: { fechaAlta: null, diasVigencia: 365, fechaVencimiento: null },
 camposPersonalizados: {},
 },
@@ -6490,6 +6782,8 @@ ventanasExtra: [],
 banners: [],
 predios: [],
 modoVeterinario: false,
+modoCapturista: false,
+modoAlmita: false,
 pushActivado: false,
 mensajes: [],
 visitasVet: [],
@@ -6532,6 +6826,11 @@ estado.solicitudesVinculacionLeche = [];
 estado.solicitudesRegistro = [];
 estado.mensajesPorProductor = {};
 estado.pruebasCampoVet = [];
+estado.solicitudesAretes = [];
+estado.solicitudesPrueba = [];
+estado.solicitudesCEFP = [];
+estado.enviosAlmita = [];
+estado.solicitudesCEFPPVet = [];
 estado.plantillasMensajes = [];
 estado.mensajesProgramados = [];
 estado.eventosUso = [];
@@ -6640,6 +6939,7 @@ fecha: s.fechaResolucion, hora: s.horaResolucion,
 });
 renderSolicitudesTransferencia();
 if (typeof renderHato === 'function') renderHato();
+renderResumenVientresToros();
 if (typeof renderResumenProductor === 'function') renderResumenProductor();
 mostrarToast(`Transferencia autorizada: el arete ${s.arete} ahora pertenece a ${s.nombreSolicitante}`);
 }
@@ -6728,11 +7028,25 @@ if (!estado.iconosBotones || typeof estado.iconosBotones !== 'object') estado.ic
 'q_recepcion','q_reportes','q_productores'].forEach(k => { if (!(k in estado.iconosBotones)) estado.iconosBotones[k] = ''; });
 if (!Array.isArray(estado.camposPersonalizadosDef)) estado.camposPersonalizadosDef = [];
 if (!estado.productor.camposPersonalizados || typeof estado.productor.camposPersonalizados !== 'object') estado.productor.camposPersonalizados = {};
+if (!estado.productor.domicilio) estado.productor.domicilio = 'Conocido';
+if (!('apellidoPaterno' in estado.productor)) estado.productor.apellidoPaterno = '';
+if (!('apellidoMaterno' in estado.productor)) estado.productor.apellidoMaterno = '';
+if (!('nombres' in estado.productor)) estado.productor.nombres = '';
+if (!('localidad' in estado.productor)) estado.productor.localidad = '';
+if (!('correoElectronico' in estado.productor)) estado.productor.correoElectronico = '';
+if (!('latitudUPP' in estado.productor)) estado.productor.latitudUPP = null;
+if (!('longitudUPP' in estado.productor)) estado.productor.longitudUPP = null;
 if (typeof estado.moonitor.sonidoActivado !== 'boolean') estado.moonitor.sonidoActivado = true;
 if (!('puntoActivoId' in estado)) estado.puntoActivoId = null;
 if (!estado.permisosTrabajador || typeof estado.permisosTrabajador !== 'object') estado.permisosTrabajador = { moduloA:true, moduloB:true, moduloC:false, moduloD:true, moduloE:false, moduloF:false, moduloG:false, moduloH:false, moduloI:false, moduloJ:false, moduloK:false };
 if (!estado.mensajesPorProductor || typeof estado.mensajesPorProductor !== 'object') estado.mensajesPorProductor = {};
 if (!Array.isArray(estado.pruebasCampoVet)) estado.pruebasCampoVet = [];
+if (!Array.isArray(estado.solicitudesAretes)) estado.solicitudesAretes = [];
+if (!Array.isArray(estado.solicitudesPrueba)) estado.solicitudesPrueba = [];
+if (!Array.isArray(estado.solicitudesCEFP)) estado.solicitudesCEFP = [];
+if (!Array.isArray(estado.enviosAlmita)) estado.enviosAlmita = [];
+if (!Array.isArray(estado.solicitudesCEFPPVet)) estado.solicitudesCEFPPVet = [];
+if (!Array.isArray(estado.historialImpresiones)) estado.historialImpresiones = [];
 if (!Array.isArray(estado.plantillasMensajes)) estado.plantillasMensajes = [];
 if (!Array.isArray(estado.mensajesProgramados)) estado.mensajesProgramados = [];
 if (!Array.isArray(estado.eventosUso)) estado.eventosUso = [];
@@ -7039,6 +7353,8 @@ const TILES = [
 { id:'graficas',   color:'bg-teal',   icono:'fa-chart-column',  labelKey:'tile_graficas', ir:"irA('graficas')" },
 { id:'boletines',  color:'bg-pink',   icono:'fa-bullhorn',      labelKey:'tile_boletines',ir:"irA('boletines')" },
 ];
+const ESTADOS_MEXICO = ["Aguascalientes","Baja California","Baja California Sur","Campeche","Coahuila de Zaragoza","Colima","Chiapas","Chihuahua","Ciudad de México","Durango","Guanajuato","Guerrero","Hidalgo","Jalisco","México","Michoacán de Ocampo","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz de Ignacio de la Llave","Yucatán","Zacatecas"];
+const MUNICIPIOS_MEXICO = {"Aguascalientes":["Aguascalientes","Asientos","Calvillo","Cosío","El Llano","Jesús María","Pabellón de Arteaga","Rincón de Romos","San Francisco de los Romo","San José de Gracia","Tepezalá"],"Baja California":["Ensenada","Mexicali","Playas de Rosarito","San Felipe","San Quintín","Tecate","Tijuana"],"Baja California Sur":["Comondú","La Paz","Loreto","Los Cabos","Mulegé"],"Campeche":["Calakmul","Calkiní","Campeche","Candelaria","Carmen","Champotón","Dzitbalché","Escárcega","Hecelchakán","Hopelchén","Palizada","Seybaplaya","Tenabo"],"Coahuila de Zaragoza":["Abasolo","Acuña","Allende","Arteaga","Candela","Castaños","Cuatro Ciénegas","Escobedo","Francisco I. Madero","Frontera","General Cepeda","Guerrero","Hidalgo","Jiménez","Juárez","Lamadrid","Matamoros","Monclova","Morelos","Múzquiz","Nadadores","Nava","Ocampo","Parras","Piedras Negras","Progreso","Ramos Arizpe","Sabinas","Sacramento","Saltillo","San Buenaventura","San Juan de Sabinas","San Pedro","Sierra Mojada","Torreón","Viesca","Villa Unión","Zaragoza"],"Colima":["Armería","Colima","Comala","Coquimatlán","Cuauhtémoc","Ixtlahuacán","Manzanillo","Minatitlán","Tecomán","Villa de Álvarez"],"Chiapas":["Acacoyagua","Acala","Acapetahua","Aldama","Altamirano","Amatenango de la Frontera","Amatenango del Valle","Amatán","Arriaga","Bejucal de Ocampo","Bella Vista","Benemérito de las Américas","Berriozábal","Bochil","Cacahoatán","Catazajá","Chalchihuitán","Chamula","Chanal","Chapultenango","Chenalhó","Chiapa de Corzo","Chiapilla","Chicoasén","Chicomuselo","Chilón","Cintalapa de Figueroa","Coapilla","Comitán de Domínguez","Copainalá","El Bosque","El Porvenir","Emiliano Zapata","Escuintla","Francisco León","Frontera Comalapa","Frontera Hidalgo","Huehuetán","Huitiupán","Huixtla","Huixtán","Ixhuatán","Ixtacomitán","Ixtapa","Ixtapangajoya","Jiquipilas","Jitotol","Juárez","La Concordia","La Grandeza","La Independencia","La Libertad","La Trinitaria","Larráinzar","Las Margaritas","Las Rosas","Mapastepec","Maravilla Tenejapa","Marqués de Comillas","Mazapa de Madero","Mazatán","Metapa","Mezcalapa","Mitontic","Motozintla","Nicolás Ruíz","Ocosingo","Ocotepec","Ocozocoautla de Espinosa","Ostuacán","Osumacinta","Oxchuc","Palenque","Pantelhó","Pantepec","Pichucalco","Pijijiapan","Pueblo Nuevo Solistahuacán","Rayón","Reforma","Sabanilla","Salto de Agua","San Andrés Duraznal","San Cristóbal de las Casas","San Fernando","San Juan Cancuc","San Lucas","Santiago el Pinar","Siltepec","Simojovel","Sitalá","Socoltenango","Solosuchiapa","Soyaló","Suchiapa","Suchiate","Sunuapa","Tapachula","Tapalapa","Tapilula","Tecpatán","Tenejapa","Teopisca","Tila","Tonalá","Totolapa","Tumbalá","Tuxtla Chico","Tuxtla Gutiérrez","Tuzantán","Tzimol","Unión Juárez","Venustiano Carranza","Villa Comaltitlán","Villa Corzo","Villaflores","Yajalón","Zinacantán","Ángel Albino Corzo"],"Chihuahua":["Ahumada","Aldama","Allende","Aquiles Serdán","Ascensión","Bachíniva","Balleza","Batopilas de Manuel Gómez Morín","Bocoyna","Buenaventura","Camargo","Carichí","Casas Grandes","Chihuahua","Chínipas","Coronado","Coyame del Sotol","Cuauhtémoc","Cusihuiriachi","Delicias","Dr. Belisario Domínguez","El Tule","Galeana","Gran Morelos","Guachochi","Guadalupe","Guadalupe y Calvo","Guazapares","Guerrero","Gómez Farías","Hidalgo del Parral","Huejotitán","Ignacio Zaragoza","Janos","Jiménez","Julimes","Juárez","La Cruz","López","Madera","Maguarichi","Manuel Benavides","Matachí","Matamoros","Meoqui","Morelos","Moris","Namiquipa","Nonoava","Nuevo Casas Grandes","Ocampo","Ojinaga","Praxedis G. Guerrero","Riva Palacio","Rosales","San Francisco de Borja","San Francisco de Conchos","San Francisco del Oro","Santa Bárbara","Santa Isabel","Satevó","Saucillo","Temósachic","Urique","Uruachi","Valle de Zaragoza","Valle del Rosario"],"Ciudad de México":["Azcapotzalco","Benito Juárez","Coyoacán","Cuajimalpa de Morelos","Cuauhtémoc","Gustavo A. Madero","Iztacalco","Iztapalapa","La Magdalena Contreras","Miguel Hidalgo","Milpa Alta","Tlalpan","Tláhuac","Venustiano Carranza","Xochimilco","Álvaro Obregón"],"Durango":["Canatlán","Canelas","Coneto de Comonfort","Cuencamé","Durango","El Oro","General Simón Bolívar","Guadalupe Victoria","Guanaceví","Gómez Palacio","Hidalgo","Indé","Lerdo","Mapimí","Mezquital","Nazas","Nombre de Dios","Nuevo Ideal","Ocampo","Otáez","Peñón Blanco","Poanas","Pueblo Nuevo","Pánuco de Coronado","Rodeo","San Bernardo","San Dimas","San Juan de Guadalupe","San Juan del Río","San Luis del Cordero","San Pedro del Gallo","Santa Clara","Santiago Papasquiaro","Súchil","Tamazula","Tepehuanes","Tlahualilo","Topia","Vicente Guerrero"],"Guanajuato":["Abasolo","Acámbaro","Apaseo el Alto","Apaseo el Grande","Atarjea","Celaya","Comonfort","Coroneo","Cortazar","Cuerámaro","Doctor Mora","Dolores Hidalgo Cuna de la Independencia Nacional","Guanajuato","Huanímaro","Irapuato","Jaral del Progreso","Jerécuaro","León","Manuel Doblado","Moroleón","Ocampo","Pueblo Nuevo","Purísima del Rincón","Pénjamo","Romita","Salamanca","Salvatierra","San Diego de la Unión","San Felipe","San Francisco del Rincón","San José de Iturbide","San Luis de la Paz","San Miguel de Allende","Santa Catarina","Santa Cruz de Juventino Rosas","Santiago Maravatío","Silao de la Victoria","Tarandacuao","Tarimoro","Tierra Blanca","Uriangato","Valle de Santiago","Victoria","Villagrán","Xichú","Yuriria"],"Guerrero":["Acapulco de Juárez","Acatepec","Ahuacuotzingo","Ajuchitlán del Progreso","Alcozauca de Guerrero","Alpoyeca","Apaxtla de Castrejón","Arcelia","Atenango del Río","Atlamajalcingo del Monte","Atlixtac","Atoyac de Álvarez","Ayutla de los Libres","Azoyú","Benito Juárez","Buenavista de Cuéllar","Chilapa de Álvarez","Chilpancingo de los Bravo","Coahuayutla de José María Izazaga","Cochoapa el Grande","Cocula","Copala","Copalillo","Copanatoyac","Coyuca de Benítez","Coyuca de Catalán","Cuajinicuilapa","Cualác","Cuautepec","Cuetzala del Progreso","Cutzamala de Pinzón","Eduardo Neri","Florencio Villarreal","General Heliodoro Castillo","Huamuxtitlán","Huitzuco de los Figueroa","Iguala de la Independencia","Igualapa","Iliatenco","Ixcateopan de Cuauhtémoc","José Joaquín de Herrera","Juan R. Escudero","La Unión de Isidoro Montes de Oca","Leonardo Bravo","Malinaltepec","Marquelia","Metlatónoc","Mochitlán","Olinalá","Ometepec","Petatlán","Pilcaya","Pungarabato","Quechultenango","San Luis Acatlán","San Marcos","San Miguel Totolapan","Taxco de Alarcón","Tecoanapa","Teloloapan","Tepecoacuilco de Trujano","Tetipac","Tixtla de Guerrero","Tlacoachistlahuaca","Tlacoapa","Tlalchapa","Tlalixtaquilla de Maldonado","Tlapa de Comonfort","Tlapehuala","Técpan de Galeana","Xalpatláhuac","Xochihuehuetlán","Xochistlahuaca","Zapotitlán Tablas","Zihuatanejo de Azueta","Zirándaro","Zitlala"],"Hidalgo":["Acatlán","Acaxochitlán","Actopan","Agua Blanca de Iturbide","Ajacuba","Alfajayucan","Almoloya","Apan","Atitalaquia","Atlapexco","Atotonilco de Tula","Atotonilco el Grande","Calnali","Cardonal","Chapantongo","Chapulhuacán","Chilcuautla","Cuautepec de Hinojosa","El Arenal","Eloxochitlán","Emiliano Zapata","Epazoyucan","Francisco I. Madero","Huasca de Ocampo","Huautla","Huazalingo","Huehuetla","Huejutla de Reyes","Huichapan","Ixmiquilpan","Jacala de Ledezma","Jaltocán","Metepec","Metztitlán","Mineral de la Reforma","Mineral del Chico","Mineral del Monte","Mixquiahuala de Juárez","Molango de Escamilla","Nicolás Flores","Nopala de Villagrán","Omitlán de Juárez","Pachuca de Soto","Pisaflores","Progreso de Obregón","San Agustín Tlaxiaca","San Bartolo Tutotepec","San Felipe Orizatlán","Santiago Tulantepec de Lugo Guerrero","Singuilucan","Tasquillo","Tecozautla","Tenango de Doria","Tepeapulco","Tepehuacán de Guerrero","Tepeji del Río de Ocampo","Tetepango","Tezontepec de Aldama","Tianguistengo","Tizayuca","Tlahuelilpan","Tlahuiltepa","Tlanalapa","Tlanchinol","Tlaxcoapan","Tolcayuca","Tula de Allende","Tulancingo de Bravo","Xochiatipan","Xochicoatlán","Yahualica","Zacualtipán de Ángeles","Zapotlán de Juárez","Zempoala","Zimapán"],"Jalisco":["Acatic","Acatlán de Juárez","Ahualulco de Mercado","Amacueca","Amatitán","Ameca","Arandas","Atemajac de Brizuela","Atengo","Atenguillo","Atotonilco el Alto","Atoyac","Autlán de Navarro","Ayotlán","Ayutla","Bolaños","Cabo Corrientes","Casimiro Castillo","Chapala","Chimaltitán","Chiquilistlán","Cihuatlán","Cocula","Colotlán","Concepción de Buenos Aires","Cuautitlán de García Barragán","Cuautla","Cuquío","Degollado","Ejutla","El Arenal","El Grullo","El Limón","El Salto","Encarnación de Díaz","Etzatlán","Guachinango","Guadalajara","Gómez Farías","Hostotipaquillo","Huejuquilla el Alto","Ixtlahuacán de los Membrillos","Ixtlahuacán del Río","Jalostotitlán","Jamay","Jesús María","Jilotlán de los Dolores","Jocotepec","Juanacatlán","Juchitlán","La Barca","La Huerta","Lagos de Moreno","Magdalena","Mascota","Mazamitla","Mexticacán","Mezquitic","Mixtlán","Ocotlán","Ojuelos de Jalisco","Pihuamo","Poncitlán","Puerto Vallarta","San Cristóbal de la Barranca","San Gabriel","San Juan de los Lagos","San Julián","San Martín Hidalgo","San Miguel el Alto","San Pedro Tlaquepaque","Sayula","Tala","Talpa de Allende","Tamazula de Gordiano","Tapalpa","Tecalitlán","Tecolotlán","Tenamaxtlán","Teocaltiche","Teocuitatlán de Corona","Tepatitlán de Morelos","Tequila","Teuchitlán","Tizapán el Alto","Tlajomulco de Zúñiga","Tolimán","Tomatlán","Tonalá","Tonaya","Tonila","Totatiche","Tototlán","Tuxpan","Unión de San Antonio","Unión de Tula","Valle de Guadalupe","Villa Corona","Villa Guerrero","Villa Hidalgo","Villa Purificación","Yahualica de González Gallo","Zacoalco de Torres","Zapopan","Zapotiltic","Zapotitlán de Vadillo","Zapotlanejo","Zapotlán del Rey","Zapotlán el Grande"],"México":["Acambay de Ruíz Castañeda","Acolman","Aculco","Almoloya de Alquisiras","Almoloya de Juárez","Almoloya del Río","Amanalco","Amatepec","Amecameca","Apaxco","Atenco","Atizapán","Atizapán de Zaragoza","Atlacomulco","Atlautla","Axapusco","Ayapango","Calimaya","Capulhuac","Chalco","Chapa de Mota","Chapultepec","Chiautla","Chicoloapan","Chiconcuac","Chimalhuacán","Coacalco de Berriozábal","Coatepec Harinas","Cocotitlán","Coyotepec","Cuautitlán","Cuautitlán Izcalli","Donato Guerra","Ecatepec de Morelos","Ecatzingo","El Oro","Huehuetoca","Hueypoxtla","Huixquilucan","Ixtapaluca","Ixtapan de la Sal","Ixtlahuaca","Jaltenco","Jilotepec","Jiquipilco","Jocotitlán","Joquicingo","Juchitepec","La Paz","Lerma","Malinalco","Melchor Ocampo","Metepec","Naucalpan de Juárez","Nezahualcóyotl","Nicolás Romero","Ocoyoacac","Otumba","Otzolotepec","Ozumba","Rayón","San Felipe del Progreso","San Mateo Atenco","Tecámac","Tejupilco","Temascalcingo","Temoaya","Tenancingo","Tenango del Valle","Teoloyucan","Teotihuacán","Tepotzotlán","Tequixquiac","Texcoco","Tianguistenco","Tlalmanalco","Tlalnepantla de Baz","Toluca","Tultepec","Tultitlán","Valle de Bravo","Valle de Chalco Solidaridad","Villa Victoria","Xonacatlán","Zinacantepec","Zumpango"],"Michoacán de Ocampo":["Acuitzio","Aguililla","Angamacutiro","Angangueo","Apatzingán","Aporo","Aquila","Ario","Arteaga","Briseñas","Buenavista","Carácuaro","Charapan","Charo","Chavinda","Cherán","Chilchota","Chinicuila","Chucándiro","Churintzio","Churumuco","Coahuayana","Coalcomán de Vázquez Pallares","Coeneo","Contepec","Copándaro","Cotija","Cuitzeo","Ecuandureo","Erongarícuaro","Hidalgo","Huandacareo","Huaniqueo","Huetamo","Indaparapeo","Jacona","Jiménez","Jiquilpan","Jungapeo","Juárez","La Huacana","La Piedad","Lagunillas","Los Reyes","Lázaro Cárdenas","Madero","Maravatío","Morelia","Morelos","Múgica","Nahuatzen","Nuevo Parangaricutiro","Ocampo","Pajacuarán","Panindícuaro","Paracho","Parácuaro","Penjamillo","Peribán","Puruándiro","Purépero","Pátzcuaro","Queréndaro","Quiroga","Sahuayo","Salvador Escalante","Santa Ana Maya","Senguio","Susupuato","Tacámbaro","Tancítaro","Tangamandapio","Tangancícuaro","Tanhuato","Taretan","Tarímbaro","Tepalcatepec","Tingambato","Tingüindín","Tlalpujahua","Tocumbo","Tumbiscatío","Turicato","Tuxpan","Tuzantla","Tzintzuntzan","Uruapan","Venustiano Carranza","Villamar","Yurécuaro","Zacapu","Zamora","Zinapécuaro","Ziracuaretiro","Zitácuaro","Álvaro Obregón"],"Morelos":["Amacuzac","Atlatlahucan","Axochiapan","Ayala","Coatetelco","Coatlán del Río","Cuautla","Cuernavaca","Emiliano Zapata","Hueyapan","Huitzilac","Jantetelco","Jiutepec","Jojutla","Jonacatepec de Leandro Valle","Mazatepec","Miacatlán","Ocuituco","Puente de Ixtla","Temixco","Temoac","Tepalcingo","Tepoztlán","Tetecala","Tetela del Volcán","Tlalnepantla","Tlaltizapán de Zapata","Tlaquiltenango","Tlayacapan","Totolapan","Xochitepec","Xoxocotla","Yautepec","Yecapixtla","Zacatepec","Zacualpan de Amilpas"],"Nayarit":["Acaponeta","Ahuacatlán","Amatlán de Cañas","Bahía de Banderas","Compostela","Del Nayar","Huajicori","Ixtlán del Río","Jala","La Yesca","Rosamorada","Ruíz","San Blas","San Pedro Lagunillas","Santa María del Oro","Santiago Ixcuintla","Tecuala","Tepic","Tuxpan","Xalisco"],"Nuevo León":["Abasolo","Agualeguas","Los Aldamas","Allende","Anáhuac","Apodaca","Aramberri","Bustamante","Cadereyta Jiménez","El Carmen","Cerralvo","Ciénega de Flores","China","Doctor Arroyo","Doctor Coss","Doctor González","Galeana","García","San Pedro Garza García","General Bravo","General Escobedo","General Terán","General Treviño","General Zaragoza","General Zuazua","Guadalupe","Los Herreras","Higueras","Hualahuises","Iturbide","Juárez","Lampazos de Naranjo","Linares","Marín","Melchor Ocampo","Mier y Noriega","Mina","Montemorelos","Monterrey","Parás","Pesquería","Los Ramones","Rayones","Sabinas Hidalgo","Salinas Victoria","San Nicolás de los Garza","Hidalgo","Santa Catarina","Santiago","Vallecillo","Villaldama"],"Oaxaca":["Oaxaca de Juárez","Ejutla de Crespo","Huajuapan de León","Juchitán de Zaragoza","Miahuatlán de Porfirio Díaz","Pinotepa Nacional","Puerto Escondido (San Pedro Mixtepec)","Salina Cruz","San Juan Bautista Tuxtepec","Santa Cruz Xoxocotlán","Santa Lucía del Camino","Santo Domingo Tehuantepec","Tlacolula de Matamoros","Tlaxiaco","Zimatlán de Álvarez","Loma Bonita","Matías Romero Avendaño","Villa de Etla"],"Puebla":["Puebla","Amozoc","Atlixco","Cholula (San Pedro Cholula)","San Andrés Cholula","Cuautlancingo","Huauchinango","Huejotzingo","Izúcar de Matamoros","San Martín Texmelucan","Tehuacán","Teziutlán","Zacatlán"],"Querétaro":["Amealco de Bonfil","Arroyo Seco","Cadereyta de Montes","Colón","Corregidora","Ezequiel Montes","Huimilpan","Jalpan de Serra","Landa de Matamoros","El Marqués","Pedro Escobedo","Peñamiller","Pinal de Amoles","Querétaro","San Joaquín","San Juan del Río","Tequisquiapan","Tolimán"],"Quintana Roo":["Bacalar","Benito Juárez","Cozumel","Felipe Carrillo Puerto","Isla Mujeres","José María Morelos","Lázaro Cárdenas","Othón P. Blanco","Puerto Morelos","Solidaridad","Tulum"],"San Luis Potosí":["Ahualulco","Alaquines","Aquismón","Armadillo de los Infante","Cárdenas","Catorce","Cedral","Cerritos","Cerro de San Pedro","Charcas","Ciudad Fernández","Ciudad Valles","Ciudad del Maíz","Coxcatlán","Ebano","Guadalcázar","Huehuetlán","Matehuala","Mexquitic de Carmona","Moctezuma","Rayón","Rioverde","Salinas","San Antonio","San Ciro de Acosta","San Luis Potosí","San Martín Chalchicuautla","San Nicolás Tolentino","Santa Catarina","Santa María del Río","Santo Domingo","Soledad de Graciano Sánchez","Tamasopo","Tamazunchale","Tampacán","Tampamolón Corona","Tamuín","Tancanhuitz","Tanlajás","Tanquián de Escobedo","Tierra Nueva","Vanegas","Venado","Villa Juárez","Villa de Arriaga","Villa de Guadalupe","Villa de Ramos","Villa de Reyes","Villa Hidalgo","Xilitla","Zaragoza"],"Sinaloa":["Ahome","Angostura","Badiraguato","Choix","Concordia","Cosalá","Culiacán","Elota","Escuinapa","El Fuerte","Guasave","Mazatlán","Mocorito","Rosario","Salvador Alvarado","San Ignacio","Sinaloa","Navolato"],"Sonora":["Aconchi","Agua Prieta","Alamos","Altar","Arivechi","Arizpe","Atil","Bacadéhuachi","Bacanora","Bacerac","Bacoachi","Bácum","Banámichi","Baviácora","Bavispe","Benito Juárez","Benjamín Hill","Caborca","Cajeme","Cananea","Carbó","La Colorada","Cucurpe","Cumpas","Divisaderos","Empalme","Etchojoa","Fronteras","General Plutarco Elías Calles","Guaymas","Hermosillo","Huachinera","Huásabas","Huatabampo","Huépac","Imuris","Mazatán","Moctezuma","Naco","Nácori Chico","Nacozari de García","Navojoa","Nogales","Onavas","Opodepe","Oquitoa","Pitiquito","Puerto Peñasco","Quiriego","Rayón","Rosario","Sahuaripa","San Felipe de Jesús","San Ignacio Río Muerto","San Javier","San Luis Río Colorado","San Miguel de Horcasitas","San Pedro de la Cueva","Santa Ana","Santa Cruz","Sáric","Soyopa","Suaqui Grande","Tepache","Trincheras","Tubutama","Ures","Villa Hidalgo","Villa Pesqueira","Yécora"],"Tabasco":["Balancán","Cárdenas","Centla","Centro","Comalcalco","Cunduacán","Emiliano Zapata","Huimanguillo","Jalapa","Jalpa de Méndez","Jonuta","Macuspana","Nacajuca","Paraíso","Tacotalpa","Teapa","Tenosique"],"Tamaulipas":["Abasolo","Aldama","Altamira","Antiguo Morelos","Burgos","Bustamante","Camargo","Casas","Ciudad Madero","Cruillas","Gómez Farías","González","Güémez","Guerrero","Gustavo Díaz Ordaz","Hidalgo","Jaumave","Jiménez","Llera","Mainero","El Mante","Matamoros","Méndez","Mier","Miguel Alemán","Miquihuana","Nuevo Laredo","Nuevo Morelos","Ocampo","Padilla","Palmillas","Reynosa","Río Bravo","San Carlos","San Fernando","San Nicolás","Soto la Marina","Tampico","Tula","Valle Hermoso","Victoria","Villagrán","Xicoténcatl"],"Tlaxcala":["Amaxac de Guerrero","Apetatitlán de Antonio Carvajal","Atlangatepec","Atltzayanca","Apizaco","Calpulalpan","El Carmen Tequexquitla","Cuapiaxtla","Cuaxomulco","Chiautempan","Muñoz de Domingo Arenas","Españita","Huamantla","Hueyotlipan","Ixtacuixtla de Mariano Matamoros","Ixtenco","Mazatecochco de José María Morelos","Contla de Juan Cuamatzi","Tepetitla de Lardizábal","Sanctórum de Lázaro Cárdenas","Nanacamilpa de Mariano Arista","Acuamanala de Miguel Hidalgo","Natívitas","Panotla","San Pablo del Monte","Santa Cruz Tlaxcala","Tenancingo","Teolocholco","Tepeyanco","Terrenate","Tetla de la Solidaridad","Tetlatlahuca","Tlaxcala","Tlaxco","Tocatlán","Totolac","Xaloztoc","Xaltocan","Papalotla de Xicohténcatl","Xicohtzinco","Yauhquemehcan","Zacatelco","Benito Juárez","Emiliano Zapata","Lázaro Cárdenas"],"Veracruz de Ignacio de la Llave":["Acayucan","Alvarado","Boca del Río","Coatzacoalcos","Córdoba","Cosamaloapan de Carpio","Cosoleacaque","Fortín","Ixtaczoquitlán","Martínez de la Torre","Minatitlán","Orizaba","Papantla","Poza Rica de Hidalgo","San Andrés Tuxtla","Tantoyuca","Tierra Blanca","Tuxpan","Veracruz","Xalapa"],"Yucatán":["Abalá","Acanceh","Akil","Baca","Bokobá","Buctzotz","Cacalchén","Calotmul","Cansahcab","Cantamayec","Celestún","Cenotillo","Chacsinkín","Chankom","Chapab","Chemax","Chicxulub Pueblo","Chichimilá","Chikindzonot","Chocholá","Chumayel","Conkal","Cuncunul","Cuzamá","Dzán","Dzemul","Dzidzantún","Dzilam González","Dzilam de Bravo","Dzitás","Dzoncauich","Espita","Halachó","Hocabá","Hoctún","Homún","Huhí","Hunucmá","Ixil","Izamal","Kanasín","Kantunil","Kaua","Kinchil","Kopomá","Mama","Maní","Maxcanú","Mayapán","Mérida","Mocochá","Motul","Muna","Muxupip","Opichén","Oxkutzcab","Panabá","Peto","Progreso","Quintana Roo","Río Lagartos","Sacalum","Samahil","San Felipe","Sanahcat","Santa Elena","Seyé","Sinanché","Sotuta","Sucilá","Sudzal","Suma","Tahdziú","Tahmek","Teabo","Tecoh","Tekal de Venegas","Tekantó","Tekax","Tekit","Tekom","Telchac Pueblo","Telchac Puerto","Temax","Temozón","Tepakán","Tetiz","Teya","Ticul","Timucuy","Tinum","Tixcacalcupul","Tixkokob","Tixmehuac","Tixpéhual","Tizimín","Tunkás","Tzucacab","Uayma","Ucú","Umán","Valladolid","Xocchel","Yaxcabá","Yaxkukul","Yobaín"],"Zacatecas":["Apozol","Apulco","Atolinga","Benito Juárez","Calera","Cañitas de Felipe Pescador","Concepción del Oro","Cuauhtémoc","Chalchihuites","Fresnillo","Trinidad García de la Cadena","Genaro Codina","General Enrique Estrada","General Francisco R. Murguía","El Plateado de Joaquín Amaro","General Pánfilo Natera","Guadalupe","Huanusco","Jalpa","Jerez","Jiménez del Teul","Juan Aldama","Juchipila","Loreto","Luis Moya","Mazapil","Melchor Ocampo","Mezquital del Oro","Miguel Auza","Momax","Monte Escobedo","Morelos","Moyahua de Estrada","Nochistlán de Mejía","Noria de Ángeles","Ojocaliente","Pánuco","Pinos","Río Grande","Sain Alto","El Salvador","Sombrerete","Susticacán","Tabasco","Tepechitlán","Tepetongo","Teúl de González Ortega","Tlaltenango de Sánchez Román","Valparaíso","Vetagrande","Villa de Cos","Villa García","Villa González Ortega","Villa Hidalgo","Villanueva","Zacatecas"]};
 const MODULOS = {
 A: { nombre:'Registro e Identificación Animal', corto:'Identificación<br>animal', icono:'fa-id-card',           color:'var(--blue)',   bg:'bg-blue' },
 B: { nombre:'Salud, Sanidad y Manejo',           corto:'Salud y<br>sanidad',       icono:'fa-syringe',           color:'var(--purple)', bg:'bg-purple' },
@@ -7180,6 +7496,18 @@ mostrarApp('admin');
 registrarEvento('login', 'veterinario');
 return;
 }
+if (usr.rol === 'capturista'){
+estado.modoCapturista = true;
+mostrarApp('admin');
+registrarEvento('login', 'capturista');
+return;
+}
+if (usr.rol === 'almita'){
+estado.modoAlmita = true;
+mostrarApp('admin');
+registrarEvento('login', 'almita');
+return;
+}
 if (!estado.tipoGanado) mostrarPantallaTipoGanado();
 else mostrarApp('productor');
 return;
@@ -7303,6 +7631,10 @@ const cedula = valor('reg-cedula').trim();
 const residencia = valor('reg-residencia').trim();
 if (!cedula || !residencia) faltaAlgo = true;
 else if (existeCedulaDuplicada(cedula)){ mostrarMoonitorRegistro(tr('login_seleccion_rol__moonitor_ya_existe')); return; }
+} else if (tipo === 'cefp'){
+const centro = valor('reg-cefp-centro').trim();
+const curp = valor('reg-cefp-curp').trim();
+if (!centro || !curp) faltaAlgo = true;
 } else if (tipo === 'punto'){
 const local = valor('reg-local').trim();
 if (!local) faltaAlgo = true;
@@ -7339,6 +7671,31 @@ const usuario = valor('reg-usuario').trim();
 const clave = valor('reg-clave');
 if (usuario.length < 6 || clave.length < 6){ mostrarMoonitorRegistro(tr('login_seleccion_rol__usuario_y_contrasena_6_caracteres')); return; }
 if (existeUsuarioDuplicado(usuario)){ mostrarMoonitorRegistro(tr('login_seleccion_rol__ese_usuario_ya_existe')); return; }
+if (tipo === 'cefp'){
+const centro = valor('reg-cefp-centro').trim();
+const curp = valor('reg-cefp-curp').trim().toUpperCase();
+const puesto = valor('reg-cefp-puesto');
+const boton = document.getElementById('btn-enviar-solicitud-registro');
+const textoBoton = document.getElementById('btn-enviar-solicitud-texto');
+if (boton) boton.disabled = true;
+if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__procesando');
+setTimeout(() => {
+if (!Array.isArray(estado.solicitudesCEFP)) estado.solicitudesCEFP = [];
+estado.solicitudesCEFP.push({
+id: 'solcefp_' + Date.now(), nombre, curp, telefono, centroTrabajo: centro, puesto,
+usuario, clave, fecha: hoyISO(), estatus: 'pendiente',
+});
+guardarEstadoLocal();
+establecerValor('reg-nombre',''); establecerValor('reg-cefp-centro',''); establecerValor('reg-cefp-curp',''); establecerValor('reg-telefono','');
+establecerValor('reg-clave','');
+if (boton) boton.disabled = false;
+if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__enviar_solicitud');
+cerrarRegistroCuenta();
+establecerValor('reg-usuario', '');
+mostrarMoonitorRegistro('¡Listo! Tu solicitud de cuenta CEFP quedó enviada. Un administrador debe autorizarla antes de que puedas entrar — te avisarán cuando esté lista.');
+}, 900);
+return;
+}
 if (tipo === 'mvz'){
 const cedula = valor('reg-cedula').trim();
 const residencia = valor('reg-residencia').trim();
@@ -7853,6 +8210,11 @@ document.getElementById('screen-codigo-trabajador').classList.remove('active');
 estado.modoTrabajador = false;
 estado.trabajadorActualId = null;
 estado.cuentaActivaId = null;
+estado.modoVeterinario = false;
+estado.vistaVeterinario = false;
+estado.veterinarioActivoId = null;
+estado.modoCapturista = false;
+estado.modoAlmita = false;
 if (typeof activarEscuchaCuentaActiva === 'function') activarEscuchaCuentaActiva();
 limpiarDatosDeCuentaActiva();
 estado.animales = HATO_DEMO;
@@ -7898,6 +8260,7 @@ if (nombre === 'tareas') renderMisTareas();
 if (nombre === 'visitas') renderVisitasVet();
 if (nombre === 'transferencias') renderSolicitudesTransferencia();
 if (nombre === 'pruebascampoproductor') renderPruebasCampoCompartidas();
+if (nombre === 'solicitudaretes') renderSolicitudAretesProductor();
 if (nombre === 'trabajadores') renderListaTrabajadores();
 if (nombre === 'home') renderTiles();
 const fabChatProd = document.getElementById('btn-chat-flotante-productor');
@@ -8297,7 +8660,11 @@ if (nombre === 'config-apariencia'){ pintarPrevisualizacionFondoHome(); pintarPr
 if (nombre === 'config-orden'){ renderTogglesModulos(); renderListaOrdenMas(); renderListaOrdenGraficas(); renderTogglesCampos(); renderCamposPersonalizadosAdmin(); }
 if (nombre === 'config-permisos'){ renderTogglesPermisosTrabajador(); inicializarQrAcceso(); }
 if (nombre === 'config-contenido'){ renderListaPlanSanitario(); renderTogglesVentanasExtra(); renderListaBanners(); renderListaPredios(); }
-if (nombre === 'pruebascampo') renderListaPruebasCampo();
+if (nombre === 'pruebascampo'){ renderListaPruebasCampo(); renderSolicitudesAretesVet(); renderSolicitudesPruebaVet(); renderSolicitudesCEFPPVet(); }
+if (nombre === 'pruebascapturista') renderPruebasCapturista();
+if (nombre === 'pruebasrealizadas') renderPruebasRealizadas();
+if (nombre === 'almita'){ renderEnviosAlmita(); renderSolicitudesCEFPPGeneradas(); }
+if (nombre === 'solicitudescefp') renderSolicitudesCEFP();
 if (nombre === 'reportes') actualizarReportesRegionales();
 if (nombre === 'metricas') renderMetricasInteraccion();
 const fabChatAdmin = document.getElementById('btn-chat-flotante-admin');
@@ -8606,6 +8973,26 @@ if (partos.length) return { etiqueta: tr('render_estatus_hato__ultimo_parto'), f
 const partosEst = estado.reproduccion.filter(r => r.vaca === clave && r.parto && r.diagnostico === 'confirmada').map(r => r.parto).sort();
 if (partosEst.length) return { etiqueta: tr('render_estatus_hato__parto_estimado'), fecha: partosEst[0] };
 return null;
+}
+function renderResumenVientresToros(){
+const cont = document.getElementById('resumen-vientres-toros');
+if (!cont) return;
+const vigentes = estado.animales.filter(a => a.estatus !== 'vendido' && a.estatus !== 'finado');
+const edadMesesDe = a => {
+if (!a.fecha) return null;
+try { return Math.floor(diasEntreISO(hoyISO(), a.fecha) / 30); } catch(e){ return null; }
+};
+const vientres = vigentes.filter(a => a.sexo === 'hembra' && edadMesesDe(a) !== null && edadMesesDe(a) > 36).length;
+const toros = vigentes.filter(a => a.sexo === 'macho' && edadMesesDe(a) !== null && edadMesesDe(a) > 36).length;
+cont.innerHTML = `
+<div class="rounded-2xl p-3 text-center" style="background:var(--pink); color:#fff;">
+<p class="text-2xl font-bold">${vientres}</p>
+<p class="text-xs font-bold">Vientres (hembras &gt;36 meses)</p>
+</div>
+<div class="rounded-2xl p-3 text-center" style="background:var(--slate); color:#fff;">
+<p class="text-2xl font-bold">${toros}</p>
+<p class="text-xs font-bold">Toros (machos &gt;36 meses)</p>
+</div>`;
 }
 function renderHato(){
 const cont = document.getElementById('lista-hato');
@@ -9238,7 +9625,8 @@ engordaInicio: esEngorda ? (valor('f-fecha') && new Date() ? new Date().toISOStr
 engordaFinalizado: false, engordaDiasFinal: null,
 });
 limpiarCampos(['f-arete','f-chip','f-nombre','f-raza','f-fecha','f-madre','f-padre','f-motivobaja','f-engorda-dias','f-engorda-peso-meta']);
-cambiarSubtab('ver'); renderResumenProductor(); renderHato(); mostrarToast(tr('guardar_registros__animal_registrado'));
+cambiarSubtab('ver'); renderResumenProductor(); renderHato();
+renderResumenVientresToros(); mostrarToast(tr('guardar_registros__animal_registrado'));
 }
 function diasEnEngorda(a){
 if (a.engordaFinalizado) return a.engordaDiasFinal;
@@ -10348,6 +10736,7 @@ renderTiles();
 aplicarIconosBotonesEstaticos();
 renderNavbar();
 renderHato();
+renderResumenVientresToros();
 renderBoletines();
 actualizarBadgeNotificaciones();
 actualizarBannerConexion();
@@ -10361,6 +10750,7 @@ renderTiles();
 aplicarIconosBotonesEstaticos();
 renderNavbar();
 renderHato();
+renderResumenVientresToros();
 renderBoletines();
 actualizarBadgeNotificaciones();
 actualizarBannerConexion();
@@ -10378,6 +10768,22 @@ mostrarToast(val ? tr('modo_veterinario__modo_veterinario_activado_solo_ver') : 
 function renderGridAdminHome(){
 const cont = document.getElementById('grid-admin-home');
 if (!cont) return;
+if (estado.modoCapturista){
+cont.innerHTML = `
+<button onclick="irAdmin('pruebascapturista')" class="tile bg-teal col-span-2">
+<span class="icono"><i class="fa-solid fa-keyboard"></i></span>
+<span>Pruebas listas para capturar</span>
+</button>`;
+return;
+}
+if (estado.modoAlmita){
+cont.innerHTML = `
+<button onclick="irAdmin('almita')" class="tile bg-red col-span-2">
+<span class="icono"><i class="fa-solid fa-envelope-open-text"></i></span>
+<span>Centro de solicitudes CEFPP</span>
+</button>`;
+return;
+}
 if (estado.vistaVeterinario){
 cont.innerHTML = `
 <button onclick="irAdmin('boletines')" class="tile bg-pink col-span-2">
@@ -10426,6 +10832,11 @@ ${iconoChicoHTML('adm_boletines', 'fa-bullhorn')}
 <button onclick="irAdmin('config')" class="tile bg-purple">
 ${iconoChicoHTML('adm_config', 'fa-sliders')}
 <span>${tr('modo_veterinario__configuracion')}<br>${tr('modo_veterinario__de_ventanas')}</span>
+</button>
+<button onclick="irAdmin('solicitudescefp')" class="tile bg-teal col-span-2" style="position:relative;">
+<span class="icono"><i class="fa-solid fa-user-clock"></i></span>
+<span>Solicitudes de cuenta CEFPP</span>
+${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${estado.solicitudesCEFP.filter(s => s.estatus === 'pendiente').length}</span>` : ''}
 </button>`;
 }
 function veterinarioActivo(){
@@ -10526,25 +10937,47 @@ return;
 }
 const ETIQUETAS_ESTATUS = { pendiente:'Pendiente de respuesta', aceptada:'Aceptada por el productor', rechazada:'Descartada por el productor' };
 const COLORES_ESTATUS = { pendiente:'var(--yellow)', aceptada:'var(--green)', rechazada:'var(--red)' };
-cont.innerHTML = items.map(p => `
+cont.innerHTML = items.map(p => {
+const esPrueba = p.categoria === 'prueba';
+const diasTranscurridos = diasEntreISO(hoyISO(), p.fecha);
+const listaParaLeer = diasTranscurridos >= 3;
+const yaLeida = !esPrueba || p.leida;
+let avisoLectura = '';
+if (esPrueba && !yaLeida){
+avisoLectura = listaParaLeer
+? `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:var(--green); color:#fff;"><i class="fa-solid fa-circle-check mr-1"></i>Lista para leer (${diasTranscurridos} días desde la aplicación)</span>`
+: `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:var(--parchment); color:var(--sage); border:2px solid var(--line);"><i class="fa-solid fa-clock mr-1"></i>Pendiente de lectura — faltan ${3 - diasTranscurridos} día(s) (72 h desde la aplicación)</span>`;
+}
+const numReactores = contarReactores(p);
+const avisoReactores = (esPrueba && yaLeida && numReactores > 0)
+? `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1 ml-1" style="background:var(--red); color:#fff;"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${numReactores} reactor(es)</span>`
+: '';
+return `
 <div class="item-registro" style="border-left:6px solid ${p.categoria === 'prueba' ? 'var(--purple)' : 'var(--orange)'};">
 <p class="font-bold">${p.tipoPrueba} — ${p.productorNombre}</p>
 <p class="text-sm" style="color:var(--sage);">${p.predio || ''} ${p.upp ? '· UPP ' + p.upp : ''} · ${p.fecha}</p>
 <p class="text-sm" style="color:var(--sage);">${p.animales.length} animal(es)</p>
+${avisoLectura}${avisoReactores}
 ${p.estatusProductor ? `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:${COLORES_ESTATUS[p.estatusProductor]}; color:#fff;">${ETIQUETAS_ESTATUS[p.estatusProductor]}</span>` : ''}
 <div class="flex flex-wrap gap-2 mt-3">
 ${!p.compartida ? `<button onclick="editarPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-pen"></i> Editar</button>` : ''}
-${!p.compartida ? `<button onclick="compartirPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--blue); color:#fff;"><i class="fa-solid fa-share"></i> Compartir con el productor</button>` : ''}
-<button onclick="exportarPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-file-export"></i> Exportar (para el comité)</button>
+${esPrueba && !yaLeida && listaParaLeer && !p.compartida ? `<button onclick="registrarLecturaPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--green); color:#fff;"><i class="fa-solid fa-magnifying-glass"></i> Registrar lectura</button>` : ''}
+${!p.compartida && yaLeida ? `<button onclick="compartirPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--blue); color:#fff;"><i class="fa-solid fa-share"></i> Compartir con el productor</button>` : ''}
+${yaLeida ? `<button onclick="exportarPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-file-export"></i> Exportar (para el comité)</button>` : ''}
+${esPrueba && yaLeida && !p.enviadaAlmita ? `<button onclick="enviarAAlmita('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--slate); color:#fff;"><i class="fa-solid fa-paper-plane"></i> Enviar al CEFPP</button>` : ''}
+${p.enviadaAlmita ? `<span class="text-xs px-2 py-0.5 rounded-full inline-flex items-center" style="background:var(--slate); color:#fff;"><i class="fa-solid fa-check mr-1"></i>Enviada al CEFPP</span>` : ''}
+${numReactores > 0 && yaLeida ? `<button onclick="exportarReporteReactores('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--red); color:#fff;"><i class="fa-solid fa-file-medical"></i> Reporte de reactores</button>` : ''}
 <button onclick="eliminarPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);"><i class="fa-solid fa-trash"></i></button>
 </div>
-</div>`).join('');
+</div>`;
+}).join('');
 }
 function abrirNuevaPruebaCampo(categoria){
 tabPruebasCampoActual = categoria;
 filasAnimalesPruebaCampo = [];
 productorSeleccionadoPruebaCampo = null;
 editandoPruebaCampoId = null;
+editandoEsLectura = false;
 document.getElementById('titulo-nueva-prueba-campo').textContent = categoria === 'prueba' ? 'Nueva prueba' : 'Nuevo areteo';
 document.getElementById('campo-tipo-prueba').classList.toggle('hidden', categoria !== 'prueba');
 establecerValor('pc-buscar-productor', '');
@@ -10555,6 +10988,11 @@ establecerValor('pc-motivo', 'Cuarentena definitiva');
 establecerValor('pc-tipo-identificacion', 'Arete');
 establecerValor('pc-finalidad', 'Leche');
 ['pc-dosis','pc-lote','pc-fecha-inyeccion','pc-hora-inyeccion','pc-fecha-lectura','pc-hora-lectura','pc-fecha-caducidad','pc-fecha-muestra'].forEach(id => establecerValor(id, ''));
+establecerValor('ba-terminacion', '');
+const baResultado = document.getElementById('ba-resultado');
+if (baResultado) baResultado.innerHTML = '';
+productoresSesionEjido = [];
+cambiarModoPruebaCampo('individual');
 actualizarCamposSegunTipoPrueba();
 renderFilasAnimalesPruebaCampo();
 irAdmin('nueva-prueba-campo');
@@ -10565,7 +11003,9 @@ const esTB = tabPruebasCampoActual === 'prueba' && valor('pc-tipo-prueba') !== '
 document.getElementById('campos-tuberculina').classList.toggle('hidden', !esTB);
 document.getElementById('campos-brucelosis').classList.toggle('hidden', !esBrucelosis);
 }
+let editandoEsLectura = false;
 function editarPruebaCampo(id){
+editandoEsLectura = false;
 const p = estado.pruebasCampoVet.find(x => x.id === id);
 if (!p) return;
 tabPruebasCampoActual = p.categoria;
@@ -10591,6 +11031,12 @@ if (c) seleccionarProductorParaPrueba(c.id);
 renderFilasAnimalesPruebaCampo();
 irAdmin('nueva-prueba-campo');
 }
+function registrarLecturaPruebaCampo(id){
+editarPruebaCampo(id);
+editandoEsLectura = true;
+document.getElementById('titulo-nueva-prueba-campo').textContent = 'Registrar lectura';
+mostrarToast('Actualiza el resultado (N/S/R/E) de cada animal y guarda');
+}
 function buscarProductorParaPrueba(){
 const q = valor('pc-buscar-productor').trim().toLowerCase();
 const cont = document.getElementById('resultado-buscar-productor-pc');
@@ -10605,7 +11051,8 @@ ${avatarHtml(c.nombre, null, 34)}
 <div class="flex-1 min-w-0"><p class="text-sm font-bold truncate">${c.nombre}</p><p class="text-xs" style="color:var(--sage);">${c.predio || ''} ${c.upp ? '· UPP ' + c.upp : ''}</p></div>
 </button>`).join('');
 }
-function seleccionarProductorParaPrueba(cuentaId){
+let cacheAnimalesProductorPrueba = null;
+async function seleccionarProductorParaPrueba(cuentaId){
 const c = estado.cuentasProductores.find(x => x.id === cuentaId);
 if (!c) return;
 productorSeleccionadoPruebaCampo = c;
@@ -10614,6 +11061,357 @@ establecerValor('pc-buscar-productor', '');
 const cont = document.getElementById('productor-seleccionado-pc');
 cont.classList.remove('hidden');
 cont.innerHTML = `<div class="flex items-center gap-2">${avatarHtml(c.nombre, null, 36)}<div class="flex-1"><p class="text-sm font-bold">${c.nombre}</p><p class="text-xs" style="color:var(--sage);">${c.predio || ''} ${c.upp ? '· UPP ' + c.upp : ''}</p></div><button onclick="productorSeleccionadoPruebaCampo=null; document.getElementById('productor-seleccionado-pc').classList.add('hidden');" style="color:var(--red);"><i class="fa-solid fa-xmark"></i></button></div>`;
+cacheAnimalesProductorPrueba = null;
+if (typeof window.firebaseLeerCuenta === 'function'){
+try {
+const datosCuenta = await window.firebaseLeerCuenta(cuentaId);
+if (datosCuenta && Array.isArray(datosCuenta.animales)) cacheAnimalesProductorPrueba = datosCuenta.animales;
+} catch(e){ console.warn('No se pudo traer el inventario del productor para verificar aretes', e); }
+}
+}
+function buscarAnimalPorArete(arete){
+if (!cacheAnimalesProductorPrueba || !arete) return null;
+const buscado = arete.trim().toLowerCase();
+return cacheAnimalesProductorPrueba.find(a => (a.arete || '').trim().toLowerCase() === buscado) || null;
+}
+let seleccionInventarioProductor = new Set();
+// ================= MODO EJIDO (varios productores en una misma sesión de trabajo) =================
+let modoPruebaCampo = 'individual';
+let productoresSesionEjido = [];
+function cambiarModoPruebaCampo(modo){
+modoPruebaCampo = modo;
+document.getElementById('tab-modo-individual').style.background = modo === 'individual' ? 'var(--pine)' : '';
+document.getElementById('tab-modo-individual').style.color = modo === 'individual' ? '#fff' : '';
+document.getElementById('tab-modo-ejido').style.background = modo === 'ejido' ? 'var(--pine)' : '';
+document.getElementById('tab-modo-ejido').style.color = modo === 'ejido' ? '#fff' : '';
+document.getElementById('bloque-productor-individual').classList.toggle('hidden', modo !== 'individual');
+document.getElementById('bloque-modo-ejido').classList.toggle('hidden', modo !== 'ejido');
+document.getElementById('ejido-buscador-cuenta').classList.add('hidden');
+document.getElementById('ejido-alta-manual').classList.add('hidden');
+renderProductoresEjido();
+buscarPorTerminacionArete();
+}
+function mostrarBuscadorProductorEjido(){
+document.getElementById('ejido-buscador-cuenta').classList.remove('hidden');
+document.getElementById('ejido-alta-manual').classList.add('hidden');
+establecerValor('ejido-buscar-productor', '');
+document.getElementById('resultado-buscar-productor-ejido').innerHTML = '';
+}
+function mostrarAltaManualProductorEjido(){
+document.getElementById('ejido-alta-manual').classList.remove('hidden');
+document.getElementById('ejido-buscador-cuenta').classList.add('hidden');
+llenarSelectorEstados('ejido-manual');
+['ejido-manual-apellidopaterno','ejido-manual-apellidomaterno','ejido-manual-nombres','ejido-manual-localidad','ejido-manual-telefono','ejido-manual-curp','ejido-manual-upp','ejido-manual-predio'].forEach(id => establecerValor(id, ''));
+establecerValor('ejido-manual-domicilio', 'Conocido');
+establecerValor('ejido-manual-estado', '');
+cargarMunicipiosSelector('ejido-manual', '');
+}
+function buscarProductorParaEjido(){
+const q = valor('ejido-buscar-productor').trim().toLowerCase();
+const cont = document.getElementById('resultado-buscar-productor-ejido');
+if (!q){ cont.innerHTML = ''; return; }
+const yaAgregados = new Set(productoresSesionEjido.filter(p => p.cuentaId).map(p => p.cuentaId));
+const resultados = estado.cuentasProductores.filter(c => c.tipo !== 'punto' && !yaAgregados.has(c.id) &&
+((c.nombre||'').toLowerCase().includes(q) || (c.predio||'').toLowerCase().includes(q) || (c.upp||'').toLowerCase().includes(q))
+).slice(0, 8);
+if (resultados.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>`; return; }
+cont.innerHTML = resultados.map(c => `
+<button onclick="agregarProductorCuentaEjido('${c.id}')" class="w-full text-left bg-white rounded-xl p-2 flex items-center gap-2" style="border:2px solid var(--line);">
+${avatarHtml(c.nombre, null, 34)}
+<div class="flex-1 min-w-0"><p class="text-sm font-bold truncate">${c.nombre}</p><p class="text-xs" style="color:var(--sage);">${c.predio || ''} ${c.upp ? '· UPP ' + c.upp : ''}</p></div>
+</button>`).join('');
+}
+async function agregarProductorCuentaEjido(cuentaId){
+const c = estado.cuentasProductores.find(x => x.id === cuentaId);
+if (!c) return;
+const clave = 'ej_' + Date.now();
+productoresSesionEjido.push({ clave, tipo:'registrado', cuentaId: c.id, nombre: c.nombre, predio: c.predio, upp: c.upp, curp: c.curp || '', estadoMx: c.estadoMx || '', municipio: c.municipio || '', animales: null });
+document.getElementById('ejido-buscador-cuenta').classList.add('hidden');
+renderProductoresEjido();
+mostrarToast(`${c.nombre} agregado — cargando su inventario...`);
+if (typeof window.firebaseLeerCuenta === 'function'){
+try {
+const datosCuenta = await window.firebaseLeerCuenta(cuentaId);
+const prod = productoresSesionEjido.find(p => p.clave === clave);
+if (prod && datosCuenta && Array.isArray(datosCuenta.animales)) prod.animales = datosCuenta.animales;
+} catch(e){ console.warn('No se pudo traer el inventario', e); }
+}
+}
+function agregarProductorManualEjido(){
+const apellidoPaterno = valor('ejido-manual-apellidopaterno').trim();
+const apellidoMaterno = valor('ejido-manual-apellidomaterno').trim();
+const nombres = valor('ejido-manual-nombres').trim();
+const nombre = [nombres, apellidoPaterno, apellidoMaterno].filter(Boolean).join(' ');
+if (!nombre){ mostrarToast('Escribe al menos el nombre del productor'); return; }
+productoresSesionEjido.push({
+clave: 'ej_' + Date.now(), tipo:'manual', cuentaId: null,
+nombre, apellidoPaterno, apellidoMaterno, nombres,
+domicilio: valor('ejido-manual-domicilio').trim() || 'Conocido',
+estadoMx: valor('ejido-manual-estado'), municipio: leerMunicipioSeleccionado('ejido-manual'),
+localidad: valor('ejido-manual-localidad').trim(), telefono: valor('ejido-manual-telefono').trim(),
+curp: valor('ejido-manual-curp').trim().toUpperCase(),
+predio: valor('ejido-manual-predio').trim(), upp: valor('ejido-manual-upp').trim(),
+animales: [],
+});
+document.getElementById('ejido-alta-manual').classList.add('hidden');
+renderProductoresEjido();
+mostrarToast(`${nombre} agregado a la sesión (sin app)`);
+}
+function eliminarProductorEjido(clave){
+productoresSesionEjido = productoresSesionEjido.filter(p => p.clave !== clave);
+filasAnimalesPruebaCampo = filasAnimalesPruebaCampo.filter(f => f.productorClave !== clave);
+renderProductoresEjido();
+renderFilasAnimalesPruebaCampo();
+}
+function renderProductoresEjido(){
+const cont = document.getElementById('lista-productores-ejido');
+if (!cont) return;
+if (productoresSesionEjido.length === 0){
+cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Aún no agregas productores a esta sesión.</p>`;
+return;
+}
+cont.innerHTML = productoresSesionEjido.map(p => `
+<div class="flex items-center gap-2 bg-white rounded-xl p-2" style="border:2px solid var(--line);">
+${avatarHtml(p.nombre, null, 32)}
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold truncate">${p.nombre} ${p.tipo === 'manual' ? '<span class="text-xs" style="color:var(--slate);">(sin app)</span>' : ''}</p>
+<p class="text-xs" style="color:var(--sage);">${p.upp ? 'UPP ' + p.upp : 'sin UPP'} ${p.tipo === 'registrado' ? (p.animales === null ? '· cargando inventario...' : '· ' + p.animales.length + ' animal(es)') : ''}</p>
+</div>
+<button onclick="eliminarProductorEjido('${p.clave}')" style="color:var(--red);"><i class="fa-solid fa-trash"></i></button>
+</div>`).join('');
+}
+// ================= BÚSQUEDA RÁPIDA DE ARETE (por terminación) =================
+function buscarPorTerminacionArete(){
+const cont = document.getElementById('ba-resultado');
+if (!cont) return;
+const termino = valor('ba-terminacion').trim();
+if (!termino){ cont.innerHTML = ''; return; }
+const buscado = termino.toLowerCase();
+
+if (modoPruebaCampo === 'ejido'){
+if (productoresSesionEjido.length === 0){
+cont.innerHTML = `<p class="text-xs mt-2" style="color:var(--sage);"><i class="fa-solid fa-circle-question mr-1"></i>Agrega al menos un productor a la sesión primero.</p>`;
+return;
+}
+let coincidencias = [];
+productoresSesionEjido.forEach(p => {
+(p.animales || []).forEach(a => {
+if ((a.arete || '').toLowerCase().endsWith(buscado)) coincidencias.push({ animal: a, productor: p });
+});
+});
+if (coincidencias.length === 1){
+const { animal: a, productor: p } = coincidencias[0];
+cont.innerHTML = `
+<div class="bg-white rounded-2xl p-3 mt-2" style="border:2px solid var(--green);">
+<p class="text-sm font-bold">${a.arete} ${a.nombre ? '— ' + a.nombre : ''}</p>
+<p class="text-xs" style="color:var(--sage);">${a.raza || 'sin raza'} · ${a.sexo === 'macho' ? 'Macho' : 'Hembra'} · Productor: <b>${p.nombre}</b></p>
+<button onclick="confirmarBusquedaAreteEjido('${p.clave}','${(a.arete||'').replace(/'/g,"\\'")}')" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-2" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check"></i> Confirmar y agregar</button>
+</div>`;
+} else if (coincidencias.length > 1){
+cont.innerHTML = `<p class="text-xs mt-2 font-bold" style="color:var(--red);"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hay ${coincidencias.length} animales con esa misma terminación (entre los productores de esta sesión) — anota el número completo del arete.</p>`;
+} else {
+cont.innerHTML = `
+<div class="bg-white rounded-2xl p-3 mt-2" style="border:2px solid var(--yellow);">
+<p class="text-xs font-bold" style="color:var(--sage);"><i class="fa-solid fa-circle-info mr-1"></i>No se encontró en ningún productor de la sesión. Agrégalo manualmente:</p>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<input class="col-span-2" id="ba-manual-arete" placeholder="Arete completo" style="font-size:.85rem;" type="text" value="${termino}"/>
+<select class="col-span-2" id="ba-manual-productor" style="font-size:.85rem;">
+${productoresSesionEjido.map(p => `<option value="${p.clave}">${p.nombre}${p.upp ? ' — UPP ' + p.upp : ''}</option>`).join('')}
+</select>
+<select id="ba-manual-especie" style="font-size:.85rem;">
+<option value="Bovino">Bovino</option><option value="Caprino">Caprino</option><option value="Ovino">Ovino</option><option value="Porcino">Porcino</option>
+</select>
+<input id="ba-manual-edad" placeholder="Edad (meses)" style="font-size:.85rem;" type="text"/>
+<select id="ba-manual-sexo" style="font-size:.85rem;"><option value="H">Hembra</option><option value="M">Macho</option></select>
+<input class="col-span-2" id="ba-manual-raza" placeholder="Raza" style="font-size:.85rem;" type="text"/>
+</div>
+<button onclick="agregarAnimalManualDesdeBusqueda()" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-2" style="background:var(--pine); color:#fff;"><i class="fa-solid fa-plus"></i> Agregar animal manualmente</button>
+</div>`;
+}
+return;
+}
+
+if (!cacheAnimalesProductorPrueba){
+cont.innerHTML = `<p class="text-xs mt-2" style="color:var(--sage);"><i class="fa-solid fa-circle-question mr-1"></i>Aún no se ha cargado el inventario del productor.</p>`;
+return;
+}
+const coincidencias = cacheAnimalesProductorPrueba.filter(a => (a.arete || '').toLowerCase().endsWith(buscado));
+if (coincidencias.length === 1){
+const a = coincidencias[0];
+cont.innerHTML = `
+<div class="bg-white rounded-2xl p-3 mt-2" style="border:2px solid var(--green);">
+<p class="text-sm font-bold">${a.arete} ${a.nombre ? '— ' + a.nombre : ''}</p>
+<p class="text-xs" style="color:var(--sage);">${a.raza || 'sin raza'} · ${a.sexo === 'macho' ? 'Macho' : 'Hembra'} · Estatus: ${a.estatus || 'activo'}</p>
+<button onclick="confirmarBusquedaArete('${a.arete.replace(/'/g,"\\'")}')" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-2" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check"></i> Confirmar y agregar</button>
+</div>`;
+} else if (coincidencias.length > 1){
+cont.innerHTML = `<p class="text-xs mt-2 font-bold" style="color:var(--red);"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hay ${coincidencias.length} animales con esa misma terminación — anota el número completo del arete.</p>`;
+} else {
+cont.innerHTML = `
+<div class="bg-white rounded-2xl p-3 mt-2" style="border:2px solid var(--yellow);">
+<p class="text-xs font-bold" style="color:var(--sage);"><i class="fa-solid fa-circle-info mr-1"></i>Animal no encontrado en el inventario del productor. Si está presente en físico, agrégalo manualmente:</p>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<input id="ba-manual-arete" placeholder="Arete completo" style="font-size:.85rem;" type="text" value="${termino}"/>
+<select id="ba-manual-especie" style="font-size:.85rem;">
+<option value="Bovino">Bovino</option><option value="Caprino">Caprino</option><option value="Ovino">Ovino</option><option value="Porcino">Porcino</option>
+</select>
+<input id="ba-manual-edad" placeholder="Edad (meses)" style="font-size:.85rem;" type="text"/>
+<select id="ba-manual-sexo" style="font-size:.85rem;"><option value="H">Hembra</option><option value="M">Macho</option></select>
+<input class="col-span-2" id="ba-manual-raza" placeholder="Raza" style="font-size:.85rem;" type="text"/>
+</div>
+<button onclick="agregarAnimalManualDesdeBusqueda()" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-2" style="background:var(--pine); color:#fff;"><i class="fa-solid fa-plus"></i> Agregar animal manualmente</button>
+</div>`;
+}
+}
+function confirmarBusquedaArete(arete){
+const animal = buscarAnimalPorArete(arete);
+if (!animal) return;
+let edadMeses = '';
+if (animal.fecha){
+try { edadMeses = String(Math.max(0, Math.floor(diasEntreISO(hoyISO(), animal.fecha) / 30))); } catch(e){}
+}
+filasAnimalesPruebaCampo.push({
+id: 'fila_' + Date.now() + Math.random().toString(36).slice(2,6),
+arete: animal.arete, especie:'Bovino', edad: edadMeses, sexo: sexoAHM(animal.sexo), raza: animal.raza || '', fierro:'',
+resultado: tabPruebasCampoActual === 'prueba' ? 'N' : null,
+});
+renderFilasAnimalesPruebaCampo();
+establecerValor('ba-terminacion', '');
+document.getElementById('ba-resultado').innerHTML = '';
+mostrarToast(`Arete ${animal.arete} agregado`);
+}
+function confirmarBusquedaAreteEjido(productorClave, arete){
+const p = productoresSesionEjido.find(x => x.clave === productorClave);
+if (!p) return;
+const animal = (p.animales || []).find(a => (a.arete || '') === arete);
+if (!animal) return;
+let edadMeses = '';
+if (animal.fecha){
+try { edadMeses = String(Math.max(0, Math.floor(diasEntreISO(hoyISO(), animal.fecha) / 30))); } catch(e){}
+}
+filasAnimalesPruebaCampo.push({
+id: 'fila_' + Date.now() + Math.random().toString(36).slice(2,6),
+productorClave,
+arete: animal.arete, especie:'Bovino', edad: edadMeses, sexo: sexoAHM(animal.sexo), raza: animal.raza || '', fierro:'',
+resultado: tabPruebasCampoActual === 'prueba' ? 'N' : null,
+});
+renderFilasAnimalesPruebaCampo();
+establecerValor('ba-terminacion', '');
+document.getElementById('ba-resultado').innerHTML = '';
+mostrarToast(`Arete ${animal.arete} agregado — ${p.nombre}`);
+}
+function agregarAnimalManualDesdeBusqueda(){
+const arete = valor('ba-manual-arete').trim();
+if (!arete){ mostrarToast('Escribe el número de arete'); return; }
+const fila = {
+id: 'fila_' + Date.now() + Math.random().toString(36).slice(2,6),
+arete, especie: valor('ba-manual-especie'), edad: valor('ba-manual-edad').trim(), sexo: valor('ba-manual-sexo'), raza: valor('ba-manual-raza').trim(), fierro:'',
+resultado: tabPruebasCampoActual === 'prueba' ? 'N' : null,
+};
+if (modoPruebaCampo === 'ejido'){
+const sel = document.getElementById('ba-manual-productor');
+if (!sel || !sel.value){ mostrarToast('Selecciona a qué productor pertenece'); return; }
+fila.productorClave = sel.value;
+}
+filasAnimalesPruebaCampo.push(fila);
+renderFilasAnimalesPruebaCampo();
+establecerValor('ba-terminacion', '');
+document.getElementById('ba-resultado').innerHTML = '';
+mostrarToast(`Arete ${arete} agregado manualmente`);
+}
+function abrirSelectorInventarioProductor(){
+if (!productorSeleccionadoPruebaCampo){ mostrarToast('Primero selecciona al productor'); return; }
+if (!cacheAnimalesProductorPrueba){ mostrarToast('Aún no se ha cargado el inventario de este productor — inténtalo en unos segundos.'); return; }
+seleccionInventarioProductor = new Set();
+establecerValor('si-buscar', '');
+renderSelectorInventarioProductor();
+const modal = document.getElementById('modal-selector-inventario');
+modal.classList.remove('hidden'); modal.style.display = 'flex';
+}
+function animalesVigentesProductor(){
+return (cacheAnimalesProductorPrueba || []).filter(a => a.estatus !== 'vendido' && a.estatus !== 'finado');
+}
+function renderSelectorInventarioProductor(){
+const cont = document.getElementById('lista-selector-inventario');
+if (!cont) return;
+const q = (valor('si-buscar') || '').trim().toLowerCase();
+let animales = animalesVigentesProductor();
+if (q) animales = animales.filter(a => (a.arete || '').toLowerCase().includes(q) || (a.nombre || '').toLowerCase().includes(q));
+if (animales.length === 0){
+cont.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage);">No hay animales vigentes que coincidan.</p>`;
+return;
+}
+cont.innerHTML = animales.map((a, i) => {
+const clave = a.id || a.arete || ('idx' + i);
+const marcado = seleccionInventarioProductor.has(clave);
+return `
+<label class="flex items-center gap-3 bg-white rounded-xl p-2" style="border:2px solid ${marcado ? 'var(--teal)' : 'var(--line)'};">
+<input onchange="toggleSeleccionInventario('${clave}', this.checked)" type="checkbox" ${marcado ? 'checked' : ''}/>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold">${a.arete || 'Sin arete'} ${a.nombre ? '— ' + a.nombre : ''}</p>
+<p class="text-xs" style="color:var(--sage);">${a.raza || 'sin raza'} · ${a.sexo === 'macho' ? 'Macho' : 'Hembra'} · Estatus: ${a.estatus || 'activo'}</p>
+</div>
+</label>`;
+}).join('');
+}
+function toggleSeleccionInventario(clave, marcado){
+if (marcado) seleccionInventarioProductor.add(clave);
+else seleccionInventarioProductor.delete(clave);
+}
+function agregarSeleccionadosDeInventario(){
+if (seleccionInventarioProductor.size === 0){ mostrarToast('No marcaste ningún animal'); return; }
+const animales = animalesVigentesProductor();
+let agregados = 0;
+animales.forEach((a, i) => {
+const clave = a.id || a.arete || ('idx' + i);
+if (!seleccionInventarioProductor.has(clave)) return;
+let edadMeses = '';
+if (a.fecha){
+try { edadMeses = String(Math.max(0, Math.floor(diasEntreISO(hoyISO(), a.fecha) / 30))); } catch(e){ edadMeses = ''; }
+}
+filasAnimalesPruebaCampo.push({
+id: 'fila_' + Date.now() + Math.random().toString(36).slice(2,6),
+arete: a.arete || '', especie:'Bovino', edad: edadMeses, sexo: sexoAHM(a.sexo), raza: a.raza || '', fierro:'',
+resultado: tabPruebasCampoActual === 'prueba' ? 'N' : null,
+});
+agregados++;
+});
+renderFilasAnimalesPruebaCampo();
+document.getElementById('modal-selector-inventario').classList.add('hidden');
+mostrarToast(`${agregados} animal(es) agregado(s) desde el inventario`);
+}
+function verificarAreteFila(id, arete){
+actualizarFilaAnimalPC(id, 'arete', arete);
+const badge = document.getElementById('badge-verificacion-' + id);
+if (!badge) return;
+if (!arete || !arete.trim()){ badge.innerHTML = ''; return; }
+if (!cacheAnimalesProductorPrueba){
+badge.innerHTML = `<span class="text-xs" style="color:var(--sage);"><i class="fa-solid fa-circle-question mr-1"></i>Sin datos del productor para verificar</span>`;
+return;
+}
+const animal = buscarAnimalPorArete(arete);
+if (animal){
+badge.innerHTML = `<span class="text-xs font-bold" style="color:var(--green);"><i class="fa-solid fa-circle-check mr-1"></i>Encontrado: ${animal.raza || 'sin raza'}, ${animal.sexo === 'macho' ? 'macho' : 'hembra'}${animal.nombre ? ' — ' + animal.nombre : ''}</span>`;
+const f = filasAnimalesPruebaCampo.find(x => x.id === id);
+if (f){
+if (!f.raza && animal.raza) f.raza = animal.raza;
+if (animal.sexo) f.sexo = sexoAHM(animal.sexo);
+if (!f.edad && animal.fecha){
+try { f.edad = String(Math.max(0, Math.floor(diasEntreISO(hoyISO(), animal.fecha) / 30))); } catch(e){}
+}
+const fila = badge.closest('.bg-white');
+if (fila){
+const inputRaza = fila.querySelector('input[placeholder="Raza"]');
+const inputEdad = fila.querySelector('input[placeholder="Edad (meses)"]');
+const selectSexo = fila.querySelectorAll('select')[1];
+if (inputRaza && !inputRaza.value) inputRaza.value = f.raza;
+if (inputEdad && !inputEdad.value) inputEdad.value = f.edad;
+if (selectSexo) selectSexo.value = f.sexo;
+}
+}
+} else {
+badge.innerHTML = `<span class="text-xs font-bold" style="color:var(--red);"><i class="fa-solid fa-triangle-exclamation mr-1"></i>No coincide con ningún animal registrado — verifica en físico</span>`;
+}
 }
 function agregarFilaAnimalPruebaCampo(){
 filasAnimalesPruebaCampo.push({ id: 'fila_' + Date.now() + Math.random().toString(36).slice(2,6), arete:'', especie:'Bovino', edad:'', sexo:'H', raza:'', fierro:'', resultado:'N' });
@@ -10641,14 +11439,15 @@ actualizarResumenPruebaCampo();
 return;
 }
 const mostrarResultado = tabPruebasCampoActual === 'prueba';
-cont.innerHTML = filasAnimalesPruebaCampo.map(f => `
+const filaHTML = f => `
 <div class="bg-white rounded-2xl p-3" style="border:2px solid var(--line);">
 <div class="flex items-center justify-between mb-2">
 <span class="text-xs font-bold" style="color:var(--sage);">Identificación oficial / SINIIGA</span>
 <button onclick="eliminarFilaAnimalPruebaCampo('${f.id}')" style="color:var(--red);"><i class="fa-solid fa-trash"></i></button>
 </div>
 <div class="grid grid-cols-2 gap-2">
-<input class="col-span-2" onchange="actualizarFilaAnimalPC('${f.id}','arete',this.value)" placeholder="Arete / SINIIGA" style="font-size:.85rem;" type="text" value="${f.arete}"/>
+<input class="col-span-2" onchange="verificarAreteFila('${f.id}',this.value)" placeholder="Arete / SINIIGA" style="font-size:.85rem;" type="text" value="${f.arete}"/>
+<div class="col-span-2" id="badge-verificacion-${f.id}"></div>
 <select onchange="actualizarFilaAnimalPC('${f.id}','especie',this.value)" style="font-size:.85rem;">
 <option ${f.especie==='Bovino'?'selected':''} value="Bovino">Bovino</option>
 <option ${f.especie==='Caprino'?'selected':''} value="Caprino">Caprino</option>
@@ -10670,14 +11469,30 @@ ${mostrarResultado ? `
 <option ${f.resultado==='E'?'selected':''} value="E">E — Exento</option>
 </select>` : ''}
 </div>
-</div>`).join('');
+</div>`;
+if (modoPruebaCampo === 'ejido'){
+cont.innerHTML = productoresSesionEjido.map(p => {
+const filas = filasAnimalesPruebaCampo.filter(f => f.productorClave === p.clave);
+return `
+<div>
+<p class="text-xs font-bold py-1 px-2 rounded-full inline-block mb-2" style="background:var(--teal); color:#fff;"><i class="fa-solid fa-user mr-1"></i>${p.nombre} — ${filas.length} animal(es)</p>
+<div class="space-y-2">${filas.length > 0 ? filas.map(filaHTML).join('') : '<p class="text-xs" style="color:var(--sage);">Sin animales todavía.</p>'}</div>
+</div>`;
+}).join('');
+} else {
+cont.innerHTML = filasAnimalesPruebaCampo.map(filaHTML).join('');
+}
 actualizarResumenPruebaCampo();
+if (modoPruebaCampo !== 'ejido'){
+filasAnimalesPruebaCampo.forEach(f => { if (f.arete) verificarAreteFila(f.id, f.arete); });
+}
 }
 function actualizarFilaAnimalPC(id, campo, valorNuevo){
 const f = filasAnimalesPruebaCampo.find(x => x.id === id);
 if (f) f[campo] = valorNuevo;
 }
 function guardarPruebaCampo(){
+if (modoPruebaCampo === 'ejido') return guardarPruebaCampoEjido();
 if (!productorSeleccionadoPruebaCampo){ mostrarToast('Selecciona el productor'); return; }
 if (filasAnimalesPruebaCampo.length === 0){ mostrarToast('Agrega al menos un animal'); return; }
 const c = productorSeleccionadoPruebaCampo;
@@ -10693,19 +11508,452 @@ fechaLectura: valor('pc-fecha-lectura'), horaLectura: valor('pc-hora-lectura'),
 fechaCaducidad: valor('pc-fecha-caducidad'), fechaMuestra: valor('pc-fecha-muestra'),
 veterinarioNombre: vet ? vet.nombre : '',
 productorId: c.id, productorNombre: c.nombre, predio: c.predio, upp: c.upp, curp: c.curp || '',
-fecha: hoyISO(),
 animales: filasAnimalesPruebaCampo.map(f => ({ arete:f.arete, especie:f.especie, edad:f.edad, sexo:f.sexo, raza:f.raza, fierro:f.fierro, resultado: tabPruebasCampoActual === 'prueba' ? f.resultado : null })),
 };
 if (editandoPruebaCampoId){
 const idx = estado.pruebasCampoVet.findIndex(x => x.id === editandoPruebaCampoId);
-if (idx > -1) estado.pruebasCampoVet[idx] = { ...estado.pruebasCampoVet[idx], ...datos };
+if (idx > -1){
+if (editandoEsLectura) datos.leida = true;
+estado.pruebasCampoVet[idx] = { ...estado.pruebasCampoVet[idx], ...datos };
+}
 } else {
-estado.pruebasCampoVet.push({ id: 'pc_' + Date.now(), compartida: false, estatusProductor: null, ...datos });
+estado.pruebasCampoVet.push({ id: 'pc_' + Date.now(), compartida: false, estatusProductor: null, fecha: hoyISO(), leida: false, ...datos });
 }
 guardarEstadoLocal();
-mostrarToast('Registro guardado');
+mostrarToast(editandoEsLectura ? 'Lectura registrada' : 'Registro guardado');
+if (editandoEsLectura){
+const reactores = filasAnimalesPruebaCampo.filter(f => f.resultado === 'R').length;
+if (reactores > 0) setTimeout(() => mostrarToast(`⚠️ ${reactores} animal(es) marcado(s) como Reactor — genera el Reporte de reactores para enviarlo al CEFPP`), 1200);
+}
 editandoPruebaCampoId = null;
+editandoEsLectura = false;
 volverAtrasAdmin('pruebascampo');
+}
+function guardarPruebaCampoEjido(){
+if (productoresSesionEjido.length === 0){ mostrarToast('Agrega al menos un productor a la sesión'); return; }
+if (filasAnimalesPruebaCampo.length === 0){ mostrarToast('Agrega al menos un animal'); return; }
+const vet = veterinarioActivo();
+const tipoPrueba = tabPruebasCampoActual === 'prueba' ? valor('pc-tipo-prueba') : 'Areteo';
+const camposComunes = {
+categoria: tabPruebasCampoActual, tipoPrueba,
+motivo: valor('pc-motivo'), tipoIdentificacion: valor('pc-tipo-identificacion'), finalidad: valor('pc-finalidad'),
+dosis: valor('pc-dosis'), lote: valor('pc-lote'),
+fechaInyeccion: valor('pc-fecha-inyeccion'), horaInyeccion: valor('pc-hora-inyeccion'),
+fechaLectura: valor('pc-fecha-lectura'), horaLectura: valor('pc-hora-lectura'),
+fechaCaducidad: valor('pc-fecha-caducidad'), fechaMuestra: valor('pc-fecha-muestra'),
+veterinarioNombre: vet ? vet.nombre : '',
+};
+let creadas = 0;
+productoresSesionEjido.forEach(p => {
+const filas = filasAnimalesPruebaCampo.filter(f => f.productorClave === p.clave);
+if (filas.length === 0) return;
+estado.pruebasCampoVet.push({
+id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+...camposComunes,
+productorId: p.cuentaId, productorNombre: p.nombre, predio: p.predio || '', upp: p.upp || '', curp: p.curp || '',
+apellidoPaterno: p.apellidoPaterno || '', apellidoMaterno: p.apellidoMaterno || '', nombres: p.nombres || '',
+domicilio: p.domicilio || '', estadoMx: p.estadoMx || '', municipio: p.municipio || '', localidad: p.localidad || '', telefonoProductor: p.telefono || '',
+esProductorManual: p.tipo === 'manual',
+animales: filas.map(f => ({ arete:f.arete, especie:f.especie, edad:f.edad, sexo:f.sexo, raza:f.raza, fierro:f.fierro, resultado: tabPruebasCampoActual === 'prueba' ? f.resultado : null })),
+compartida: false, estatusProductor: null, fecha: hoyISO(), leida: false,
+});
+creadas++;
+});
+guardarEstadoLocal();
+mostrarToast(`${creadas} hoja(s) de campo guardadas (una por productor)`);
+volverAtrasAdmin('pruebascampo');
+}
+function sexoAHM(sexo){
+return sexo === 'macho' || sexo === 'M' ? 'M' : 'H';
+}
+function contarReactores(p){
+return (p.animales || []).filter(a => a.resultado === 'R').length;
+}
+function exportarReporteReactores(id){
+const p = estado.pruebasCampoVet.find(x => x.id === id);
+if (!p) return;
+const reactores = p.animales.filter(a => a.resultado === 'R');
+if (reactores.length === 0){ mostrarToast('Esta prueba no tiene animales reactores'); return; }
+const encabezadosReales = ['Productor','Predio','UPP','CURP','Veterinario','Fecha de la prueba','Identificación','Especie','Edad','Sexo','Raza','Fierro','Tipo de prueba'];
+const filas = reactores.map(a => [p.productorNombre, p.predio, p.upp, p.curp || '', p.veterinarioNombre || '', p.fecha, a.arete, a.especie, a.edad, a.sexo, a.raza, a.fierro || '', p.tipoPrueba]);
+generarCSVConPie(`Reporte de reactores - ${p.tipoPrueba} - ${p.productorNombre} - ${p.fecha}`, encabezadosReales, filas);
+mostrarToast('Reporte de reactores generado — envíalo junto con la hoja de campo digital');
+}
+// ================= CAPTURISTA (oficina) =================
+function renderPruebasCapturista(){
+const cont = document.getElementById('lista-pruebas-capturista');
+if (!cont) return;
+const filtroEstatus = valor('capt-filtro-estatus') || 'pendientes';
+const q = (valor('capt-buscar') || '').trim().toLowerCase();
+let items = estado.pruebasCampoVet.filter(p => p.categoria === 'areteo' || p.leida);
+if (filtroEstatus === 'pendientes') items = items.filter(p => !p.capturada);
+else if (filtroEstatus === 'capturadas') items = items.filter(p => p.capturada);
+else if (filtroEstatus === 'impresas') items = items.filter(p => p.impresa);
+if (q) items = items.filter(p => (p.productorNombre || '').toLowerCase().includes(q) || (p.upp || '').toLowerCase().includes(q));
+items = items.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-keyboard"></i><p>No hay pruebas para mostrar con este filtro.</p></div>`;
+return;
+}
+const ETIQUETAS_RESULTADO = { N:'Negativo', S:'Sospechoso', R:'Reactor', E:'Exento' };
+cont.innerHTML = items.map(p => `
+<div class="item-registro" style="border-left:6px solid ${p.capturada ? 'var(--green)' : 'var(--teal)'};">
+<p class="font-bold">${p.tipoPrueba} — ${p.productorNombre}</p>
+<p class="text-sm" style="color:var(--sage);">${p.predio || ''} ${p.upp ? '· UPP ' + p.upp : ''} · ${p.fecha} · Vet: ${p.veterinarioNombre || '—'}</p>
+<div class="mt-2 space-y-1">
+${p.animales.map((a, i) => `<p class="text-xs" style="color:var(--ink);">${i+1}. ${a.arete || 'sin arete'} — ${a.especie}, ${a.sexo === 'H' ? 'hembra' : 'macho'}, ${a.raza || 'sin raza'}${a.resultado ? ' — ' + (ETIQUETAS_RESULTADO[a.resultado] || a.resultado) : ''}</p>`).join('')}
+</div>
+${p.capturada ? `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-2" style="background:var(--green); color:#fff;">Ya capturada</span>` : ''}
+${p.impresa ? `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-2 ml-1" style="background:var(--slate); color:#fff;">Impresa el ${p.fechaImpresion}</span>` : ''}
+<div class="flex flex-wrap gap-2 mt-3">
+<button onclick="copiarDatosPruebaCapturista('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-copy"></i> Copiar datos</button>
+<button onclick="exportarPruebaCampo('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-file-export"></i> Exportar / imprimir</button>
+${!p.capturada ? `<button onclick="marcarPruebaCapturada('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check"></i> Marcar como capturada</button>` : ''}
+${!p.impresa ? `<button onclick="marcarPruebaImpresa('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--slate); color:#fff;"><i class="fa-solid fa-print"></i> Marcar como impresa</button>` : ''}
+</div>
+</div>`).join('');
+}
+function copiarDatosPruebaCapturista(id){
+const p = estado.pruebasCampoVet.find(x => x.id === id);
+if (!p) return;
+const ETIQUETAS_RESULTADO = { N:'Negativo', S:'Sospechoso', R:'Reactor', E:'Exento' };
+const lineas = [
+`${p.tipoPrueba} — ${p.productorNombre}`,
+`Predio: ${p.predio || ''}  UPP: ${p.upp || ''}  CURP: ${p.curp || ''}`,
+`Fecha: ${p.fecha}  Veterinario: ${p.veterinarioNombre || ''}`,
+'',
+...p.animales.map((a, i) => `${i+1}. ${a.arete || 'sin arete'} | ${a.especie} | ${a.edad} meses | ${a.sexo === 'H' ? 'H' : 'M'} | ${a.raza || ''}${a.resultado ? ' | ' + (ETIQUETAS_RESULTADO[a.resultado] || a.resultado) : ''}`),
+];
+const texto = lineas.join('\n');
+if (navigator.clipboard && navigator.clipboard.writeText){
+navigator.clipboard.writeText(texto).then(() => mostrarToast('Datos copiados — pégalos donde los necesites')).catch(() => mostrarToast(texto));
+} else {
+mostrarToast(texto);
+}
+}
+function marcarPruebaCapturada(id){
+const p = estado.pruebasCampoVet.find(x => x.id === id);
+if (!p) return;
+p.capturada = true;
+guardarEstadoLocal();
+renderPruebasCapturista();
+mostrarToast('Marcada como capturada');
+}
+// ================= PRUEBAS REALIZADAS (buscador + exportar/compartir) =================
+function renderPruebasRealizadas(){
+const cont = document.getElementById('lista-pruebas-realizadas');
+if (!cont) return;
+const q = (valor('pr-buscar') || '').trim().toLowerCase();
+let items = estado.pruebasCampoVet.filter(p => p.categoria === 'areteo' || p.leida);
+if (q) items = items.filter(p => (p.productorNombre || '').toLowerCase().includes(q) || (p.upp || '').toLowerCase().includes(q));
+items = items.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-magnifying-glass"></i><p>${q ? 'Sin resultados para "' + q + '"' : 'Aún no hay pruebas realizadas.'}</p></div>`;
+return;
+}
+cont.innerHTML = items.map(p => {
+const clave = 'pr_' + p.id;
+EXPORT_REGISTRY[clave] = () => construirConfigExportPrueba(p);
+return `
+<div class="item-registro" style="border-left:6px solid ${p.categoria === 'prueba' ? 'var(--purple)' : 'var(--orange)'};">
+<p class="font-bold">${p.tipoPrueba} — ${p.productorNombre}</p>
+<p class="text-sm" style="color:var(--sage);">${p.predio || ''} ${p.upp ? '· UPP ' + p.upp : ''} · ${p.fecha}</p>
+<p class="text-sm" style="color:var(--sage);">${p.animales.length} animal(es) · Vet: ${p.veterinarioNombre || '—'}</p>
+<div class="flex flex-wrap gap-2 mt-3">
+<button onclick="abrirMenuExportarPrueba('${p.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--teal); color:#fff;"><i class="fa-solid fa-file-arrow-down"></i> Excel / Compartir</button>
+</div>
+</div>`;
+}).join('');
+}
+function construirConfigExportPrueba(p){
+const ETIQUETAS_RESULTADO = { N:'Negativo', S:'Sospechoso', R:'Reactor', E:'Exento' };
+const encabezados = p.categoria === 'prueba'
+? ['Productor','Predio','UPP','CURP','Identificación','Especie','Edad','Sexo','Raza','Fierro','Resultado']
+: ['Productor','Predio','UPP','CURP','Identificación','Especie','Edad','Sexo','Raza','Fierro'];
+const filas = p.animales.map(a => p.categoria === 'prueba'
+? [p.productorNombre, p.predio, p.upp, p.curp || '', a.arete, a.especie, a.edad, a.sexo, a.raza, a.fierro || '', ETIQUETAS_RESULTADO[a.resultado] || a.resultado]
+: [p.productorNombre, p.predio, p.upp, p.curp || '', a.arete, a.especie, a.edad, a.sexo, a.raza, a.fierro || '']);
+return { titulo: `${p.tipoPrueba} - ${p.productorNombre} - ${p.fecha}`, encabezados, filas };
+}
+function abrirMenuExportarPrueba(pruebaId){
+const p = estado.pruebasCampoVet.find(x => x.id === pruebaId);
+if (!p) return;
+hiloAbiertoCuentaId = p.productorId;
+abrirMenuExportar('pr_' + pruebaId);
+}
+// ================= SOLICITUDES CEFP (capturista / Almita) — requieren aprobación del admin =================
+function renderSolicitudesCEFP(){
+const cont = document.getElementById('lista-solicitudes-cefp');
+if (!cont) return;
+const items = (estado.solicitudesCEFP || []).slice().sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-user-clock"></i><p>No hay solicitudes de cuenta CEFPP.</p></div>`;
+return;
+}
+const ETIQUETAS_PUESTO = { capturista:'Capturista', almita:'Emisora de solicitudes' };
+const ETIQUETAS_ESTATUS = { pendiente:'Pendiente de autorizar', aprobada:'Aprobada', rechazada:'Rechazada' };
+const COLORES = { pendiente:'var(--yellow)', aprobada:'var(--green)', rechazada:'var(--red)' };
+cont.innerHTML = items.map(s => `
+<div class="item-registro" style="border-left:6px solid var(--teal);">
+<p class="font-bold">${s.nombre} — ${ETIQUETAS_PUESTO[s.puesto] || s.puesto}</p>
+<p class="text-sm" style="color:var(--sage);">${s.centroTrabajo || ''} · CURP: ${s.curp || ''}</p>
+<p class="text-sm" style="color:var(--sage);">Tel: ${s.telefono || ''} · Usuario solicitado: ${s.usuario} · ${s.fecha}</p>
+<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:${COLORES[s.estatus]}; color:#fff;">${ETIQUETAS_ESTATUS[s.estatus]}</span>
+${s.estatus === 'pendiente' ? `
+<div class="flex gap-2 mt-3">
+<button onclick="aprobarSolicitudCEFP('${s.id}')" class="text-xs font-bold px-3 py-2 rounded-full flex-1" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check"></i> Autorizar cuenta</button>
+<button onclick="rechazarSolicitudCEFP('${s.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);"><i class="fa-solid fa-xmark"></i></button>
+</div>` : ''}
+</div>`).join('');
+}
+function aprobarSolicitudCEFP(id){
+const s = (estado.solicitudesCEFP || []).find(x => x.id === id);
+if (!s) return;
+if (existeUsuarioDuplicado(s.usuario)){ mostrarToast('Ese usuario ya existe, no se puede autorizar'); return; }
+estado.usuarios.push({ nombre: s.nombre + ' (' + (s.puesto === 'almita' ? 'Emisora de solicitudes' : 'Capturista') + ')', usuario: s.usuario, clave: s.clave, rol: s.puesto });
+s.estatus = 'aprobada';
+guardarEstadoLocal();
+renderSolicitudesCEFP(); renderGridAdminHome(); renderListaUsuarios();
+mostrarToast(`Cuenta autorizada para ${s.nombre}`);
+}
+function rechazarSolicitudCEFP(id){
+const s = (estado.solicitudesCEFP || []).find(x => x.id === id);
+if (!s) return;
+s.estatus = 'rechazada';
+guardarEstadoLocal();
+renderSolicitudesCEFP();
+mostrarToast('Solicitud rechazada');
+}
+// ================= ALMITA (departamento de TB) =================
+function enviarAAlmita(pruebaId){
+const p = estado.pruebasCampoVet.find(x => x.id === pruebaId);
+if (!p) return;
+estado.enviosAlmita.push({
+id: 'alm_' + Date.now(), pruebaId: p.id,
+tipoPrueba: p.tipoPrueba, productorNombre: p.productorNombre, predio: p.predio, upp: p.upp, curp: p.curp || '',
+veterinarioNombre: p.veterinarioNombre, fecha: p.fecha,
+animales: p.animales, reactores: contarReactores(p),
+fechaEnvio: hoyISO(), revisado: false,
+});
+p.enviadaAlmita = true;
+guardarEstadoLocal();
+renderListaPruebasCampo();
+mostrarToast('Enviado al centro de solicitudes del CEFPP');
+}
+function renderEnviosAlmita(){
+const cont = document.getElementById('lista-envios-almita');
+if (!cont) return;
+const filtro = valor('almita-filtro-estatus') || 'recibidos';
+const q = (valor('almita-buscar') || '').trim().toLowerCase();
+let items = estado.enviosAlmita || [];
+if (filtro === 'recibidos') items = items.filter(e => !e.revisado);
+else if (filtro === 'revisados') items = items.filter(e => e.revisado);
+if (q) items = items.filter(e => (e.productorNombre || '').toLowerCase().includes(q) || (e.upp || '').toLowerCase().includes(q));
+items = items.sort((a,b) => (b.fechaEnvio||'').localeCompare(a.fechaEnvio||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-envelope-open-text"></i><p>No hay envíos para mostrar con este filtro.</p></div>`;
+return;
+}
+cont.innerHTML = items.map(e => `
+<div class="item-registro" style="border-left:6px solid ${e.reactores > 0 ? 'var(--red)' : 'var(--teal)'};">
+<p class="font-bold">${e.tipoPrueba} — ${e.productorNombre}</p>
+<p class="text-sm" style="color:var(--sage);">${e.predio || ''} ${e.upp ? '· UPP ' + e.upp : ''} · Aplicada: ${e.fecha} · Enviada: ${e.fechaEnvio}</p>
+<p class="text-sm" style="color:var(--sage);">Veterinario: ${e.veterinarioNombre || '—'} · ${e.animales.length} animal(es)</p>
+${e.reactores > 0 ? `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:var(--red); color:#fff;">${e.reactores} reactor(es)</span>` : ''}
+${e.revisado ? `<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1 ml-1" style="background:var(--green); color:#fff;">Revisado</span>` : ''}
+<div class="flex flex-wrap gap-2 mt-3">
+${!e.revisado ? `<button onclick="marcarEnvioAlmitaRevisado('${e.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check"></i> Marcar como revisado</button>` : ''}
+</div>
+</div>`).join('');
+}
+function marcarEnvioAlmitaRevisado(id){
+const e = (estado.enviosAlmita || []).find(x => x.id === id);
+if (!e) return;
+e.revisado = true;
+guardarEstadoLocal();
+renderEnviosAlmita();
+mostrarToast('Marcado como revisado');
+}
+// ================= SOLICITUDES CEFPP → VETERINARIO (dadas de alta por la emisora de solicitudes) =================
+let vetSeleccionadoSolicitudCEFPP = null;
+function abrirNuevaSolicitudCEFPP(){
+vetSeleccionadoSolicitudCEFPP = null;
+if (!Array.isArray(estado.solicitudesCEFPPVet)) estado.solicitudesCEFPPVet = [];
+const numero = 'SOL-' + String(estado.solicitudesCEFPPVet.length + 1).padStart(5, '0');
+establecerValor('sc-numero-solicitud', numero);
+establecerValor('sc-folio-interno', '');
+establecerValor('sc-buscar-vet', '');
+document.getElementById('resultado-buscar-vet-sc').innerHTML = '';
+document.getElementById('vet-seleccionado-sc').classList.add('hidden');
+establecerValor('sc-num-productores', '1');
+establecerValor('sc-folio-inicial', '');
+establecerValor('sc-folios-manual', '');
+document.getElementById('sc-folios-manual').classList.add('hidden');
+establecerValor('sc-upp-unica', '');
+establecerValor('sc-upps-manual', '');
+document.getElementById('sc-upps-manual').classList.add('hidden');
+establecerValor('sc-motivo', '');
+actualizarCamposSolicitudCEFPP();
+irAdmin('nueva-solicitud-cefpp');
+}
+function actualizarCamposSolicitudCEFPP(){
+const n = parseInt(valor('sc-num-productores'), 10) || 1;
+document.getElementById('sc-upp-unica').classList.toggle('hidden', n > 1);
+document.getElementById('sc-upps-manual').classList.toggle('hidden', n <= 1);
+document.getElementById('sc-btn-editar-upps').textContent = n > 1 ? 'Usar campo único' : 'Editar manualmente';
+document.getElementById('sc-folio-inicial').classList.toggle('hidden', document.getElementById('sc-folios-manual').classList.contains('hidden') === false);
+actualizarPreviewFolios();
+}
+function toggleEdicionManualFolios(){
+const manual = document.getElementById('sc-folios-manual');
+const inicial = document.getElementById('sc-folio-inicial');
+const editando = manual.classList.contains('hidden');
+manual.classList.toggle('hidden', !editando);
+inicial.classList.toggle('hidden', editando);
+document.getElementById('sc-btn-editar-folios').textContent = editando ? 'Usar folio consecutivo' : 'Editar manualmente';
+actualizarPreviewFolios();
+}
+function toggleEdicionManualUpps(){
+const manual = document.getElementById('sc-upps-manual');
+const unica = document.getElementById('sc-upp-unica');
+const editando = manual.classList.contains('hidden');
+manual.classList.toggle('hidden', !editando);
+unica.classList.toggle('hidden', editando || (parseInt(valor('sc-num-productores'),10)||1) <= 1);
+document.getElementById('sc-btn-editar-upps').textContent = editando ? 'Usar campo único' : 'Editar manualmente';
+}
+function actualizarPreviewFolios(){
+const n = parseInt(valor('sc-num-productores'), 10) || 1;
+const preview = document.getElementById('sc-folios-preview');
+if (n <= 1 || !document.getElementById('sc-folios-manual').classList.contains('hidden')){
+preview.textContent = '';
+return;
+}
+const folioInicial = valor('sc-folio-inicial').trim();
+if (!folioInicial || !/^\d+$/.test(folioInicial)){
+preview.textContent = n > 1 ? 'Escribe el primer folio (solo números) para generar el resto en automático.' : '';
+return;
+}
+const base = parseInt(folioInicial, 10);
+const lista = Array.from({ length: n }, (_, i) => base + i);
+preview.textContent = `Folios generados: ${lista.join(', ')}`;
+}
+document.addEventListener('input', e => { if (e.target && (e.target.id === 'sc-folio-inicial')) actualizarPreviewFolios(); });
+function buscarVetParaSolicitudCEFPP(){
+const q = valor('sc-buscar-vet').trim().toLowerCase();
+const cont = document.getElementById('resultado-buscar-vet-sc');
+if (!q){ cont.innerHTML = ''; return; }
+const resultados = estado.veterinarios.filter(v => (v.nombre || '').toLowerCase().includes(q)).slice(0, 8);
+if (resultados.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>`; return; }
+cont.innerHTML = resultados.map(v => `
+<button onclick="seleccionarVetParaSolicitudCEFPP('${v.id}')" class="w-full text-left bg-white rounded-xl p-2 flex items-center gap-2" style="border:2px solid var(--line);">
+${avatarHtml(v.nombre, null, 34)}
+<div class="flex-1 min-w-0"><p class="text-sm font-bold truncate">${v.nombre}</p></div>
+</button>`).join('');
+}
+function seleccionarVetParaSolicitudCEFPP(vetId){
+const v = estado.veterinarios.find(x => x.id === vetId);
+if (!v) return;
+vetSeleccionadoSolicitudCEFPP = v;
+document.getElementById('resultado-buscar-vet-sc').innerHTML = '';
+establecerValor('sc-buscar-vet', '');
+const cont = document.getElementById('vet-seleccionado-sc');
+cont.classList.remove('hidden');
+cont.innerHTML = `<div class="flex items-center gap-2">${avatarHtml(v.nombre, null, 36)}<div class="flex-1"><p class="text-sm font-bold">${v.nombre}</p></div><button onclick="vetSeleccionadoSolicitudCEFPP=null; document.getElementById('vet-seleccionado-sc').classList.add('hidden');" style="color:var(--red);"><i class="fa-solid fa-xmark"></i></button></div>`;
+}
+function guardarSolicitudCEFPP(){
+if (!vetSeleccionadoSolicitudCEFPP){ mostrarToast('Selecciona el veterinario'); return; }
+const folioInterno = valor('sc-folio-interno').trim();
+const numProductores = parseInt(valor('sc-num-productores'), 10) || 1;
+const motivo = valor('sc-motivo').trim();
+if (!folioInterno || !motivo){ mostrarToast('Faltan datos'); return; }
+let folios = [];
+if (!document.getElementById('sc-folios-manual').classList.contains('hidden')){
+folios = valor('sc-folios-manual').split(',').map(f => f.trim()).filter(Boolean);
+} else {
+const base = parseInt(valor('sc-folio-inicial'), 10);
+if (!base){ mostrarToast('Escribe el folio inicial de hoja de campo'); return; }
+folios = Array.from({ length: numProductores }, (_, i) => String(base + i));
+}
+let upps = [];
+if (numProductores <= 1 && document.getElementById('sc-upps-manual').classList.contains('hidden')){
+upps = [valor('sc-upp-unica').trim()];
+} else {
+upps = valor('sc-upps-manual').split(',').map(u => u.trim()).filter(Boolean);
+}
+if (!Array.isArray(estado.solicitudesCEFPPVet)) estado.solicitudesCEFPPVet = [];
+estado.solicitudesCEFPPVet.push({
+id: 'sccv_' + Date.now(),
+numeroSolicitud: valor('sc-numero-solicitud'),
+folioInterno, numProductores, folios, upps, motivo,
+veterinarioId: vetSeleccionadoSolicitudCEFPP.id, veterinarioNombre: vetSeleccionadoSolicitudCEFPP.nombre,
+fecha: hoyISO(), estatus: 'pendiente',
+});
+guardarEstadoLocal();
+mostrarToast(`Solicitud enviada a ${vetSeleccionadoSolicitudCEFPP.nombre}`);
+volverAtrasAdmin('almita');
+}
+function renderSolicitudesCEFPPGeneradas(){
+const cont = document.getElementById('lista-solicitudes-cefpp-generadas');
+if (!cont) return;
+const items = (estado.solicitudesCEFPPVet || []).slice().sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-file-circle-plus"></i><p>Aún no has dado de alta ninguna solicitud.</p></div>`;
+return;
+}
+const COLORES = { pendiente:'var(--yellow)', atendida:'var(--green)' };
+cont.innerHTML = items.map(s => `
+<div class="item-registro" style="border-left:6px solid var(--teal);">
+<p class="font-bold">${s.numeroSolicitud} — ${s.veterinarioNombre}</p>
+<p class="text-sm" style="color:var(--sage);">Folio interno: ${s.folioInterno} · ${s.numProductores} productor(es) · ${s.fecha}</p>
+<p class="text-sm" style="color:var(--sage);">Folios de campo: ${s.folios.join(', ')}</p>
+<p class="text-sm" style="color:var(--sage);">UPP(s): ${s.upps.join(', ')}</p>
+<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:${COLORES[s.estatus]}; color:#fff;">${s.estatus === 'pendiente' ? 'Pendiente de atender' : 'Atendida por el veterinario'}</span>
+</div>`).join('');
+}
+function renderSolicitudesCEFPPVet(){
+const cont = document.getElementById('lista-solicitudes-cefpp-vet');
+if (!cont) return;
+const vet = veterinarioActivo();
+const items = (estado.solicitudesCEFPPVet || []).filter(s => s.veterinarioId === (vet ? vet.id : null)).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-building-shield"></i><p>No tienes solicitudes autorizadas por el CEFPP.</p></div>`;
+return;
+}
+cont.innerHTML = items.map(s => `
+<div class="item-registro" style="border-left:6px solid var(--teal);">
+<p class="font-bold">${s.numeroSolicitud} — Folio interno ${s.folioInterno}</p>
+<p class="text-sm" style="color:var(--sage);">${s.numProductores} productor(es) · Folios: ${s.folios.join(', ')}</p>
+<p class="text-sm" style="color:var(--sage);">UPP(s): ${s.upps.join(', ')}</p>
+<p class="text-sm" style="color:var(--sage);">Motivo: ${s.motivo}</p>
+<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:${s.estatus === 'pendiente' ? 'var(--yellow)' : 'var(--green)'}; color:#fff;">${s.estatus === 'pendiente' ? 'Pendiente de atender' : 'Atendida'}</span>
+${s.estatus === 'pendiente' ? `<button onclick="usarSolicitudCEFPPEnPrueba('${s.id}')" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-2" style="background:var(--purple); color:#fff;"><i class="fa-solid fa-vial-circle-check"></i> Usar en nueva prueba</button>` : ''}
+</div>`).join('');
+}
+function usarSolicitudCEFPPEnPrueba(id){
+const s = (estado.solicitudesCEFPPVet || []).find(x => x.id === id);
+if (!s) return;
+abrirNuevaPruebaCampo('prueba');
+establecerValor('pc-motivo', s.motivo);
+if (s.numProductores === 1 && s.upps[0]){
+const c = estado.cuentasProductores.find(x => (x.upp || '').toLowerCase() === s.upps[0].toLowerCase());
+if (c) seleccionarProductorParaPrueba(c.id);
+else mostrarToast(`No se encontró ninguna cuenta con la UPP ${s.upps[0]} — selecciona el productor manualmente.`);
+} else {
+mostrarToast(`Esta solicitud incluye ${s.numProductores} productores (UPPs: ${s.upps.join(', ')}) — selecciona cada uno y crea una prueba por productor.`);
+}
+s.estatus = 'atendida';
+guardarEstadoLocal();
+}
+function marcarPruebaImpresa(id){
+const p = estado.pruebasCampoVet.find(x => x.id === id);
+if (!p) return;
+p.impresa = true;
+p.fechaImpresion = hoyISO();
+if (!Array.isArray(estado.historialImpresiones)) estado.historialImpresiones = [];
+estado.historialImpresiones.push({ id:'imp_' + Date.now(), pruebaId: p.id, productorNombre: p.productorNombre, tipoPrueba: p.tipoPrueba, fecha: hoyISO() });
+guardarEstadoLocal();
+renderPruebasCapturista();
+mostrarToast('Marcada como impresa');
 }
 function compartirPruebaCampo(id){
 const p = estado.pruebasCampoVet.find(x => x.id === id);
@@ -10784,6 +12032,260 @@ if (!p || p.productorId !== estado.cuentaActivaId) return;
 p.estatusProductor = 'rechazada';
 guardarEstadoLocal();
 renderPruebasCampoCompartidas();
+}
+// ================= SOLICITUD DE ARETES (PRODUCTOR -> VETERINARIO) =================
+let filasSolicitudAretes = [];
+let vetSeleccionadoSolicitudAretes = null;
+function renderSolicitudAretesProductor(){
+filasSolicitudAretes = [];
+vetSeleccionadoSolicitudAretes = null;
+establecerValor('sa-buscar-vet', '');
+document.getElementById('resultado-buscar-vet-sa').innerHTML = '';
+document.getElementById('vet-seleccionado-sa').classList.add('hidden');
+renderFilasSolicitudAretes();
+renderMisSolicitudesAretes();
+}
+function buscarVetParaSolicitudAretes(){
+const q = valor('sa-buscar-vet').trim().toLowerCase();
+const cont = document.getElementById('resultado-buscar-vet-sa');
+if (!q){ cont.innerHTML = ''; return; }
+const resultados = estado.veterinarios.filter(v => (v.nombre || '').toLowerCase().includes(q)).slice(0, 8);
+if (resultados.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>`; return; }
+cont.innerHTML = resultados.map(v => `
+<button onclick="seleccionarVetParaSolicitudAretes('${v.id}')" class="w-full text-left bg-white rounded-xl p-2 flex items-center gap-2" style="border:2px solid var(--line);">
+${avatarHtml(v.nombre, null, 34)}
+<div class="flex-1 min-w-0"><p class="text-sm font-bold truncate">${v.nombre}</p>${v.cedula ? `<p class="text-xs" style="color:var(--sage);">Cédula ${v.cedula}</p>` : ''}</div>
+</button>`).join('');
+}
+function seleccionarVetParaSolicitudAretes(vetId){
+const v = estado.veterinarios.find(x => x.id === vetId);
+if (!v) return;
+vetSeleccionadoSolicitudAretes = v;
+document.getElementById('resultado-buscar-vet-sa').innerHTML = '';
+establecerValor('sa-buscar-vet', '');
+const cont = document.getElementById('vet-seleccionado-sa');
+cont.classList.remove('hidden');
+cont.innerHTML = `<div class="flex items-center gap-2">${avatarHtml(v.nombre, null, 36)}<div class="flex-1"><p class="text-sm font-bold">${v.nombre}</p>${v.cedula ? `<p class="text-xs" style="color:var(--sage);">Cédula ${v.cedula}</p>` : ''}</div><button onclick="vetSeleccionadoSolicitudAretes=null; document.getElementById('vet-seleccionado-sa').classList.add('hidden');" style="color:var(--red);"><i class="fa-solid fa-xmark"></i></button></div>`;
+}
+function agregarFilaSolicitudAretes(){
+filasSolicitudAretes.push({ id: 'fsa_' + Date.now() + Math.random().toString(36).slice(2,6), sexo:'H', edad:'', madre:'', padre:'' });
+renderFilasSolicitudAretes();
+}
+function cargarAnimalesSinAreteAutomatico(){
+const sinArete = estado.animales.filter(a => !a.arete && a.estatus !== 'vendido' && a.estatus !== 'finado');
+if (sinArete.length === 0){ mostrarToast('No hay animales sin arete en tu inventario'); return; }
+const idsExistentes = new Set(filasSolicitudAretes.map(f => f._origenAnimalId).filter(Boolean));
+let agregados = 0;
+sinArete.forEach(a => {
+if (a.id && idsExistentes.has(a.id)) return;
+let edadMeses = '';
+if (a.fecha){
+try { edadMeses = Math.max(0, Math.floor(diasEntreISO(hoyISO(), a.fecha) / 30)); } catch(e){ edadMeses = ''; }
+}
+filasSolicitudAretes.push({
+id: 'fsa_' + Date.now() + Math.random().toString(36).slice(2,6),
+_origenAnimalId: a.id || null,
+sexo: sexoAHM(a.sexo),
+edad: edadMeses !== '' ? String(edadMeses) : '',
+madre: a.madre || '',
+padre: a.padre || '',
+});
+agregados++;
+});
+renderFilasSolicitudAretes();
+mostrarToast(`${agregados} animal(es) sin arete cargados desde tu inventario`);
+}
+function eliminarFilaSolicitudAretes(id){
+filasSolicitudAretes = filasSolicitudAretes.filter(f => f.id !== id);
+renderFilasSolicitudAretes();
+}
+function actualizarFilaSolicitudAretes(id, campo, valorNuevo){
+const f = filasSolicitudAretes.find(x => x.id === id);
+if (f) f[campo] = valorNuevo;
+}
+function renderFilasSolicitudAretes(){
+const cont = document.getElementById('lista-filas-solicitud-aretes');
+if (!cont) return;
+if (filasSolicitudAretes.length === 0){
+cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Aún no agregas animales. Toca "Agregar".</p>`;
+return;
+}
+const opcionesPadres = estado.animales.map(a => `<option value="${(a.arete || a.nombre || '').replace(/"/g,'&quot;')}">${a.arete || a.nombre} ${a.nombre && a.arete ? '— ' + a.nombre : ''}</option>`).join('');
+cont.innerHTML = filasSolicitudAretes.map(f => `
+<div class="bg-white rounded-2xl p-3" style="border:2px solid var(--line);">
+<div class="flex items-center justify-between mb-2">
+<span class="text-xs font-bold" style="color:var(--sage);">Animal sin arete</span>
+<button onclick="eliminarFilaSolicitudAretes('${f.id}')" style="color:var(--red);"><i class="fa-solid fa-trash"></i></button>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<select onchange="actualizarFilaSolicitudAretes('${f.id}','sexo',this.value)" style="font-size:.85rem;">
+<option ${f.sexo==='H'?'selected':''} value="H">Hembra</option>
+<option ${f.sexo==='M'?'selected':''} value="M">Macho</option>
+</select>
+<input onchange="actualizarFilaSolicitudAretes('${f.id}','edad',this.value)" placeholder="Edad (meses)" style="font-size:.85rem;" type="text" value="${f.edad}"/>
+<select onchange="actualizarFilaSolicitudAretes('${f.id}','madre',this.value)" style="font-size:.85rem;">
+<option value="">Madre (opcional)</option>
+${opcionesPadres}
+</select>
+<select onchange="actualizarFilaSolicitudAretes('${f.id}','padre',this.value)" style="font-size:.85rem;">
+<option value="">Padre (opcional)</option>
+${opcionesPadres}
+</select>
+</div>
+</div>`).join('');
+}
+function enviarSolicitudAretes(){
+if (!vetSeleccionadoSolicitudAretes){ mostrarToast('Selecciona a tu veterinario'); return; }
+if (filasSolicitudAretes.length === 0){ mostrarToast('Agrega al menos un animal'); return; }
+estado.solicitudesAretes.push({
+id: 'sa_' + Date.now(),
+veterinarioId: vetSeleccionadoSolicitudAretes.id,
+veterinarioNombre: vetSeleccionadoSolicitudAretes.nombre,
+productorId: estado.cuentaActivaId,
+productorNombre: estado.productor.nombre,
+predio: estado.productor.predio,
+upp: estado.productor.upp,
+fecha: hoyISO(),
+animales: filasSolicitudAretes.map(f => ({ sexo:f.sexo, edad:f.edad, madre:f.madre, padre:f.padre })),
+estatus: 'pendiente',
+});
+guardarEstadoLocal();
+mostrarToast(`Solicitud enviada a ${vetSeleccionadoSolicitudAretes.nombre}`);
+renderSolicitudAretesProductor();
+}
+function renderMisSolicitudesAretes(){
+const cont = document.getElementById('lista-mis-solicitudes-aretes');
+if (!cont) return;
+const mias = estado.solicitudesAretes.filter(s => s.productorId === estado.cuentaActivaId).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (mias.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-tags"></i><p>Aún no has enviado solicitudes de aretes.</p></div>`;
+return;
+}
+const COLORES = { pendiente:'var(--yellow)', atendida:'var(--green)' };
+const ETIQUETAS = { pendiente:'Pendiente', atendida:'Atendida' };
+cont.innerHTML = mias.map(s => `
+<div class="item-registro" style="border-left:6px solid var(--teal);">
+<p class="font-bold">${s.animales.length} arete(s) — enviado a ${s.veterinarioNombre}</p>
+<p class="text-sm" style="color:var(--sage);">${s.fecha}</p>
+<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:${COLORES[s.estatus]}; color:#fff;">${ETIQUETAS[s.estatus]}</span>
+</div>`).join('');
+}
+// ================= SOLICITAR PRUEBA AL VETERINARIO (comparte inventario) =================
+let vetSeleccionadoSolicitudPrueba = null;
+function abrirSolicitarPruebaVet(){
+vetSeleccionadoSolicitudPrueba = null;
+establecerValor('sp-buscar-vet', '');
+document.getElementById('resultado-buscar-vet-sp').innerHTML = '';
+document.getElementById('vet-seleccionado-sp').classList.add('hidden');
+const vigentes = estado.animales.filter(a => a.estatus !== 'vendido' && a.estatus !== 'finado');
+const conArete = vigentes.filter(a => a.arete).length;
+const sinArete = vigentes.length - conArete;
+document.getElementById('sp-conteo-animales').textContent = `${vigentes.length} animal(es) vigente(s): ${conArete} con arete, ${sinArete} sin arete.`;
+const modal = document.getElementById('modal-solicitar-prueba');
+modal.classList.remove('hidden'); modal.style.display = 'flex';
+}
+function buscarVetParaSolicitudPrueba(){
+const q = valor('sp-buscar-vet').trim().toLowerCase();
+const cont = document.getElementById('resultado-buscar-vet-sp');
+if (!q){ cont.innerHTML = ''; return; }
+const resultados = estado.veterinarios.filter(v => (v.nombre || '').toLowerCase().includes(q)).slice(0, 8);
+if (resultados.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>`; return; }
+cont.innerHTML = resultados.map(v => `
+<button onclick="seleccionarVetParaSolicitudPrueba('${v.id}')" class="w-full text-left bg-white rounded-xl p-2 flex items-center gap-2" style="border:2px solid var(--line);">
+${avatarHtml(v.nombre, null, 34)}
+<div class="flex-1 min-w-0"><p class="text-sm font-bold truncate">${v.nombre}</p></div>
+</button>`).join('');
+}
+function seleccionarVetParaSolicitudPrueba(vetId){
+const v = estado.veterinarios.find(x => x.id === vetId);
+if (!v) return;
+vetSeleccionadoSolicitudPrueba = v;
+document.getElementById('resultado-buscar-vet-sp').innerHTML = '';
+establecerValor('sp-buscar-vet', '');
+const cont = document.getElementById('vet-seleccionado-sp');
+cont.classList.remove('hidden');
+cont.innerHTML = `<div class="flex items-center gap-2">${avatarHtml(v.nombre, null, 36)}<div class="flex-1"><p class="text-sm font-bold">${v.nombre}</p></div><button onclick="vetSeleccionadoSolicitudPrueba=null; document.getElementById('vet-seleccionado-sp').classList.add('hidden');" style="color:var(--red);"><i class="fa-solid fa-xmark"></i></button></div>`;
+}
+function enviarSolicitudPrueba(){
+if (!vetSeleccionadoSolicitudPrueba){ mostrarToast('Selecciona a tu veterinario'); return; }
+const vigentes = estado.animales.filter(a => a.estatus !== 'vendido' && a.estatus !== 'finado');
+if (!estado.solicitudesPrueba) estado.solicitudesPrueba = [];
+estado.solicitudesPrueba.push({
+id: 'spr_' + Date.now(),
+veterinarioId: vetSeleccionadoSolicitudPrueba.id,
+veterinarioNombre: vetSeleccionadoSolicitudPrueba.nombre,
+productorId: estado.cuentaActivaId,
+productorNombre: estado.productor.nombre,
+predio: estado.productor.predio, upp: estado.productor.upp, curp: estado.productor.curp || '',
+fecha: hoyISO(),
+animales: vigentes.map(a => ({ arete: a.arete || '', nombre: a.nombre || '', sexo: a.sexo, raza: a.raza, fechaNacimiento: a.fecha, estatus: a.estatus })),
+estatus: 'pendiente',
+});
+guardarEstadoLocal();
+document.getElementById('modal-solicitar-prueba').classList.add('hidden');
+mostrarToast(`Solicitud de prueba enviada a ${vetSeleccionadoSolicitudPrueba.nombre}`);
+}
+function renderSolicitudesPruebaVet(){
+const cont = document.getElementById('lista-solicitudes-prueba-vet');
+if (!cont) return;
+const vet = veterinarioActivo();
+const items = (estado.solicitudesPrueba || []).filter(s => s.veterinarioId === (vet ? vet.id : null)).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-vial-circle-check"></i><p>No tienes solicitudes de prueba pendientes.</p></div>`;
+return;
+}
+cont.innerHTML = items.map(s => {
+const conArete = s.animales.filter(a => a.arete).length;
+return `
+<div class="item-registro" style="border-left:6px solid var(--teal);">
+<p class="font-bold">${s.productorNombre}</p>
+<p class="text-sm" style="color:var(--sage);">${s.predio || ''} ${s.upp ? '· UPP ' + s.upp : ''} · ${s.fecha}</p>
+<p class="text-sm" style="color:var(--sage);">${s.animales.length} animal(es): ${conArete} con arete, ${s.animales.length - conArete} sin arete</p>
+<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:${s.estatus === 'pendiente' ? 'var(--yellow)' : 'var(--green)'}; color:#fff;">${s.estatus === 'pendiente' ? 'Pendiente' : 'Usada en prueba'}</span>
+${s.estatus === 'pendiente' ? `<button onclick="usarSolicitudPruebaEnNuevaPrueba('${s.id}')" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-2" style="background:var(--purple); color:#fff;"><i class="fa-solid fa-vial-circle-check"></i> Usar en nueva prueba</button>` : ''}
+</div>`;
+}).join('');
+}
+function usarSolicitudPruebaEnNuevaPrueba(id){
+const s = (estado.solicitudesPrueba || []).find(x => x.id === id);
+if (!s) return;
+abrirNuevaPruebaCampo('prueba');
+const c = estado.cuentasProductores.find(x => x.id === s.productorId);
+if (c) seleccionarProductorParaPrueba(c.id);
+filasAnimalesPruebaCampo = s.animales.map(a => ({ id: 'fila_' + Date.now() + Math.random().toString(36).slice(2,6), arete: a.arete || '', especie:'Bovino', edad: a.fechaNacimiento || '', sexo: sexoAHM(a.sexo), raza: a.raza || '', fierro:'', resultado:'N' }));
+renderFilasAnimalesPruebaCampo();
+s.estatus = 'usada';
+guardarEstadoLocal();
+mostrarToast(`${filasAnimalesPruebaCampo.length} animal(es) cargados desde la solicitud`);
+}
+function renderSolicitudesAretesVet(){
+const cont = document.getElementById('lista-solicitudes-aretes-vet');
+if (!cont) return;
+const vet = veterinarioActivo();
+const items = estado.solicitudesAretes.filter(s => s.veterinarioId === (vet ? vet.id : null)).sort((a,b) => (b.fecha||'').localeCompare(a.fecha||''));
+if (items.length === 0){
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-tags"></i><p>No tienes solicitudes de aretes pendientes.</p></div>`;
+return;
+}
+const ETIQUETAS_SEXO = { H:'Hembra', M:'Macho' };
+cont.innerHTML = items.map(s => `
+<div class="item-registro" style="border-left:6px solid var(--teal);">
+<p class="font-bold">${s.productorNombre}</p>
+<p class="text-sm" style="color:var(--sage);">${s.predio || ''} ${s.upp ? '· UPP ' + s.upp : ''} · ${s.fecha}</p>
+<div class="mt-2 space-y-1">
+${s.animales.map((a, i) => `<p class="text-xs" style="color:var(--ink);">${i+1}. ${ETIQUETAS_SEXO[a.sexo]}, ${a.edad || '—'} meses${a.madre ? ', madre: ' + a.madre : ''}${a.padre ? ', padre: ' + a.padre : ''}</p>`).join('')}
+</div>
+<span class="text-xs px-2 py-0.5 rounded-full inline-block mt-2" style="background:${s.estatus === 'pendiente' ? 'var(--yellow)' : 'var(--green)'}; color:#fff;">${s.estatus === 'pendiente' ? 'Pendiente' : 'Atendida'}</span>
+${s.estatus === 'pendiente' ? `<button onclick="marcarSolicitudAretesAtendida('${s.id}')" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-2" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check"></i> Marcar como atendida</button>` : ''}
+</div>`).join('');
+}
+function marcarSolicitudAretesAtendida(id){
+const s = estado.solicitudesAretes.find(x => x.id === id);
+if (!s) return;
+s.estatus = 'atendida';
+guardarEstadoLocal();
+renderSolicitudesAretesVet();
+mostrarToast('Marcada como atendida');
 }
 function abrirPerfilVeterinario(){
 const vet = veterinarioActivo();
@@ -11632,17 +13134,25 @@ Object.keys(porTipoWhatsapp).map(k => ETIQUETAS_WHATSAPP[k] || k),
 Object.values(porTipoWhatsapp), ['#25D366','#5C7DBE','#F2A741','#E0685A','#8B5CF6']);
 }
 function renderTodoAdmin(){
-establecerValor('adm-nombre', estado.productor.nombre);
+llenarSelectorEstados('adm');
+establecerValor('adm-apellidopaterno', estado.productor.apellidoPaterno || '');
+establecerValor('adm-apellidomaterno', estado.productor.apellidoMaterno || '');
+establecerValor('adm-nombres', estado.productor.nombres || '');
+establecerValor('adm-domicilio', estado.productor.domicilio || 'Conocido');
+establecerValor('adm-localidad', estado.productor.localidad || '');
+establecerValor('adm-correo', estado.productor.correoElectronico || '');
 establecerValor('adm-predio', estado.productor.predio || '');
 establecerValor('adm-upp', estado.productor.upp);
 establecerValor('adm-actualizacionupp', estado.productor.actualizacionUPP || '');
 establecerValor('adm-folio', estado.productor.folio);
 establecerValor('adm-vencimientofierro', estado.productor.vencimientoFierro || '');
 establecerValor('adm-estado', estado.productor.estado);
-establecerValor('adm-municipio', estado.productor.municipio);
+cargarMunicipiosSelector('adm', estado.productor.municipio || '');
 establecerValor('adm-ejido', estado.productor.ejido);
 establecerValor('adm-curp', estado.productor.curp || '');
 establecerValor('adm-actividad', estado.productor.actividad);
+const spanGpsAdm = document.getElementById('adm-gps-texto');
+if (spanGpsAdm) spanGpsAdm.textContent = (estado.productor.latitudUPP && estado.productor.longitudUPP) ? `Ubicación registrada (${estado.productor.latitudUPP.toFixed(5)}, ${estado.productor.longitudUPP.toFixed(5)})` : 'Registrar ubicación GPS';
 renderTogglesModulos();
 renderListaOrdenMas();
 renderListaOrdenGraficas();
@@ -11680,7 +13190,7 @@ cont.innerHTML = `
 function renderListaUsuarios(){
 const cont = document.getElementById('lista-usuarios');
 if (!cont) return;
-const colorRol = { admin:'var(--slate)', productor:'var(--green)', veterinario:'var(--purple)' };
+const colorRol = { admin:'var(--slate)', productor:'var(--green)', veterinario:'var(--purple)', capturista:'var(--teal)' };
 cont.innerHTML = estado.usuarios.map((u, i) => `
 <div class="item-registro" style="border-left:6px solid ${colorRol[u.rol]};">
 <div class="flex items-center justify-between">
@@ -11753,22 +13263,27 @@ const btnLeche = document.getElementById('reg-tipo-btn-leche');
 const btnCarne = document.getElementById('reg-tipo-btn-carne');
 const btnPunto = document.getElementById('reg-tipo-btn-punto');
 const btnMvz = document.getElementById('reg-tipo-btn-mvz');
+const btnCefp = document.getElementById('reg-tipo-btn-cefp');
 if (btnLeche) btnLeche.classList.toggle('active', tipo === 'leche');
 if (btnCarne) btnCarne.classList.toggle('active', tipo === 'carne');
 if (btnPunto) btnPunto.classList.toggle('active', tipo === 'punto');
 if (btnMvz) btnMvz.classList.toggle('active', tipo === 'mvz');
+if (btnCefp) btnCefp.classList.toggle('active', tipo === 'cefp');
 const esPunto = tipo === 'punto';
 const esMvz = tipo === 'mvz';
+const esCefp = tipo === 'cefp';
 const grupoLocal = document.getElementById('reg-grupo-local');
 const grupoProductor = document.getElementById('reg-grupo-productor');
 const grupoUbicacion = document.getElementById('reg-grupo-ubicacion');
 const grupoMvz = document.getElementById('reg-grupo-mvz');
+const grupoCefp = document.getElementById('reg-grupo-cefp');
 const labelNombre = document.getElementById('reg-nombre-label');
 if (grupoLocal) grupoLocal.classList.toggle('hidden', !esPunto);
-if (grupoProductor) grupoProductor.classList.toggle('hidden', esPunto || esMvz);
+if (grupoProductor) grupoProductor.classList.toggle('hidden', esPunto || esMvz || esCefp);
 if (grupoUbicacion) grupoUbicacion.classList.toggle('hidden', !esPunto);
 if (grupoMvz) grupoMvz.classList.toggle('hidden', !esMvz);
-if (labelNombre) labelNombre.textContent = esPunto ? tr('login_seleccion_rol__nombre_de_la_persona_encargada') : (esMvz ? tr('login_seleccion_rol__nombre_del_veterinario') : tr('admin_cuentas_productores__nombre_del_productor'));
+if (grupoCefp) grupoCefp.classList.toggle('hidden', !esCefp);
+if (labelNombre) labelNombre.textContent = esPunto ? tr('login_seleccion_rol__nombre_de_la_persona_encargada') : (esMvz ? tr('login_seleccion_rol__nombre_del_veterinario') : (esCefp ? 'Nombre completo' : tr('admin_cuentas_productores__nombre_del_productor')));
 }
 function agregarCuentaProductor(){
 const nombre = valor('cta-nombre').trim();
@@ -12064,39 +13579,132 @@ cont.innerHTML = ordenado.map(a => `
 </div>`).join('');
 }
 function guardarProductor(){
+const apellidoPaterno = valor('adm-apellidopaterno').trim();
+const apellidoMaterno = valor('adm-apellidomaterno').trim();
+const nombres = valor('adm-nombres').trim();
+const nombreCompleto = [nombres, apellidoPaterno, apellidoMaterno].filter(Boolean).join(' ');
 estado.productor = {
 ...estado.productor,
-nombre: valor('adm-nombre'), predio: valor('adm-predio'), upp: valor('adm-upp'), actualizacionUPP: valor('adm-actualizacionupp'),
+apellidoPaterno, apellidoMaterno, nombres, nombre: nombreCompleto || estado.productor.nombre,
+domicilio: valor('adm-domicilio').trim() || 'Conocido',
+localidad: valor('adm-localidad').trim(), correoElectronico: valor('adm-correo').trim(),
+predio: valor('adm-predio'), upp: valor('adm-upp'), actualizacionUPP: valor('adm-actualizacionupp'),
 folio: valor('adm-folio'), vencimientoFierro: valor('adm-vencimientofierro'),
-estado: valor('adm-estado'), municipio: valor('adm-municipio'),
+estado: valor('adm-estado'), municipio: leerMunicipioSeleccionado('adm'),
 ejido: valor('adm-ejido'), actividad: valor('adm-actividad'), curp: valor('adm-curp').toUpperCase(),
 };
 guardarEstadoLocal();
 }
+function llenarSelectorEstados(prefijo){
+const sel = document.getElementById(prefijo + '-estado');
+if (!sel || sel.dataset.lleno) return;
+sel.innerHTML = '<option value="">Selecciona...</option>' + ESTADOS_MEXICO.map(e => `<option value="${e}">${e}</option>`).join('');
+sel.dataset.lleno = '1';
+}
+function cargarMunicipiosSelector(prefijo, municipioActual){
+const selEstado = document.getElementById(prefijo + '-estado');
+const selMun = document.getElementById(prefijo + '-municipio');
+const inputManual = document.getElementById(prefijo + '-municipio-manual');
+if (!selEstado || !selMun) return;
+const estadoElegido = selEstado.value;
+const lista = MUNICIPIOS_MEXICO[estadoElegido];
+if (!estadoElegido){
+selMun.innerHTML = '<option value="">Selecciona el estado primero</option>';
+if (inputManual) inputManual.classList.add('hidden');
+return;
+}
+if (!lista || lista.length === 0){
+selMun.innerHTML = '<option value="__manual__">Escribir municipio...</option>';
+selMun.value = '__manual__';
+if (inputManual){ inputManual.classList.remove('hidden'); inputManual.value = municipioActual || ''; }
+return;
+}
+selMun.innerHTML = '<option value="">Selecciona...</option>' + lista.map(m => `<option value="${m}">${m}</option>`).join('') + '<option value="__manual__">Otro (no aparece en la lista)</option>';
+if (municipioActual && lista.includes(municipioActual)){
+selMun.value = municipioActual;
+if (inputManual) inputManual.classList.add('hidden');
+} else if (municipioActual){
+selMun.value = '__manual__';
+if (inputManual){ inputManual.classList.remove('hidden'); inputManual.value = municipioActual; }
+} else if (inputManual){
+inputManual.classList.add('hidden');
+}
+}
+function mostrarMunicipioManual(prefijo){
+const selMun = document.getElementById(prefijo + '-municipio');
+const inputManual = document.getElementById(prefijo + '-municipio-manual');
+if (!selMun || !inputManual) return;
+inputManual.classList.toggle('hidden', selMun.value !== '__manual__');
+if (selMun.value === '__manual__') inputManual.focus();
+}
+function leerMunicipioSeleccionado(prefijo){
+const selMun = document.getElementById(prefijo + '-municipio');
+if (!selMun) return '';
+if (selMun.value === '__manual__') return valor(prefijo + '-municipio-manual').trim();
+return selMun.value;
+}
+function previsualizarNombreCompleto(prefijo){
+// Solo referencia visual; el nombre completo real se arma al guardar.
+}
+function registrarUbicacionUPP(prefijo){
+if (!navigator.geolocation){ mostrarToast('Tu navegador no permite obtener ubicación'); return; }
+const span = document.getElementById(prefijo + '-gps-texto');
+if (span) span.textContent = 'Obteniendo ubicación...';
+navigator.geolocation.getCurrentPosition(
+pos => {
+estado.productor.latitudUPP = pos.coords.latitude;
+estado.productor.longitudUPP = pos.coords.longitude;
+if (span) span.textContent = `Ubicación registrada (${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)})`;
+if (prefijo === 'adm') guardarProductor();
+guardarEstadoLocal();
+mostrarToast('Ubicación GPS registrada');
+},
+() => {
+if (span) span.textContent = 'Registrar ubicación GPS';
+mostrarToast('No se pudo obtener tu ubicación. Revisa los permisos.');
+},
+{ enableHighAccuracy: true, timeout: 8000 }
+);
+}
 function abrirEdicionProductor(){
 const p = estado.productor;
-establecerValor('ed-nombre', p.nombre || '');
+llenarSelectorEstados('ed');
+establecerValor('ed-apellidopaterno', p.apellidoPaterno || '');
+establecerValor('ed-apellidomaterno', p.apellidoMaterno || '');
+establecerValor('ed-nombres', p.nombres || (!p.apellidoPaterno && !p.apellidoMaterno ? p.nombre : '') || '');
+establecerValor('ed-domicilio', p.domicilio || 'Conocido');
+establecerValor('ed-localidad', p.localidad || '');
+establecerValor('ed-correo', p.correoElectronico || '');
 establecerValor('ed-predio', p.predio || '');
 establecerValor('ed-upp', p.upp || '');
 establecerValor('ed-actualizacionupp', p.actualizacionUPP || '');
 establecerValor('ed-folio', p.folio || '');
 establecerValor('ed-vencimientofierro', p.vencimientoFierro || '');
 establecerValor('ed-estado', p.estado || '');
-establecerValor('ed-municipio', p.municipio || '');
+cargarMunicipiosSelector('ed', p.municipio || '');
 establecerValor('ed-ejido', p.ejido || '');
 establecerValor('ed-curp', p.curp || '');
 establecerValor('ed-actividad', p.actividad || '');
+const spanGps = document.getElementById('ed-gps-texto');
+if (spanGps) spanGps.textContent = (p.latitudUPP && p.longitudUPP) ? `Ubicación registrada (${p.latitudUPP.toFixed(5)}, ${p.longitudUPP.toFixed(5)})` : 'Registrar ubicación GPS';
 renderCamposPersonalizadosFormulario('ed-campos-personalizados', p.camposPersonalizados);
 document.querySelectorAll('#app-productor .screen').forEach(s => s.classList.remove('active'));
 document.getElementById('screen-editar-productor').classList.add('active');
 window.scrollTo(0,0);
 }
 function guardarEdicionProductor(){
+const apellidoPaterno = valor('ed-apellidopaterno').trim();
+const apellidoMaterno = valor('ed-apellidomaterno').trim();
+const nombres = valor('ed-nombres').trim();
+const nombreCompleto = [nombres, apellidoPaterno, apellidoMaterno].filter(Boolean).join(' ');
 estado.productor = {
 ...estado.productor,
-nombre: valor('ed-nombre'), predio: valor('ed-predio'), upp: valor('ed-upp'), actualizacionUPP: valor('ed-actualizacionupp'),
+apellidoPaterno, apellidoMaterno, nombres, nombre: nombreCompleto || estado.productor.nombre,
+domicilio: valor('ed-domicilio').trim() || 'Conocido',
+localidad: valor('ed-localidad').trim(), correoElectronico: valor('ed-correo').trim(),
+predio: valor('ed-predio'), upp: valor('ed-upp'), actualizacionUPP: valor('ed-actualizacionupp'),
 folio: valor('ed-folio'), vencimientoFierro: valor('ed-vencimientofierro'),
-estado: valor('ed-estado'), municipio: valor('ed-municipio'),
+estado: valor('ed-estado'), municipio: leerMunicipioSeleccionado('ed'),
 ejido: valor('ed-ejido'), actividad: valor('ed-actividad'), curp: valor('ed-curp').toUpperCase(),
 camposPersonalizados: leerCamposPersonalizadosFormulario('ed-campos-personalizados'),
 };
@@ -12107,8 +13715,10 @@ cuenta.nombre = estado.productor.nombre; cuenta.predio = estado.productor.predio
 cuenta.estadoMx = estado.productor.estado; cuenta.municipio = estado.productor.municipio;
 cuenta.actividad = estado.productor.actividad;
 cuenta.folio = estado.productor.folio; cuenta.vencimientoFierro = estado.productor.vencimientoFierro;
+cuenta.curp = estado.productor.curp;
 }
 }
+guardarEstadoLocal();
 renderResumenProductor();
 irA('datos-productor');
 mostrarToast(tr('edicion_datos_productor__datos_del_productor_actualizados'));
