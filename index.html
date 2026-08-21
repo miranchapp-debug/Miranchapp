@@ -1696,6 +1696,42 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="space-y-3" id="lista-solicitudes-cefpp-generadas"></div>
 </div>
 </div>
+<!-- ---------- CEFPP — hub del personal del comité (solicitudes, reportes urgentes, y depto. de TB) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-comitecefpp">
+<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">CEFPP — Personal del comité</h2>
+<p class="text-sm" style="color:var(--sage);">Todas las cuentas que se abran bajo el perfil de personal del comité (capturistas, emisoras de solicitudes, admin TB, médicos de campo) se alojan aquí, y siempre requieren tu autorización.</p>
+<div class="flex gap-2 rounded-full p-1" style="background:var(--parchment);">
+<button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-cefpp-general" onclick="cambiarTabComiteCEFPP('general')" style="background:var(--pine); color:#fff;">General</button>
+<button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-cefpp-tb" onclick="cambiarTabComiteCEFPP('tb')">Tuberculosis</button>
+</div>
+<div id="bloque-cefpp-general" class="space-y-3">
+<button onclick="irAdmin('solicitudescefp')" class="tile bg-teal w-full" style="min-height:80px; position:relative;">
+<span class="icono"><i class="fa-solid fa-user-clock"></i></span>
+<span>Solicitudes de cuenta CEFPP</span>
+<span class="hidden absolute text-xs font-bold px-2 py-0.5 rounded-full" id="badge-cefpp-solicitudes" style="background:var(--red); color:#fff; top:8px; right:8px;"></span>
+</button>
+<button onclick="irAdmin('cefpp')" class="tile bg-red w-full" style="min-height:80px;">
+<span class="icono"><i class="fa-solid fa-shield-virus"></i></span>
+<span>Reportes a CEFPP (casos urgentes)</span>
+</button>
+</div>
+<div class="hidden space-y-3" id="bloque-cefpp-tb">
+<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red w-full" style="min-height:80px; position:relative;">
+<span class="icono"><i class="fa-solid fa-user-doctor"></i></span>
+<span>Admin TB — avisos de reactores y médicos de campo</span>
+<span class="hidden absolute text-xs font-bold px-2 py-0.5 rounded-full" id="badge-cefpp-tb" style="background:#fff; color:var(--red); top:8px; right:8px;"></span>
+</button>
+<button onclick="irAdmin('reportestb')" class="tile bg-purple w-full" style="min-height:80px;">
+<span class="icono"><i class="fa-solid fa-chart-column"></i></span>
+<span>Reportes de pruebas TB</span>
+</button>
+<button onclick="irAdmin('generartb')" class="tile bg-slate w-full" style="min-height:80px;">
+<span class="icono"><i class="fa-solid fa-file-lines"></i></span>
+<span>Generar informe general</span>
+</button>
+</div>
+</div>
 <!-- ---------- TB — HUB DEL DEPARTAMENTO (punto de entrada fijo a las 3 formas de trabajar) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-admin-tbhub">
 <button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
@@ -9401,6 +9437,7 @@ if (nombre === 'pruebascapturista') renderPruebasCapturista(false);
 if (nombre === 'capturistatb') renderPruebasCapturista(true);
 if (nombre === 'pruebasrealizadas') renderPruebasRealizadas();
 if (nombre === 'almita'){ renderEnviosAlmita(); renderSolicitudesCEFPPGeneradas(); }
+if (nombre === 'comitecefpp'){ actualizarBadgesComiteCEFPP(); cambiarTabComiteCEFPP('general'); }
 if (nombre === 'ventanageneraltb'){ renderAvisosReactoresTB(); renderMedicosComiteTB(); }
 if (nombre === 'medicocampotb'){ renderCasosMedicoCampoTB(); }
 if (nombre === 'reportestb'){ renderReportesTB(); }
@@ -11722,15 +11759,10 @@ ${iconoChicoHTML('adm_boletines', 'fa-bullhorn')}
 ${iconoChicoHTML('adm_config', 'fa-sliders')}
 <span>${tr('modo_veterinario__configuracion')}<br>${tr('modo_veterinario__de_ventanas')}</span>
 </button>
-<button onclick="irAdmin('solicitudescefp')" class="tile bg-teal col-span-2" style="position:relative;">
-<span class="icono"><i class="fa-solid fa-user-clock"></i></span>
-<span>Solicitudes de cuenta CEFPP</span>
-${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${estado.solicitudesCEFP.filter(s => s.estatus === 'pendiente').length}</span>` : ''}
-</button>
-<button onclick="irAdmin('tbhub')" class="tile bg-red col-span-2" style="position:relative;">
-<span class="icono"><i class="fa-solid fa-triangle-exclamation"></i></span>
-<span>TB — Departamento de Tuberculosis</span>
-${(estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${estado.avisosReactoresTB.filter(a => a.estatus === 'pendiente').length}</span>` : ''}
+<button onclick="irAdmin('comitecefpp')" class="tile bg-teal col-span-2" style="position:relative;">
+<span class="icono"><i class="fa-solid fa-shield-halved"></i></span>
+<span>CEFPP — Personal del comité</span>
+${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length > 0 || (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length + (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length}</span>` : ''}
 </button>`;
 }
 function veterinarioActivo(){
@@ -13602,6 +13634,22 @@ document.getElementById('tab-tb-medicos').style.background = tab === 'medicos' ?
 document.getElementById('tab-tb-medicos').style.color = tab === 'medicos' ? '#fff' : '';
 document.getElementById('bloque-tb-avisos').classList.toggle('hidden', tab !== 'avisos');
 document.getElementById('bloque-tb-medicos').classList.toggle('hidden', tab !== 'medicos');
+}
+function cambiarTabComiteCEFPP(tab){
+document.getElementById('tab-cefpp-general').style.background = tab === 'general' ? 'var(--pine)' : '';
+document.getElementById('tab-cefpp-general').style.color = tab === 'general' ? '#fff' : '';
+document.getElementById('tab-cefpp-tb').style.background = tab === 'tb' ? 'var(--pine)' : '';
+document.getElementById('tab-cefpp-tb').style.color = tab === 'tb' ? '#fff' : '';
+document.getElementById('bloque-cefpp-general').classList.toggle('hidden', tab !== 'general');
+document.getElementById('bloque-cefpp-tb').classList.toggle('hidden', tab !== 'tb');
+}
+function actualizarBadgesComiteCEFPP(){
+const pendSolicitudes = (estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length;
+const pendTB = (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length;
+const badgeSol = document.getElementById('badge-cefpp-solicitudes');
+const badgeTB = document.getElementById('badge-cefpp-tb');
+if (badgeSol){ badgeSol.textContent = pendSolicitudes; badgeSol.classList.toggle('hidden', pendSolicitudes === 0); }
+if (badgeTB){ badgeTB.textContent = pendTB; badgeTB.classList.toggle('hidden', pendTB === 0); }
 }
 function renderAvisosReactoresTB(){
 const cont = document.getElementById('lista-avisos-reactores-tb');
