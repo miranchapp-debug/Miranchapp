@@ -7571,7 +7571,31 @@ sincronizandoConFirebase = false;
 }
 window.addEventListener('online', sincronizarConFirebase);
 cargarEstadoLocal();
-renderCuentasGuardadas();
+// Antes, si el navegador recargaba la página a medio uso (algo común en celulares
+// cuando la cámara nativa toma el control para tomar una foto — el sistema puede
+// descargar la pestaña de memoria y al volver la recarga desde cero), la persona
+// terminaba de regreso en la pantalla de login aunque sus datos siguieran a salvo
+// en este dispositivo y en la nube — se sentía como si "la sacara de la cuenta".
+// Esto reanuda automáticamente la sesión activa si el dispositivo ya tenía una
+// abierta, para que una recarga a medio trabajo no boté a la persona al login.
+function reanudarSesionSiAplica(){
+if (estado.modoTrabajador && estado.trabajadorActualId){
+activarEscuchaCuentaActiva();
+mostrarApp('productor');
+return true;
+}
+if (estado.cuentaActivaId){
+activarEscuchaCuentaActiva();
+mostrarApp('productor');
+return true;
+}
+if (estado.modoVeterinario || estado.modoCapturista || estado.modoAlmita || estado.modoMedicoCampoTB){
+mostrarApp('admin');
+return true;
+}
+return false;
+}
+if (!reanudarSesionSiAplica()) renderCuentasGuardadas();
 detectarAccesoPorQR();
 ['modal-exportar', 'modal-conflicto-arete'].forEach(id => {
 const el = document.getElementById(id);
