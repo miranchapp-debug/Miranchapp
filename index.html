@@ -545,7 +545,8 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <label class="campo-label" data-i18n="login_seleccion_rol__contrasena" style="color:#5C3A1E;">Contraseña</label>
 <div class="flex items-center gap-2 rounded-2xl px-3" style="background:rgba(255,255,255,0.55); border:1px solid rgba(92,58,30,0.25);">
 <i class="fa-solid fa-lock" style="color:#5C3A1E;"></i>
-<input autocomplete="current-password" data-i18n-placeholder="login_seleccion_rol__contrasena" id="login-clave" name="current-password" onkeydown="if(event.key==='Enter'){iniciarSesion();}" placeholder="Contraseña" style="background:transparent; border:none; padding-left:.5rem;" type="password"/>
+<input autocapitalize="none" autocomplete="current-password" autocorrect="off" data-i18n-placeholder="login_seleccion_rol__contrasena" id="login-clave" name="current-password" onkeydown="if(event.key==='Enter'){iniciarSesion();}" placeholder="Contraseña" spellcheck="false" style="background:transparent; border:none; padding-left:.5rem;" type="password"/>
+<button onclick="alternarVerContrasenaLogin()" style="color:#5C3A1E;" type="button"><i class="fa-solid fa-eye" id="icono-ver-contrasena-login"></i></button>
 </div>
 </div>
 <div class="text-right">
@@ -7881,6 +7882,13 @@ document.getElementById('screen-tipo-ganado').classList.remove('active');
 document.getElementById('screen-login').classList.add('active');
 renderCuentasGuardadas();
 }
+function alternarVerContrasenaLogin(){
+const campo = document.getElementById('login-clave');
+const icono = document.getElementById('icono-ver-contrasena-login');
+const verActualmente = campo.type === 'text';
+campo.type = verActualmente ? 'password' : 'text';
+icono.className = verActualmente ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+}
 function elegirTipoGanado(tipo){
 estado.tipoGanado = tipo;
 document.getElementById('screen-tipo-ganado').classList.remove('active');
@@ -7911,7 +7919,11 @@ else { renderTodoAdmin(); irAdmin(quiereAbrirChatDirecto ? 'mensajes' : 'home');
 }
 async function iniciarSesion(){
 const usuario = valor('login-usuario').trim().toLowerCase();
-const clave = valor('login-clave');
+// Se recorta también la contraseña: es una causa muy común de "no me deja
+// entrar" — el teclado del celular deja un espacio invisible al final sin que
+// la persona se dé cuenta, y como las contraseñas de esta app nunca llevan
+// espacios intencionalmente, quitarlo nunca causa un falso rechazo.
+const clave = valor('login-clave').trim();
 if (!usuario || !clave){ mostrarToast(tr('login_seleccion_rol__ingresa_usuario_y_contrasena')); return; }
 const boton = document.getElementById('btn-iniciar-sesion');
 const textoBoton = document.getElementById('btn-iniciar-sesion-texto');
@@ -15895,14 +15907,92 @@ await cargarTesseractSiNecesario();
 const resultado = await window.Tesseract.recognize(dataUrl, 'spa');
 return (resultado && resultado.data && resultado.data.text) || '';
 }
-function previsualizarEscaneo(inputEl, idPreview){
+async function previsualizarEscaneo(inputEl, idPreview){
 const archivo = inputEl.files && inputEl.files[0];
 if (!archivo) return;
 const img = document.getElementById(idPreview);
+try {
+// Se comprime antes de mostrarla/guardarla (la lectura por OCR sigue usando el
+// archivo original sin comprimir, para no perder nitidez del texto) — así el
+// borrador ocupa poco espacio local y no se topa con el límite de almacenamiento
+// del navegador al guardar varias fotos de una credencial completa.
+const comprimida = await comprimirArchivoImagen(archivo, 900, 0.75);
+img.src = comprimida; img.classList.remove('hidden');
+guardarBorradorEscaneoDoc();
+} catch(e){
 const lector = new FileReader();
-lector.onload = () => { img.src = lector.result; img.classList.remove('hidden'); };
+lector.onload = () => { img.src = lector.result; img.classList.remove('hidden'); guardarBorradorEscaneoDoc(); };
 lector.readAsDataURL(archivo);
 }
+}
+// ================= BORRADOR LOCAL DEL ESCANEO DE DOCUMENTOS =================
+// Guarda cada foto (ya comprimida por el propio preview en base64) y cada dato
+// extraído/corregido en localStorage al instante, para no perder nada si la
+// página se recarga a medio proceso (ej. al volver de la cámara nativa).
+const CLAVE_BORRADOR_ESCANEO_DOC = 'miRanchAppBorradorEscaneoDocumentos';
+const MAPA_PREVIEWS_ESCANEO = {
+'esc-cred-frente-preview': 'credFrente',
+'esc-cred-reverso-preview': 'credReverso',
+'esc-upp-preview': 'uppFoto',
+'esc-siniiga-preview': 'siniigaFoto',
+};
+const CAMPOS_BORRADOR_ESCANEO = ['esc-cred-nombre','esc-cred-curp','esc-cred-folio','esc-cred-upp','esc-cred-actividad','esc-cred-domicilio','esc-cred-municipio','esc-upp-predio','esc-upp-superficie','esc-upp-finalidad','esc-upp-municipioestado','esc-upp-referencias'];
+function guardarBorradorEscaneoDoc(){
+const datos = {
+imagenes: {}, campos: {},
+textosCrudos: {
+credencial: document.getElementById('esc-cred-texto-crudo')?.textContent || '',
+upp: document.getElementById('esc-upp-texto-crudo')?.textContent || '',
+siniiga: document.getElementById('esc-siniiga-texto-crudo')?.textContent || '',
+},
+resultadosVisibles: {
+credencial: !!(document.getElementById('esc-cred-resultado') && !document.getElementById('esc-cred-resultado').classList.contains('hidden')),
+upp: !!(document.getElementById('esc-upp-resultado') && !document.getElementById('esc-upp-resultado').classList.contains('hidden')),
+siniiga: !!(document.getElementById('esc-siniiga-resultado') && !document.getElementById('esc-siniiga-resultado').classList.contains('hidden')),
+},
+filasSINIIGATemp, fierroImagenEscaneoTemp,
+guardadoEn: new Date().toISOString(),
+};
+Object.entries(MAPA_PREVIEWS_ESCANEO).forEach(([idImg, clave]) => {
+const img = document.getElementById(idImg);
+if (img && !img.classList.contains('hidden') && img.src && img.src.startsWith('data:')) datos.imagenes[clave] = img.src;
+});
+CAMPOS_BORRADOR_ESCANEO.forEach(id => { const el = document.getElementById(id); if (el) datos.campos[id] = el.value; });
+try { localStorage.setItem(CLAVE_BORRADOR_ESCANEO_DOC, JSON.stringify(datos)); }
+catch(e){ console.warn('No se pudo guardar el borrador de escaneo (el celular puede estar quedándose sin espacio local por fotos muy pesadas)', e); }
+}
+function limpiarBorradorEscaneoDoc(){
+try { localStorage.removeItem(CLAVE_BORRADOR_ESCANEO_DOC); } catch(e){}
+}
+function restaurarBorradorEscaneoDoc(){
+let datos = null;
+try { datos = JSON.parse(localStorage.getItem(CLAVE_BORRADOR_ESCANEO_DOC) || 'null'); } catch(e){ datos = null; }
+if (!datos) return;
+Object.entries(MAPA_PREVIEWS_ESCANEO).forEach(([idImg, clave]) => {
+if (datos.imagenes && datos.imagenes[clave]){
+const img = document.getElementById(idImg);
+if (img){ img.src = datos.imagenes[clave]; img.classList.remove('hidden'); }
+}
+});
+Object.keys(datos.campos || {}).forEach(id => establecerValor(id, datos.campos[id]));
+if (datos.textosCrudos){
+if (datos.textosCrudos.credencial) document.getElementById('esc-cred-texto-crudo').textContent = datos.textosCrudos.credencial;
+if (datos.textosCrudos.upp) document.getElementById('esc-upp-texto-crudo').textContent = datos.textosCrudos.upp;
+if (datos.textosCrudos.siniiga) document.getElementById('esc-siniiga-texto-crudo').textContent = datos.textosCrudos.siniiga;
+}
+if (datos.resultadosVisibles){
+if (datos.resultadosVisibles.credencial) document.getElementById('esc-cred-resultado').classList.remove('hidden');
+if (datos.resultadosVisibles.upp) document.getElementById('esc-upp-resultado').classList.remove('hidden');
+if (datos.resultadosVisibles.siniiga) document.getElementById('esc-siniiga-resultado').classList.remove('hidden');
+}
+filasSINIIGATemp = datos.filasSINIIGATemp || [];
+fierroImagenEscaneoTemp = datos.fierroImagenEscaneoTemp || null;
+if (filasSINIIGATemp.length > 0) renderFilasSINIIGA();
+if (fierroImagenEscaneoTemp) renderVistaFierroGuardado('esc');
+const huboAlgo = Object.keys(datos.imagenes || {}).length > 0 || Object.values(datos.campos || {}).some(v => v) || filasSINIIGATemp.length > 0;
+if (huboAlgo) mostrarToast('Se restauró lo que ya habías escaneado — sigue donde ibas');
+}
+document.addEventListener('input', e => { if (e.target && CAMPOS_BORRADOR_ESCANEO.includes(e.target.id)) guardarBorradorEscaneoDoc(); });
 function cambiarPasoEscaneo(paso){
 ['credencial','upp','siniiga','confirmar'].forEach(p => {
 document.getElementById('esc-paso-' + p).classList.toggle('hidden', p !== paso);
@@ -15915,6 +16005,7 @@ if (paso === 'confirmar') actualizarResumenImportarEscaneo();
 function abrirEscaneoDocumentos(){
 cambiarPasoEscaneo('credencial');
 irA('escaneo-documentos');
+restaurarBorradorEscaneoDoc();
 }
 // ---- Paso 1: Credencial del productor ----
 function extraerCURP(texto){
@@ -15955,6 +16046,7 @@ establecerValor('esc-cred-domicilio', extraerTrasEtiqueta(textoReverso, ['DOMICI
 establecerValor('esc-cred-municipio', extraerTrasEtiqueta(textoReverso, ['MUNICIPIO']));
 document.getElementById('esc-cred-texto-crudo').textContent = textoCompleto.trim() || '(no se detectó texto legible)';
 document.getElementById('esc-cred-resultado').classList.remove('hidden');
+guardarBorradorEscaneoDoc();
 mostrarToast('Listo — revisa los datos, la lectura automática puede tener errores');
 } catch(e){
 mostrarToast('No se pudo leer la foto: ' + e.message);
@@ -15999,6 +16091,7 @@ establecerValor('esc-upp-municipioestado', extraerTrasEtiqueta(texto, ['MUNICIPI
 establecerValor('esc-upp-referencias', extraerTrasEtiqueta(texto, ['REFERENCIA', 'LOCALIZACIÓN', 'LOCALIZACION', 'UBICACIÓN']));
 document.getElementById('esc-upp-texto-crudo').textContent = texto.trim() || '(no se detectó texto legible)';
 document.getElementById('esc-upp-resultado').classList.remove('hidden');
+guardarBorradorEscaneoDoc();
 mostrarToast('Listo — revisa los datos, la lectura automática puede tener errores');
 } catch(e){
 mostrarToast('No se pudo leer la foto: ' + e.message);
@@ -16066,6 +16159,7 @@ function actualizarFilaSINIIGA(indice, campo, val){
 if (!filasSINIIGATemp[indice]) return;
 filasSINIIGATemp[indice][campo] = campo === 'identificador' ? convertirAreteMX(val.trim()) : val;
 document.getElementById('esc-siniiga-conteo').textContent = filasSINIIGATemp.length;
+guardarBorradorEscaneoDoc();
 }
 function eliminarFilaSINIIGA(indice){
 filasSINIIGATemp.splice(indice, 1);
