@@ -1539,11 +1539,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <span data-i18n="menu_mas_administrador__cuentas_de_productores_y_vigencias">Cuentas de productores y vigencias</span>
 <i class="fa-solid fa-chevron-right ml-auto opacity-70"></i>
 </button>
-<button class="tile-row w-full bg-red" onclick="irAdmin('cefpp')">
-<span class="icono"><i class="fa-solid fa-shield-virus"></i></span>
-<span data-i18n="menu_mas_administrador__reportes_a_cefpp_casos_urgentes">Reportes a CEFPP (casos urgentes)</span>
-<i class="fa-solid fa-chevron-right ml-auto opacity-70"></i>
-</button>
 <button class="tile-row w-full bg-purple" onclick="irAdmin('reportes')">
 <span class="icono"><i class="fa-solid fa-chart-column"></i></span>
 <span data-i18n="menu_mas_administrador__reportes_y_analisis_de_produccion">Reportes y Análisis de Producción</span>
@@ -7384,6 +7379,7 @@ estado.medicosComiteTB = [];
 estado.modoMedicoCampoTB = false;
 estado.medicoComiteActivoId = null;
 estado.modoCapturistaTB = false;
+estado.modoComite = false;
 estado.moonitor = { imagenDefault: null, imagenCarne: null, imagenLeche: null, recordatorioCompartirActivo: false, diaRecordatorioCompartir: 1, ultimoRecordatorioCompartir: null, sonidoActivado: true };
 const HATO_DEMO = estado.animales;
 const SALUD_DEMO = estado.salud;
@@ -7602,6 +7598,7 @@ if (!Array.isArray(estado.medicosComiteTB)) estado.medicosComiteTB = [];
 if (typeof estado.modoMedicoCampoTB !== 'boolean') estado.modoMedicoCampoTB = false;
 if (!('medicoComiteActivoId' in estado)) estado.medicoComiteActivoId = null;
 if (typeof estado.modoCapturistaTB !== 'boolean') estado.modoCapturistaTB = false;
+if (typeof estado.modoComite !== 'boolean') estado.modoComite = false;
 if (!Array.isArray(estado.enviosAlmita)) estado.enviosAlmita = [];
 if (!Array.isArray(estado.solicitudesCEFPPVet)) estado.solicitudesCEFPPVet = [];
 if (!Array.isArray(estado.historialImpresiones)) estado.historialImpresiones = [];
@@ -7807,7 +7804,7 @@ activarEscuchaCuentaActiva();
 mostrarApp('productor');
 return true;
 }
-if (estado.modoVeterinario || estado.modoCapturista || estado.modoAlmita || estado.modoMedicoCampoTB || estado.modoCapturistaTB){
+if (estado.modoVeterinario || estado.modoCapturista || estado.modoAlmita || estado.modoMedicoCampoTB || estado.modoCapturistaTB || estado.modoComite){
 mostrarApp('admin');
 return true;
 }
@@ -8202,6 +8199,16 @@ if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__iniciar_sesion
 // y procesó un login, false si no coincidió con nada — así iniciarSesion()
 // puede reintentar después de refrescar los datos sin duplicar toda la lógica.
 function intentarLoginConEstadoActual(usuario, clave){
+// 0) Cuenta fija y única del Comité (Durango) — no pasa por el catálogo de
+// usuarios ni por aprobación, es una credencial compartida de acceso directo
+// a todas las ventanas del comité (TB, reportes, informe general).
+if (usuario === 'comitedgo' && clave === 'comitedgo'){
+establecerValor('login-usuario', ''); establecerValor('login-clave', '');
+estado.modoComite = true;
+mostrarApp('admin');
+registrarEvento('login', 'comite');
+return true;
+}
 // 1) cuentas de productor reales (multi-tenant, creadas por el admin)
 const cuenta = estado.cuentasProductores.find(c => (c.usuario || '').toLowerCase() === usuario && c.clave === clave);
 if (cuenta && cuenta.tipo === 'punto'){
@@ -8986,6 +8993,7 @@ estado.modoAlmita = false;
 estado.modoMedicoCampoTB = false;
 estado.medicoComiteActivoId = null;
 estado.modoCapturistaTB = false;
+estado.modoComite = false;
 if (typeof activarEscuchaCuentaActiva === 'function') activarEscuchaCuentaActiva();
 limpiarDatosDeCuentaActiva();
 estado.animales = HATO_DEMO;
@@ -11670,6 +11678,26 @@ mostrarToast(val ? tr('modo_veterinario__modo_veterinario_activado_solo_ver') : 
 function renderGridAdminHome(){
 const cont = document.getElementById('grid-admin-home');
 if (!cont) return;
+if (estado.modoComite){
+cont.innerHTML = `
+<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red col-span-2" style="position:relative;">
+<span class="icono"><i class="fa-solid fa-user-doctor"></i></span>
+<span>Admin TB — avisos de reactores y médicos de campo</span>
+</button>
+<button onclick="irAdmin('reportestb')" class="tile bg-purple col-span-2">
+<span class="icono"><i class="fa-solid fa-chart-column"></i></span>
+<span>Reportes de pruebas TB</span>
+</button>
+<button onclick="irAdmin('generartb')" class="tile bg-slate col-span-2">
+<span class="icono"><i class="fa-solid fa-file-lines"></i></span>
+<span>Generar informe general</span>
+</button>
+<button onclick="irAdmin('cefpp')" class="tile bg-teal col-span-2">
+<span class="icono"><i class="fa-solid fa-shield-virus"></i></span>
+<span>Reportes a CEFPP (casos urgentes)</span>
+</button>`;
+return;
+}
 if (estado.modoMedicoCampoTB){
 cont.innerHTML = `
 <button onclick="irAdmin('medicocampotb')" class="tile bg-red col-span-2">
@@ -11759,10 +11787,10 @@ ${iconoChicoHTML('adm_boletines', 'fa-bullhorn')}
 ${iconoChicoHTML('adm_config', 'fa-sliders')}
 <span>${tr('modo_veterinario__configuracion')}<br>${tr('modo_veterinario__de_ventanas')}</span>
 </button>
-<button onclick="irAdmin('comitecefpp')" class="tile bg-teal col-span-2" style="position:relative;">
-<span class="icono"><i class="fa-solid fa-shield-halved"></i></span>
-<span>CEFPP — Personal del comité</span>
-${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length > 0 || (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length + (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length}</span>` : ''}
+<button onclick="irAdmin('solicitudescefp')" class="tile bg-teal col-span-2" style="position:relative;">
+<span class="icono"><i class="fa-solid fa-user-clock"></i></span>
+<span>Solicitudes de cuenta del comité</span>
+${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${estado.solicitudesCEFP.filter(s => s.estatus === 'pendiente').length}</span>` : ''}
 </button>`;
 }
 function veterinarioActivo(){
@@ -16165,8 +16193,12 @@ const RECORTE_FIERRO_ESTADO = {};
 function cargarFotoParaRecorteFierro(inputEl, prefijo){
 const archivo = inputEl.files && inputEl.files[0];
 if (!archivo) return;
-const lector = new FileReader();
-lector.onload = () => {
+inputEl.value = '';
+// Misma corrección que en "Alta rápida por escaneo": se comprime la foto antes
+// de cargarla al recorte, en vez de decodificar la original a resolución
+// completa — evita que el navegador se quede sin memoria y recargue la página
+// de golpe en celulares con poca RAM.
+comprimirParaOCR(archivo, 1800).then(dataUrlComprimido => {
 const img = new Image();
 img.onload = () => {
 const canvas = document.getElementById(prefijo + '-fierro-canvas');
@@ -16181,10 +16213,9 @@ RECORTE_FIERRO_ESTADO[prefijo] = { imgOriginal: img, escala, rect: null, arrastr
 document.getElementById(prefijo + '-fierro-recorte-cont').classList.remove('hidden');
 activarArrastreRecorteFierro(prefijo);
 };
-img.src = lector.result;
-};
-lector.readAsDataURL(archivo);
-inputEl.value = '';
+img.onerror = () => mostrarToast('No se pudo abrir la foto para recortar — vuelve a tomarla');
+img.src = dataUrlComprimido;
+}).catch(() => mostrarToast('No se pudo abrir la foto para recortar — vuelve a tomarla'));
 }
 function posicionEnCanvasFierro(canvas, evt){
 const rect = canvas.getBoundingClientRect();
@@ -16256,6 +16287,7 @@ renderVistaFierroGuardado('ed');
 if (prefijo === 'esc'){
 fierroImagenEscaneoTemp = dataUrl;
 renderVistaFierroGuardado('esc');
+if (typeof guardarBorradorEscaneoDoc === 'function') guardarBorradorEscaneoDoc();
 }
 cancelarRecorteFierro(prefijo);
 mostrarToast('Figura del fierro guardada — se usará automáticamente en las pruebas de campo');
@@ -16314,10 +16346,11 @@ const archivo = inputEl.files && inputEl.files[0];
 if (!archivo) return;
 const img = document.getElementById(idPreview);
 try {
-// Se comprime antes de mostrarla/guardarla (la lectura por OCR sigue usando el
-// archivo original sin comprimir, para no perder nitidez del texto) — así el
-// borrador ocupa poco espacio local y no se topa con el límite de almacenamiento
-// del navegador al guardar varias fotos de una credencial completa.
+// Se comprime antes de mostrarla/guardarla, y esa MISMA imagen ya comprimida
+// es la que usa después el OCR para leer el texto (antes el OCR volvía a leer
+// el archivo original sin comprimir — eso ya se corrigió) — así el borrador
+// ocupa poco espacio local y no se topa con el límite de almacenamiento del
+// navegador al guardar varias fotos de una credencial completa.
 const comprimida = await comprimirArchivoImagen(archivo, 900, 0.75);
 img.src = comprimida; img.classList.remove('hidden');
 guardarBorradorEscaneoDoc();
@@ -16459,8 +16492,14 @@ boton.disabled = false; boton.innerHTML = '<i class="fa-solid fa-wand-magic-spar
 function iniciarRecorteDesdeEscaneo(){
 const archivo = document.getElementById('esc-cred-reverso-input')?.files?.[0];
 if (!archivo){ mostrarToast('Primero toma la foto del reverso de la credencial'); return; }
-const lector = new FileReader();
-lector.onload = () => {
+// Antes esto cargaba la foto ORIGINAL sin comprimir (varios MB, resolución
+// completa de la cámara) para el recorte — justo la foto trasera, que se toma
+// después de la delantera y después de correr el OCR sobre ella, era la que más
+// memoria acumulada tenía en ese momento y la que más frecuentemente hacía que
+// el navegador recargara la página de golpe (lo que se sentía como "me saca de
+// la cuenta"). Ahora se comprime primero (igual que ya hace el OCR) — sigue
+// siendo grande de sobra para recortar bien la figura del fierro a mano.
+comprimirParaOCR(archivo, 1800).then(dataUrlComprimido => {
 const img = new Image();
 img.onload = () => {
 document.getElementById('esc-fierro-recorte-cont').classList.remove('hidden');
@@ -16473,9 +16512,9 @@ canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
 RECORTE_FIERRO_ESTADO['esc'] = { imgOriginal: img, escala, rect: null, arrastrando: false, inicioX: 0, inicioY: 0 };
 activarArrastreRecorteFierro('esc');
 };
-img.src = lector.result;
-};
-lector.readAsDataURL(archivo);
+img.onerror = () => mostrarToast('No se pudo abrir la foto para recortar — vuelve a tomarla');
+img.src = dataUrlComprimido;
+}).catch(() => mostrarToast('No se pudo abrir la foto para recortar — vuelve a tomarla'));
 }
 // ---- Paso 2: Constancia UPP ----
 async function extraerDatosConstanciaUPP(){
