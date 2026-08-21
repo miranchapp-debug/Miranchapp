@@ -16426,7 +16426,22 @@ return tesseractCargando;
 function precargarTesseractEnSegundoPlano(){
 cargarTesseractSiNecesario().catch(() => {});
 }
+// Todas las lecturas de texto pasan por esta misma "fila" — así, aunque se
+// tomen varias fotos seguidas (frente y reverso casi al mismo tiempo, por
+// ejemplo), nunca corren dos lecturas de Tesseract A LA VEZ. Antes, al hacer
+// la lectura automática al tomar la foto, si la segunda foto se tomaba
+// mientras la primera todavía se estaba leyendo, arrancaban DOS procesos de
+// lectura simultáneos — eso agotaba la memoria del celular y cerraba la
+// página de golpe. Ahora la segunda espera a que termine la primera antes de
+// empezar, en vez de correr encimada.
+let colaLecturaOCR = Promise.resolve();
+function encolarLecturaOCR(tarea){
+const resultado = colaLecturaOCR.then(tarea, tarea);
+colaLecturaOCR = resultado.catch(() => {});
+return resultado;
+}
 async function extraerTextoDeImagen(dataUrl, onEstado){
+return encolarLecturaOCR(async () => {
 try {
 if (onEstado) onEstado('descargando');
 await cargarTesseractSiNecesario();
@@ -16449,6 +16464,7 @@ console.warn('Paquete de idioma rápido no disponible, se usa el normal:', e);
 const resultado = await window.Tesseract.recognize(dataUrl, 'spa');
 return (resultado && resultado.data && resultado.data.text) || '';
 }
+});
 }
 async function previsualizarEscaneo(inputEl, idPreview, funcionExtraerAuto){
 const archivo = inputEl.files && inputEl.files[0];
@@ -16580,7 +16596,12 @@ if (lineas[i+1] && !etiquetas.some(e => lineas[i+1].toUpperCase().includes(e))) 
 }
 return '';
 }
+let credencialLecturaEnCurso = false;
+let credencialLecturaPendiente = false;
 async function extraerDatosCredencial(){
+if (credencialLecturaEnCurso){ credencialLecturaPendiente = true; return; }
+credencialLecturaEnCurso = true;
+try {
 const frenteArchivo = document.getElementById('esc-cred-frente-input')?.files?.[0];
 const reversoArchivo = document.getElementById('esc-cred-reverso-input')?.files?.[0];
 if (!frenteArchivo && !reversoArchivo){ mostrarToast('Toma al menos una foto (frente o reverso)'); return; }
@@ -16607,6 +16628,13 @@ mostrarToast('Listo — revisa los datos, la lectura automática puede tener err
 mostrarToast('No se pudo leer la foto: ' + e.message);
 } finally {
 boton.disabled = false; boton.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Extraer datos de la credencial';
+}
+} finally {
+credencialLecturaEnCurso = false;
+// Si mientras leía llegó otra foto (ej. tomaron el reverso justo durante la
+// lectura del frente), se vuelve a leer una vez más al terminar — así se
+// toman en cuenta las dos fotos sin haber corrido nada encimado.
+if (credencialLecturaPendiente){ credencialLecturaPendiente = false; extraerDatosCredencial(); }
 }
 }
 function iniciarRecorteDesdeEscaneo(){
@@ -16637,7 +16665,12 @@ img.src = dataUrlComprimido;
 }).catch(() => mostrarToast('No se pudo abrir la foto para recortar — vuelve a tomarla'));
 }
 // ---- Paso 2: Constancia UPP ----
+let uppLecturaEnCurso = false;
+let uppLecturaPendiente = false;
 async function extraerDatosConstanciaUPP(){
+if (uppLecturaEnCurso){ uppLecturaPendiente = true; return; }
+uppLecturaEnCurso = true;
+try {
 const archivo = document.getElementById('esc-upp-input')?.files?.[0];
 if (!archivo){ mostrarToast('Primero toma la foto de la constancia'); return; }
 const boton = document.getElementById('esc-upp-btn-extraer');
@@ -16658,6 +16691,10 @@ mostrarToast('Listo — revisa los datos, la lectura automática puede tener err
 mostrarToast('No se pudo leer la foto: ' + e.message);
 } finally {
 boton.disabled = false; boton.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Extraer datos de la constancia';
+}
+} finally {
+uppLecturaEnCurso = false;
+if (uppLecturaPendiente){ uppLecturaPendiente = false; extraerDatosConstanciaUPP(); }
 }
 }
 // ---- Paso 3: Documento SINIIGA ----
@@ -16692,7 +16729,12 @@ tipoMovimiento: movMatch ? movMatch[0] : '',
 });
 return filas;
 }
+let siniigaLecturaEnCurso = false;
+let siniigaLecturaPendiente = false;
 async function extraerTablaSINIIGA(){
+if (siniigaLecturaEnCurso){ siniigaLecturaPendiente = true; return; }
+siniigaLecturaEnCurso = true;
+try {
 const archivo = document.getElementById('esc-siniiga-input')?.files?.[0];
 if (!archivo){ mostrarToast('Primero toma la foto del documento'); return; }
 const boton = document.getElementById('esc-siniiga-btn-extraer');
@@ -16709,6 +16751,10 @@ else mostrarToast(`${filasSINIIGATemp.length} fila(s) detectada(s) — revisa ca
 mostrarToast('No se pudo leer la foto: ' + e.message);
 } finally {
 boton.disabled = false; boton.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Extraer tabla de animales';
+}
+} finally {
+siniigaLecturaEnCurso = false;
+if (siniigaLecturaPendiente){ siniigaLecturaPendiente = false; extraerTablaSINIIGA(); }
 }
 }
 function agregarFilaSINIIGAManual(){
