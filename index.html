@@ -81,6 +81,9 @@ const LOGO_QUESERIA_B64 = 'data:image/webp;base64,UklGRiJPAQBXRUJQVlA4IBZPAQDweA
   import {
     getFirestore, doc, setDoc, getDoc, onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+  import {
+    getStorage, ref as refStorage, uploadString, uploadBytes, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCBt2t5rfWUSNXRfe2H_8EE4hctkJZ3Cec",
@@ -95,6 +98,7 @@ const LOGO_QUESERIA_B64 = 'data:image/webp;base64,UklGRiJPAQBXRUJQVlA4IBZPAQDweA
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  const storage = getStorage(app);
   const refGlobal = doc(db, "miranchapp", "estadoGlobal");
   const refCuenta = (cuentaId) => doc(db, "miranchapp_cuentas", cuentaId);
 
@@ -185,6 +189,25 @@ const LOGO_QUESERIA_B64 = 'data:image/webp;base64,UklGRiJPAQBXRUJQVlA4IBZPAQDweA
 
   window.firebaseListo = true;
   window.dispatchEvent(new Event('firebase-listo'));
+
+  // Sube una imagen comprimida (dataURL "data:image/jpeg;base64,...") a Firebase
+  // Storage en la ruta indicada y regresa la downloadURL pública. Así Firestore
+  // solo guarda el link (documento liviano) en vez de la imagen completa en base64.
+  // Si no hay conexión o Storage no está habilitado, regresa null y quien llama
+  // decide si se queda con la imagen en base64 como respaldo local.
+  window.firebaseSubirImagen = async function(ruta, dataUrl){
+    if (!ruta || !dataUrl) return null;
+    try {
+      await listoAuth;
+      if (!usuarioAutenticado) return null;
+      const referencia = refStorage(storage, ruta);
+      await uploadString(referencia, dataUrl, 'data_url');
+      return await getDownloadURL(referencia);
+    } catch(e){
+      console.warn('No se pudo subir la imagen a Firebase Storage (¿sin conexión o Storage no habilitado en Firebase Console?):', e);
+      return null;
+    }
+  };
 </script>
 <style>@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
 :root{
@@ -979,6 +1002,9 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="screen px-5 py-6 space-y-5" id="screen-editar-productor">
 <button class="btn-volver" onclick="volverAtras('datos-productor')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold" data-i18n="editar_datos_productor__editar_datos_del_productor">Editar datos del productor</h2>
+<button class="w-full text-sm font-bold py-3 rounded-full" onclick="abrirEscaneoDocumentos()" style="background:var(--purple); color:#fff;">
+<i class="fa-solid fa-camera mr-1"></i> Alta rápida escaneando mis documentos
+</button>
 <div class="bg-white rounded-3xl p-5 space-y-4" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold">1. Propietario</h3>
 <div class="grid grid-cols-2 gap-3">
@@ -997,6 +1023,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <div class="col-span-2"><label class="campo-label">Localidad / Población</label><input id="ed-localidad" placeholder="Obligatorio" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Correo electrónico (opcional)</label><input id="ed-correo" type="email"/></div>
+<div><label class="campo-label">Código postal</label><input id="ed-cp" maxlength="5" type="text"/></div>
 <div><label class="campo-label">CURP</label><input id="ed-curp" maxlength="18" style="text-transform:uppercase;" type="text"/></div>
 </div>
 </div>
@@ -1016,6 +1043,25 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </button>
 </div>
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">3. Figura del fierro de herrar</h3>
+<p class="text-xs" style="color:var(--sage);">Toma una foto de tu credencial de fierro y recorta solo la figura — se guardará como imagen y se usará automáticamente cada vez que una prueba de campo pida el fierro, en vez de tener que describirlo con palabras.</p>
+<div id="ed-fierro-vista-guardada"></div>
+<input accept="image/*" capture="environment" class="hidden" id="ed-fierro-foto-input" onchange="cargarFotoParaRecorteFierro(this, 'ed')" type="file"/>
+<button class="w-full text-sm font-bold py-2 rounded-full" onclick="document.getElementById('ed-fierro-foto-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button">
+<i class="fa-solid fa-camera mr-1"></i>Tomar/subir foto de la credencial
+</button>
+<div class="hidden" id="ed-fierro-recorte-cont">
+<p class="text-xs font-bold mt-2" style="color:var(--pine);">Arrastra un recuadro sobre la figura del fierro (solo la figura, sin texto alrededor):</p>
+<div id="ed-fierro-lienzo-wrap" style="position:relative; touch-action:none; margin-top:.5rem; border:2px solid var(--line); border-radius:12px; overflow:hidden; max-width:100%;">
+<canvas id="ed-fierro-canvas" style="display:block; max-width:100%; touch-action:none;"></canvas>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<button class="text-xs font-bold py-2 rounded-full" onclick="cancelarRecorteFierro('ed')" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button">Cancelar</button>
+<button class="text-xs font-bold py-2 rounded-full" onclick="confirmarRecorteFierro('ed')" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-crop-simple"></i> Recortar y guardar</button>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <div class="grid grid-cols-2 gap-3" id="ed-campos-personalizados"></div>
 <p class="text-xs" style="color:var(--sage);"><i class="fa-solid fa-circle-info mr-1"></i><span data-i18n="editar_datos_productor__el_numero_de_animales_activos">El número de animales activos se cuenta solo, según lo que registres en el módulo A.</span></p>
 <button class="w-full btn-primario-plano" onclick="guardarEdicionProductor()" style="background:var(--pine);">
@@ -1023,7 +1069,117 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </button>
 </div>
 </div>
-<!-- ---------- ESTATUS DEL HATO ---------- -->
+<!-- ---------- ALTA RÁPIDA POR ESCANEO DE DOCUMENTOS ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-escaneo-documentos">
+<button class="btn-volver" onclick="volverAtras('editar-productor')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Alta rápida por escaneo</h2>
+<p class="text-sm" style="color:var(--sage);">Toma foto de tus documentos y la app intenta leerlos solos. <b>Siempre revisa y corrige</b> antes de guardar — la lectura automática de fotos no es perfecta, sobre todo con mala luz o letra borrosa.</p>
+<div class="flex gap-1 rounded-full p-1 overflow-x-auto" style="background:var(--parchment);">
+<button class="flex-1 text-xs font-bold py-2 rounded-full whitespace-nowrap px-2" id="esc-tab-credencial" onclick="cambiarPasoEscaneo('credencial')" style="background:var(--pine); color:#fff;">1. Credencial</button>
+<button class="flex-1 text-xs font-bold py-2 rounded-full whitespace-nowrap px-2" id="esc-tab-upp" onclick="cambiarPasoEscaneo('upp')">2. Constancia UPP</button>
+<button class="flex-1 text-xs font-bold py-2 rounded-full whitespace-nowrap px-2" id="esc-tab-siniiga" onclick="cambiarPasoEscaneo('siniiga')">3. SINIIGA</button>
+<button class="flex-1 text-xs font-bold py-2 rounded-full whitespace-nowrap px-2" id="esc-tab-confirmar" onclick="cambiarPasoEscaneo('confirmar')">4. Confirmar</button>
+</div>
+
+<!-- Paso 1: Credencial -->
+<div id="esc-paso-credencial">
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">Credencial del productor</h3>
+<div class="grid grid-cols-2 gap-2">
+<div>
+<input accept="image/*" capture="environment" class="hidden" id="esc-cred-frente-input" onchange="previsualizarEscaneo(this,'esc-cred-frente-preview')" type="file"/>
+<button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-cred-frente-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Frente</button>
+<img class="hidden w-full mt-2 rounded-xl" id="esc-cred-frente-preview" style="max-height:140px; object-fit:contain; border:1px solid var(--line);"/>
+</div>
+<div>
+<input accept="image/*" capture="environment" class="hidden" id="esc-cred-reverso-input" onchange="previsualizarEscaneo(this,'esc-cred-reverso-preview')" type="file"/>
+<button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-cred-reverso-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Reverso</button>
+<img class="hidden w-full mt-2 rounded-xl" id="esc-cred-reverso-preview" style="max-height:140px; object-fit:contain; border:1px solid var(--line);"/>
+</div>
+</div>
+<button class="w-full text-xs font-bold py-3 rounded-full" id="esc-cred-btn-extraer" onclick="extraerDatosCredencial()" style="background:var(--purple); color:#fff;" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Extraer datos de la credencial</button>
+<div class="hidden" id="esc-cred-resultado">
+<p class="text-xs font-bold mt-2" style="color:var(--sage);">Revisa y corrige lo que haga falta:</p>
+<div class="grid grid-cols-2 gap-2 mt-1">
+<div><label class="campo-label">Nombre completo</label><input class="campo-mayusculas" id="esc-cred-nombre" oninput="forzarMayusculas(this)" type="text"/></div>
+<div><label class="campo-label">CURP</label><input id="esc-cred-curp" maxlength="18" style="text-transform:uppercase;" type="text"/></div>
+<div><label class="campo-label">Folio productor</label><input class="campo-mayusculas" id="esc-cred-folio" oninput="forzarMayusculas(this)" type="text"/></div>
+<div><label class="campo-label">UPP</label><input class="campo-mayusculas" id="esc-cred-upp" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Tipo de actividad</label><input class="campo-mayusculas" id="esc-cred-actividad" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Domicilio</label><input class="campo-mayusculas" id="esc-cred-domicilio" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Municipio</label><input class="campo-mayusculas" id="esc-cred-municipio" oninput="forzarMayusculas(this)" type="text"/></div>
+</div>
+<div class="mt-3">
+<p class="text-xs font-bold" style="color:var(--sage);">Figura del fierro de herrar (recórtala del reverso)</p>
+<div id="esc-fierro-vista-guardada" class="mt-1"></div>
+<button class="w-full text-xs font-bold py-2 rounded-full mt-2" onclick="iniciarRecorteDesdeEscaneo()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-crop-simple"></i> Recortar figura del reverso</button>
+<div class="hidden" id="esc-fierro-recorte-cont">
+<div id="esc-fierro-lienzo-wrap" style="position:relative; touch-action:none; margin-top:.5rem; border:2px solid var(--line); border-radius:12px; overflow:hidden; max-width:100%;">
+<canvas id="esc-fierro-canvas" style="display:block; max-width:100%; touch-action:none;"></canvas>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<button class="text-xs font-bold py-2 rounded-full" onclick="cancelarRecorteFierro('esc')" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button">Cancelar</button>
+<button class="text-xs font-bold py-2 rounded-full" onclick="confirmarRecorteFierro('esc')" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-crop-simple"></i> Recortar y guardar</button>
+</div>
+</div>
+</div>
+</div>
+<details class="text-xs mt-1" style="color:var(--sage);"><summary>Ver texto que se leyó de la foto</summary><pre class="whitespace-pre-wrap text-xs mt-1" id="esc-cred-texto-crudo" style="max-height:140px; overflow-y:auto; background:var(--parchment); padding:.5rem; border-radius:8px;"></pre></details>
+</div>
+</div>
+
+<!-- Paso 2: Constancia UPP -->
+<div class="hidden" id="esc-paso-upp">
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">Constancia de actualización UPP / Padrón Ganadero</h3>
+<input accept="image/*" capture="environment" class="hidden" id="esc-upp-input" onchange="previsualizarEscaneo(this,'esc-upp-preview')" type="file"/>
+<button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-upp-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Tomar foto de la constancia</button>
+<img class="hidden w-full mt-2 rounded-xl" id="esc-upp-preview" style="max-height:180px; object-fit:contain; border:1px solid var(--line);"/>
+<button class="w-full text-xs font-bold py-3 rounded-full" id="esc-upp-btn-extraer" onclick="extraerDatosConstanciaUPP()" style="background:var(--purple); color:#fff;" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Extraer datos de la constancia</button>
+<div class="hidden" id="esc-upp-resultado">
+<p class="text-xs font-bold mt-2" style="color:var(--sage);">Revisa y corrige lo que haga falta:</p>
+<div class="grid grid-cols-2 gap-2 mt-1">
+<div class="col-span-2"><label class="campo-label">Nombre del predio</label><input class="campo-mayusculas" id="esc-upp-predio" oninput="forzarMayusculas(this)" type="text"/></div>
+<div><label class="campo-label">Superficie (ha)</label><input id="esc-upp-superficie" type="text"/></div>
+<div><label class="campo-label">Finalidad zootécnica</label><input class="campo-mayusculas" id="esc-upp-finalidad" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Municipio / Estado</label><input class="campo-mayusculas" id="esc-upp-municipioestado" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Referencias de localización</label><input class="campo-mayusculas" id="esc-upp-referencias" oninput="forzarMayusculas(this)" type="text"/></div>
+</div>
+<details class="text-xs mt-2" style="color:var(--sage);"><summary>Ver texto que se leyó de la foto</summary><pre class="whitespace-pre-wrap text-xs mt-1" id="esc-upp-texto-crudo" style="max-height:140px; overflow-y:auto; background:var(--parchment); padding:.5rem; border-radius:8px;"></pre></details>
+</div>
+</div>
+</div>
+
+<!-- Paso 3: Documento SINIIGA -->
+<div class="hidden" id="esc-paso-siniiga">
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">Documento de inventario SINIIGA</h3>
+<input accept="image/*" capture="environment" class="hidden" id="esc-siniiga-input" onchange="previsualizarEscaneo(this,'esc-siniiga-preview')" type="file"/>
+<button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-siniiga-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Tomar foto de la tabla</button>
+<img class="hidden w-full mt-2 rounded-xl" id="esc-siniiga-preview" style="max-height:180px; object-fit:contain; border:1px solid var(--line);"/>
+<button class="w-full text-xs font-bold py-3 rounded-full" id="esc-siniiga-btn-extraer" onclick="extraerTablaSINIIGA()" style="background:var(--purple); color:#fff;" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Extraer tabla de animales</button>
+<div class="hidden" id="esc-siniiga-resultado">
+<div class="flex items-center justify-between mt-2">
+<p class="text-xs font-bold" style="color:var(--sage);"><span id="esc-siniiga-conteo">0</span> animal(es) detectado(s) — revisa cada fila</p>
+<button class="text-xs font-bold px-3 py-1 rounded-full" onclick="agregarFilaSINIIGAManual()" style="background:var(--parchment); color:var(--pine); border:1px solid var(--line);" type="button"><i class="fa-solid fa-plus"></i> Fila</button>
+</div>
+<div class="space-y-2 mt-2" id="esc-siniiga-filas"></div>
+<details class="text-xs mt-2" style="color:var(--sage);"><summary>Ver texto que se leyó de la foto</summary><pre class="whitespace-pre-wrap text-xs mt-1" id="esc-siniiga-texto-crudo" style="max-height:140px; overflow-y:auto; background:var(--parchment); padding:.5rem; border-radius:8px;"></pre></details>
+</div>
+</div>
+</div>
+
+<!-- Paso 4: Confirmar e importar -->
+<div class="hidden" id="esc-paso-confirmar">
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">Confirmar e importar</h3>
+<p class="text-sm" style="color:var(--sage);">Se van a actualizar tus datos personales/UPP con lo que revisaste en los pasos 1 y 2, y se importarán al hato los animales del paso 3.</p>
+<label class="text-sm flex items-center gap-2"><input checked id="esc-solo-vigentes" onchange="actualizarResumenImportarEscaneo()" type="checkbox"/> Importar solo los animales con estatus VIGENTE</label>
+<p class="text-xs" id="esc-resumen-importar" style="color:var(--sage);"></p>
+<button class="w-full btn-primario-plano" onclick="confirmarImportacionEscaneo()" style="background:var(--pine);"><i class="fa-solid fa-check"></i> Confirmar e importar</button>
+</div>
+</div>
+</div>
 <div class="screen px-5 py-6 space-y-4" id="screen-hato">
 <button class="btn-volver" onclick="volverAtras('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <div class="flex items-center justify-between gap-3">
@@ -1596,8 +1752,8 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-modo-ejido" onclick="cambiarModoPruebaCampo('ejido')">Modo ejido (varios productores)</button>
 </div>
 <div id="bloque-productor-individual">
-<label class="campo-label">Buscar productor</label>
-<input id="pc-buscar-productor" oninput="buscarProductorParaPrueba()" placeholder="Nombre, predio o UPP..." type="text"/>
+<label class="campo-label">UPP del productor</label>
+<input id="pc-buscar-productor" oninput="buscarProductorParaPrueba()" placeholder="Escribe la UPP (o nombre/predio si no la tienes a la mano)..." type="text"/>
 <div class="space-y-1 mt-1" id="resultado-buscar-productor-pc"></div>
 <div class="hidden bg-white rounded-2xl p-3" id="productor-seleccionado-pc" style="border:2px solid var(--green);"></div>
 <div class="mt-3">
@@ -6943,7 +7099,7 @@ productor: {
 nombre:'', apellidoPaterno:'', apellidoMaterno:'', nombres:'',
 domicilio:'Conocido', localidad:'', correoElectronico:'',
 predio:'', upp:'', folio:'', estado:'', municipio:'', ejido:'', actividad:'',
-latitudUPP:null, longitudUPP:null,
+latitudUPP:null, longitudUPP:null, codigoPostal:'', fierroImagen:null,
 suscripcion: { fechaAlta: null, diasVigencia: 365, fechaVencimiento: null },
 camposPersonalizados: {},
 },
@@ -7229,6 +7385,8 @@ if (!('localidad' in estado.productor)) estado.productor.localidad = '';
 if (!('correoElectronico' in estado.productor)) estado.productor.correoElectronico = '';
 if (!('latitudUPP' in estado.productor)) estado.productor.latitudUPP = null;
 if (!('longitudUPP' in estado.productor)) estado.productor.longitudUPP = null;
+if (!('codigoPostal' in estado.productor)) estado.productor.codigoPostal = '';
+if (!('fierroImagen' in estado.productor)) estado.productor.fierroImagen = null;
 if (typeof estado.moonitor.sonidoActivado !== 'boolean') estado.moonitor.sonidoActivado = true;
 if (!('puntoActivoId' in estado)) estado.puntoActivoId = null;
 if (!estado.permisosTrabajador || typeof estado.permisosTrabajador !== 'object') estado.permisosTrabajador = { moduloA:true, moduloB:true, moduloC:false, moduloD:true, moduloE:false, moduloF:false, moduloG:false, moduloH:false, moduloI:false, moduloJ:false, moduloK:false };
@@ -9853,6 +10011,50 @@ try { el.setSelectionRange(inicio, fin); } catch(e){}
 }
 if (el.dataset && el.dataset.marcarLleno) marcarCampoLleno(el);
 }
+// ================= UTILIDADES DE IMAGEN: COMPRESIÓN Y SUBIDA A STORAGE =================
+// Reescala/comprime cualquier imagen (dataURL o File) a un ancho máximo y calidad
+// JPEG dados antes de guardarla — así las fotos no inflan el documento de Firestore
+// ni tardan una eternidad en subir con datos móviles en el campo.
+function comprimirImagenDataUrl(dataUrl, maxAncho, calidad){
+maxAncho = maxAncho || 800; calidad = calidad || 0.75;
+return new Promise((resolve, reject) => {
+const img = new Image();
+img.onload = () => {
+const escala = Math.min(1, maxAncho / img.width);
+const w = Math.max(1, Math.round(img.width * escala));
+const h = Math.max(1, Math.round(img.height * escala));
+const canvas = document.createElement('canvas');
+canvas.width = w; canvas.height = h;
+canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+resolve(canvas.toDataURL('image/jpeg', calidad));
+};
+img.onerror = reject;
+img.src = dataUrl;
+});
+}
+function archivoADataUrl(archivo){
+return new Promise((resolve, reject) => {
+const lector = new FileReader();
+lector.onload = () => resolve(lector.result);
+lector.onerror = reject;
+lector.readAsDataURL(archivo);
+});
+}
+async function comprimirArchivoImagen(archivo, maxAncho, calidad){
+const dataUrl = await archivoADataUrl(archivo);
+return comprimirImagenDataUrl(dataUrl, maxAncho, calidad);
+}
+// Sube una imagen ya comprimida a Firebase Storage bajo la ruta indicada y regresa
+// su downloadURL; si no hay conexión o Storage no está disponible, regresa la
+// misma imagen comprimida en base64 como respaldo (para no perder el trabajo y
+// seguir funcionando en modo local/offline, igual que el resto de la app).
+async function subirImagenOGuardarLocal(ruta, dataUrlComprimido){
+if (typeof window.firebaseSubirImagen === 'function'){
+const url = await window.firebaseSubirImagen(ruta, dataUrlComprimido);
+if (url) return { url, esRemota: true };
+}
+return { url: dataUrlComprimido, esRemota: false };
+}
 // Marca visualmente (borde/fondo verde + check) el campo contenedor .grupo-campo
 // del elemento como "ya registrado" cuando tiene valor, para que se note de un
 // vistazo rápido qué falta. requerido=true además marca en rojo si sigue vacío.
@@ -9894,11 +10096,15 @@ return;
 const archivoFoto = document.getElementById('f-foto')?.files?.[0];
 let foto = null;
 if (archivoFoto){
-foto = await new Promise(resolve => {
-const lector = new FileReader();
-lector.onload = () => resolve(lector.result);
-lector.readAsDataURL(archivoFoto);
-});
+try {
+const comprimida = await comprimirArchivoImagen(archivoFoto, 800, 0.75);
+const rutaStorage = `imagenes_hato/${estado.cuentaActivaId || 'local'}/${(arete || 'sin_arete_' + Date.now()).replace(/[^a-zA-Z0-9_-]/g,'_')}.jpg`;
+const subida = await subirImagenOGuardarLocal(rutaStorage, comprimida);
+foto = subida.url;
+} catch(e){
+console.warn('No se pudo comprimir/subir la foto, se usa la original', e);
+foto = await archivoADataUrl(archivoFoto);
+}
 }
 const proposito = valor('f-proposito');
 const esEngorda = proposito === 'engorda';
@@ -11378,6 +11584,7 @@ filasAnimalesPruebaCampo = [];
 animalesExpandidosPC = new Set();
 animalesEditandoPC = new Set();
 productorSeleccionadoPruebaCampo = null;
+fierroImagenSesionPC = null;
 editandoPruebaCampoId = null;
 editandoEsLectura = false;
 document.getElementById('titulo-nueva-prueba-campo').textContent = categoria === 'prueba' ? 'Nueva prueba' : 'Nuevo areteo';
@@ -11480,6 +11687,13 @@ if (!q){ cont.innerHTML = ''; return; }
 const resultados = estado.cuentasProductores.filter(c => c.tipo !== 'punto' &&
 ((c.nombre||'').toLowerCase().includes(q) || (c.predio||'').toLowerCase().includes(q) || (c.upp||'').toLowerCase().includes(q))
 ).slice(0, 8);
+// Si la UPP escrita coincide exacta con una sola cuenta, la selecciona sola —
+// así basta con teclear/escanear la UPP para que se autorrellenen sus datos.
+const coincidenciaExactaUpp = resultados.filter(c => (c.upp || '').toLowerCase() === q);
+if (coincidenciaExactaUpp.length === 1){
+seleccionarProductorParaPrueba(coincidenciaExactaUpp[0].id);
+return;
+}
 if (resultados.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>`; return; }
 cont.innerHTML = resultados.map(c => `
 <button onclick="seleccionarProductorParaPrueba('${c.id}')" class="w-full text-left bg-white rounded-xl p-2 flex items-center gap-2" style="border:2px solid var(--line);">
@@ -11488,6 +11702,7 @@ ${avatarHtml(c.nombre, null, 34)}
 </button>`).join('');
 }
 let cacheAnimalesProductorPrueba = null;
+let fierroImagenSesionPC = null;
 async function seleccionarProductorParaPrueba(cuentaId){
 const c = estado.cuentasProductores.find(x => x.id === cuentaId);
 if (!c) return;
@@ -11496,7 +11711,32 @@ document.getElementById('resultado-buscar-productor-pc').innerHTML = '';
 establecerValor('pc-buscar-productor', '');
 const cont = document.getElementById('productor-seleccionado-pc');
 cont.classList.remove('hidden');
-cont.innerHTML = `<div class="flex items-center gap-2">${avatarHtml(c.nombre, null, 36)}<div class="flex-1"><p class="text-sm font-bold">${c.nombre}</p><p class="text-xs" style="color:var(--sage);">${c.predio || ''} ${c.upp ? '· UPP ' + c.upp : ''}</p></div><button onclick="productorSeleccionadoPruebaCampo=null; document.getElementById('productor-seleccionado-pc').classList.add('hidden');" style="color:var(--red);"><i class="fa-solid fa-xmark"></i></button></div>`;
+fierroImagenSesionPC = c.fierroImagen || null;
+cont.innerHTML = `<div class="flex items-center gap-2">${avatarHtml(c.nombre, null, 36)}<div class="flex-1"><p class="text-sm font-bold">${c.nombre}</p><p class="text-xs" style="color:var(--sage);">${c.predio || ''} ${c.upp ? '· UPP ' + c.upp : ''}</p></div><button onclick="productorSeleccionadoPruebaCampo=null; fierroImagenSesionPC=null; document.getElementById('productor-seleccionado-pc').classList.add('hidden');" style="color:var(--red);"><i class="fa-solid fa-xmark"></i></button></div>
+${fierroImagenSesionPC ? `<div class="flex items-center gap-2 mt-2 pt-2" style="border-top:1px solid var(--line);">
+<img loading="lazy" decoding="async" src="${fierroImagenSesionPC}" style="width:36px; height:36px; object-fit:contain; border-radius:6px; border:1px solid var(--line); background:#fff;"/>
+<label class="text-xs flex-1" style="color:var(--sage);"><input checked id="pc-usar-fierro-productor" onchange="renderFilasAnimalesPruebaCampo()" type="checkbox"/> Usar la figura de fierro guardada de este productor en todos los animales</label>
+</div>` : ''}`;
+// Autorrellena los datos oficiales del dictamen con lo que ya tiene guardado
+// el productor en su perfil — el veterinario solo corrige si algo cambió.
+establecerValor('pc-of-apellidopaterno', c.apellidoPaterno || '');
+establecerValor('pc-of-apellidomaterno', c.apellidoMaterno || '');
+establecerValor('pc-of-nombres', c.nombres || '');
+establecerValor('pc-of-domicilio', c.domicilio || '');
+establecerValor('pc-of-localidad', c.localidad || '');
+establecerValor('pc-of-cp', c.codigoPostal || '');
+establecerValor('pc-of-estado', c.estadoMx || '');
+establecerValor('pc-of-municipio', c.municipio || '');
+establecerValor('pc-of-telefono', c.telefono || '');
+establecerValor('pc-of-latitud', c.latitud != null ? String(c.latitud) : '');
+establecerValor('pc-of-longitud', c.longitud != null ? String(c.longitud) : '');
+establecerValor('pc-of-clave-upp', c.upp || '');
+if (c.apellidoPaterno || c.domicilio || c.latitud){
+document.getElementById('datos-oficiales-pc')?.classList.remove('hidden');
+const icono = document.getElementById('icono-toggle-datos-oficiales-pc');
+if (icono) icono.className = 'fa-solid fa-chevron-up';
+mostrarToast('Datos del productor autocompletados desde su perfil');
+}
 cacheAnimalesProductorPrueba = null;
 if (typeof window.firebaseLeerCuenta === 'function'){
 try {
@@ -11560,6 +11800,15 @@ const yaAgregados = new Set(productoresSesionEjido.filter(p => p.cuentaId).map(p
 const resultados = estado.cuentasProductores.filter(c => c.tipo !== 'punto' && !yaAgregados.has(c.id) &&
 ((c.nombre||'').toLowerCase().includes(q) || (c.predio||'').toLowerCase().includes(q) || (c.upp||'').toLowerCase().includes(q))
 ).slice(0, 8);
+// Igual que en modo individual: si la UPP escrita/escaneada coincide exacta con
+// una sola cuenta, se agrega sola a la sesión sin tener que tocarla de la lista
+// — así se puede ir metiendo UPP tras UPP rápido en campo.
+const coincidenciaExactaUpp = resultados.filter(c => (c.upp || '').toLowerCase() === q);
+if (coincidenciaExactaUpp.length === 1){
+agregarProductorCuentaEjido(coincidenciaExactaUpp[0].id);
+establecerValor('ejido-buscar-productor', '');
+return;
+}
 if (resultados.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>`; return; }
 cont.innerHTML = resultados.map(c => `
 <button onclick="agregarProductorCuentaEjido('${c.id}')" class="w-full text-left bg-white rounded-xl p-2 flex items-center gap-2" style="border:2px solid var(--line);">
@@ -11571,7 +11820,18 @@ async function agregarProductorCuentaEjido(cuentaId){
 const c = estado.cuentasProductores.find(x => x.id === cuentaId);
 if (!c) return;
 const clave = 'ej_' + Date.now();
-productoresSesionEjido.push({ clave, tipo:'registrado', cuentaId: c.id, nombre: c.nombre, predio: c.predio, upp: c.upp, curp: c.curp || '', estadoMx: c.estadoMx || '', municipio: c.municipio || '', animales: null });
+// Igual que en modo individual: se trae todo lo que el productor ya tiene
+// guardado en su perfil (apellidos, domicilio, localidad, teléfono, GPS y la
+// figura de su fierro de herrar) para no tener que volver a preguntarlo.
+productoresSesionEjido.push({
+clave, tipo:'registrado', cuentaId: c.id, nombre: c.nombre, predio: c.predio, upp: c.upp, curp: c.curp || '',
+estadoMx: c.estadoMx || '', municipio: c.municipio || '',
+apellidoPaterno: c.apellidoPaterno || '', apellidoMaterno: c.apellidoMaterno || '', nombres: c.nombres || '',
+domicilio: c.domicilio || '', localidad: c.localidad || '', telefono: c.telefono || '',
+latitud: c.latitud != null ? c.latitud : null, longitud: c.longitud != null ? c.longitud : null,
+fierroImagen: c.fierroImagen || null,
+animales: null,
+});
 document.getElementById('ejido-buscador-cuenta').classList.add('hidden');
 renderProductoresEjido();
 mostrarToast(`${c.nombre} agregado — cargando su inventario...`);
@@ -12040,6 +12300,23 @@ actualizarTarjetaAnimalUI(id);
 function renderFilasAnimalesPruebaCampo(){
 const cont = document.getElementById('lista-animales-prueba-campo');
 if (!cont) return;
+// Si el productor tiene guardada la figura de su fierro de herrar y la casilla
+// está marcada, se aplica sola a cada animal que todavía no tenga una asignada
+// — así no hay que describirla con palabras en cada renglón. En modo ejido se
+// aplica la figura de CADA productor a sus propios animales (pueden traer fierros
+// distintos entre sí).
+if (modoPruebaCampo === 'individual' && fierroImagenSesionPC){
+const usar = document.getElementById('pc-usar-fierro-productor');
+if (!usar || usar.checked){
+filasAnimalesPruebaCampo.forEach(f => { if (!f.fierroImagenUrl) f.fierroImagenUrl = fierroImagenSesionPC; });
+}
+} else if (modoPruebaCampo === 'ejido'){
+filasAnimalesPruebaCampo.forEach(f => {
+if (f.fierroImagenUrl || !f.productorClave) return;
+const p = productoresSesionEjido.find(x => x.clave === f.productorClave);
+if (p && p.fierroImagen) f.fierroImagenUrl = p.fierroImagen;
+});
+}
 if (filasAnimalesPruebaCampo.length === 0){
 cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Aún no agregas animales. Toca "Agregar".</p>`;
 actualizarResumenPruebaCampo();
@@ -12135,10 +12412,15 @@ return `
 <label class="campo-label">Raza</label>
 <input class="campo-mayusculas" oninput="forzarMayusculas(this); actualizarFilaAnimalPC('${f.id}','raza',this.value); marcarCampoLleno(this,true); actualizarTarjetaAnimalUI('${f.id}');" placeholder="Raza" type="text" value="${f.raza}"/>
 </div>
-<div class="grupo-campo ${f.fierro ? 'campo-lleno' : ''}">
+<div class="grupo-campo ${(f.fierro || f.fierroImagenUrl) ? 'campo-lleno' : ''}">
 <span class="campo-check"><i class="fa-solid fa-check"></i></span>
 <label class="campo-label">Fierro (opcional)</label>
-<input class="campo-mayusculas" oninput="forzarMayusculas(this); actualizarFilaAnimalPC('${f.id}','fierro',this.value); marcarCampoLleno(this);" placeholder="Fierro (opcional)" type="text" value="${f.fierro || ''}"/>
+${f.fierroImagenUrl ? `
+<div class="flex items-center gap-2">
+<img loading="lazy" decoding="async" src="${f.fierroImagenUrl}" style="width:34px; height:34px; object-fit:contain; border-radius:6px; border:1px solid var(--line); background:#fff;"/>
+<span class="text-xs flex-1" style="color:var(--sage);">Usando la figura guardada del productor</span>
+<button type="button" onclick="actualizarFilaAnimalPC('${f.id}','fierroImagenUrl',null); actualizarTarjetaAnimalUI('${f.id}'); renderFilasAnimalesPruebaCampo();" class="text-xs font-bold px-2 py-1 rounded-full" style="background:var(--parchment); color:var(--red); border:1px solid var(--line);">Quitar</button>
+</div>` : `<input class="campo-mayusculas" oninput="forzarMayusculas(this); actualizarFilaAnimalPC('${f.id}','fierro',this.value); marcarCampoLleno(this);" placeholder="Fierro (opcional)" type="text" value="${f.fierro || ''}"/>`}
 </div>
 ${mostrarResultado ? `
 <div class="grupo-campo ${f.resultado ? 'campo-lleno' : 'campo-vacio-requerido'}">
@@ -12242,7 +12524,7 @@ estadoMx: valor('pc-of-estado'), municipio: valor('pc-of-municipio'), telefonoPr
 latitud: valor('pc-of-latitud'), longitud: valor('pc-of-longitud'), claveUpp: valor('pc-of-clave-upp'),
 folioTB: valor('pc-of-folio-tb'), ccNo: valor('pc-of-cc-no'), dictamenTB: valor('pc-of-dictamen-tb'), tipoAplicacion: valor('pc-of-tipo-aplicacion'),
 productorId: c.id, productorNombre: c.nombre, predio: c.predio, upp: c.upp, curp: c.curp || '',
-animales: filasAnimalesPruebaCampo.map(f => ({ arete:f.arete, especie:f.especie, edad:f.edad, sexo:f.sexo, raza:f.raza, fierro:f.fierro, resultado: tabPruebasCampoActual === 'prueba' ? f.resultado : null })),
+animales: filasAnimalesPruebaCampo.map(f => ({ arete:f.arete, especie:f.especie, edad:f.edad, sexo:f.sexo, raza:f.raza, fierro:f.fierro, fierroImagenUrl:f.fierroImagenUrl || null, resultado: tabPruebasCampoActual === 'prueba' ? f.resultado : null })),
 };
 if (editandoPruebaCampoId){
 const idx = estado.pruebasCampoVet.findIndex(x => x.id === editandoPruebaCampoId);
@@ -12301,8 +12583,13 @@ id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
 productorId: p.cuentaId, productorNombre: p.nombre, predio: p.predio || '', upp: p.upp || '', curp: p.curp || '',
 apellidoPaterno: p.apellidoPaterno || '', apellidoMaterno: p.apellidoMaterno || '', nombres: p.nombres || '',
 domicilio: p.domicilio || '', estadoMx: p.estadoMx || '', municipio: p.municipio || '', localidad: p.localidad || '', telefonoProductor: p.telefono || '',
+// Si este productor trae su propia UPP/GPS guardados (se agregó por "Buscar
+// cuenta"), se usan los suyos en vez del campo compartido de la sesión.
+latitud: (p.latitud != null && p.latitud !== '') ? String(p.latitud) : camposComunes.latitud,
+longitud: (p.longitud != null && p.longitud !== '') ? String(p.longitud) : camposComunes.longitud,
+claveUpp: p.upp || camposComunes.claveUpp,
 esProductorManual: p.tipo === 'manual',
-animales: filas.map(f => ({ arete:f.arete, especie:f.especie, edad:f.edad, sexo:f.sexo, raza:f.raza, fierro:f.fierro, resultado: tabPruebasCampoActual === 'prueba' ? f.resultado : null })),
+animales: filas.map(f => ({ arete:f.arete, especie:f.especie, edad:f.edad, sexo:f.sexo, raza:f.raza, fierro:f.fierro, fierroImagenUrl:f.fierroImagenUrl || null, resultado: tabPruebasCampoActual === 'prueba' ? f.resultado : null })),
 compartida: false, estatusProductor: null, fecha: hoyISO(), leida: false,
 });
 creadas++;
@@ -15315,6 +15602,420 @@ mostrarToast('No se pudo obtener tu ubicación. Revisa los permisos.');
 { enableHighAccuracy: true, timeout: 8000 }
 );
 }
+// ================= FIGURA DEL FIERRO DE HERRAR (foto + recorte manual) =================
+// No es viable detectar automáticamente "solo la figura" dentro de la foto de una
+// credencial (eso requeriría un modelo de visión por computadora que esta app no
+// tiene) — en vez de eso, el productor toma la foto y dibuja con el dedo/mouse un
+// recuadro sobre la figura; se recorta esa parte y se guarda como imagen, lista
+// para usarse automáticamente donde se pida "fierro" en las pruebas de campo.
+const RECORTE_FIERRO_ESTADO = {};
+function cargarFotoParaRecorteFierro(inputEl, prefijo){
+const archivo = inputEl.files && inputEl.files[0];
+if (!archivo) return;
+const lector = new FileReader();
+lector.onload = () => {
+const img = new Image();
+img.onload = () => {
+const canvas = document.getElementById(prefijo + '-fierro-canvas');
+const wrap = document.getElementById(prefijo + '-fierro-lienzo-wrap');
+const anchoMax = Math.min(wrap.clientWidth || 340, 480);
+const escala = anchoMax / img.width;
+canvas.width = anchoMax;
+canvas.height = img.height * escala;
+const ctx = canvas.getContext('2d');
+ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+RECORTE_FIERRO_ESTADO[prefijo] = { imgOriginal: img, escala, rect: null, arrastrando: false, inicioX: 0, inicioY: 0 };
+document.getElementById(prefijo + '-fierro-recorte-cont').classList.remove('hidden');
+activarArrastreRecorteFierro(prefijo);
+};
+img.src = lector.result;
+};
+lector.readAsDataURL(archivo);
+inputEl.value = '';
+}
+function posicionEnCanvasFierro(canvas, evt){
+const rect = canvas.getBoundingClientRect();
+const punto = evt.touches ? evt.touches[0] : evt;
+return { x: (punto.clientX - rect.left) * (canvas.width / rect.width), y: (punto.clientY - rect.top) * (canvas.height / rect.height) };
+}
+function redibujarCanvasFierro(prefijo){
+const est = RECORTE_FIERRO_ESTADO[prefijo];
+if (!est) return;
+const canvas = document.getElementById(prefijo + '-fierro-canvas');
+const ctx = canvas.getContext('2d');
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.drawImage(est.imgOriginal, 0, 0, canvas.width, canvas.height);
+if (est.rect){
+ctx.strokeStyle = '#E11D48';
+ctx.lineWidth = 2;
+ctx.setLineDash([6,4]);
+ctx.strokeRect(est.rect.x, est.rect.y, est.rect.w, est.rect.h);
+ctx.setLineDash([]);
+ctx.fillStyle = 'rgba(225,29,72,0.12)';
+ctx.fillRect(est.rect.x, est.rect.y, est.rect.w, est.rect.h);
+}
+}
+function activarArrastreRecorteFierro(prefijo){
+const canvas = document.getElementById(prefijo + '-fierro-canvas');
+const est = RECORTE_FIERRO_ESTADO[prefijo];
+const iniciar = evt => {
+evt.preventDefault();
+const p = posicionEnCanvasFierro(canvas, evt);
+est.arrastrando = true;
+est.inicioX = p.x; est.inicioY = p.y;
+est.rect = { x: p.x, y: p.y, w: 0, h: 0 };
+};
+const mover = evt => {
+if (!est.arrastrando) return;
+evt.preventDefault();
+const p = posicionEnCanvasFierro(canvas, evt);
+est.rect = { x: Math.min(est.inicioX, p.x), y: Math.min(est.inicioY, p.y), w: Math.abs(p.x - est.inicioX), h: Math.abs(p.y - est.inicioY) };
+redibujarCanvasFierro(prefijo);
+};
+const soltar = () => { est.arrastrando = false; };
+canvas.onmousedown = iniciar; canvas.onmousemove = mover; canvas.onmouseup = soltar; canvas.onmouseleave = soltar;
+canvas.ontouchstart = iniciar; canvas.ontouchmove = mover; canvas.ontouchend = soltar;
+}
+function cancelarRecorteFierro(prefijo){
+const cont = document.getElementById(prefijo + '-fierro-recorte-cont');
+if (cont) cont.classList.add('hidden');
+delete RECORTE_FIERRO_ESTADO[prefijo];
+}
+function confirmarRecorteFierro(prefijo){
+const est = RECORTE_FIERRO_ESTADO[prefijo];
+if (!est || !est.rect || est.rect.w < 8 || est.rect.h < 8){ mostrarToast('Dibuja un recuadro sobre la figura antes de recortar'); return; }
+const escalaOriginal = 1 / est.escala;
+const sx = est.rect.x * escalaOriginal, sy = est.rect.y * escalaOriginal;
+const sw = est.rect.w * escalaOriginal, sh = est.rect.h * escalaOriginal;
+const salida = document.createElement('canvas');
+salida.width = 300; salida.height = Math.max(1, Math.round(300 * (sh / sw)));
+salida.getContext('2d').drawImage(est.imgOriginal, sx, sy, sw, sh, 0, 0, salida.width, salida.height);
+const dataUrl = salida.toDataURL('image/png');
+if (prefijo === 'ed'){
+estado.productor.fierroImagen = dataUrl;
+if (estado.cuentaActivaId){
+const cuenta = estado.cuentasProductores.find(c => c.id === estado.cuentaActivaId);
+if (cuenta) cuenta.fierroImagen = dataUrl;
+}
+guardarEstadoLocal();
+renderVistaFierroGuardado('ed');
+}
+if (prefijo === 'esc'){
+fierroImagenEscaneoTemp = dataUrl;
+renderVistaFierroGuardado('esc');
+}
+cancelarRecorteFierro(prefijo);
+mostrarToast('Figura del fierro guardada — se usará automáticamente en las pruebas de campo');
+}
+let fierroImagenEscaneoTemp = null;
+function renderVistaFierroGuardado(prefijo){
+const cont = document.getElementById(prefijo + '-fierro-vista-guardada');
+if (!cont) return;
+const img = prefijo === 'ed' ? estado.productor.fierroImagen : (prefijo === 'esc' ? fierroImagenEscaneoTemp : null);
+if (!img){ cont.innerHTML = ''; return; }
+cont.innerHTML = `<div class="flex items-center gap-3 bg-white rounded-xl p-2" style="border:2px solid var(--green);">
+<img loading="lazy" decoding="async" src="${img}" style="width:56px; height:56px; object-fit:contain; border-radius:8px; background:#fff; border:1px solid var(--line);"/>
+<div class="flex-1"><p class="text-xs font-bold" style="color:var(--green);"><i class="fa-solid fa-circle-check mr-1"></i>Figura guardada</p><p class="text-xs" style="color:var(--sage);">Se usará automáticamente en el campo "Fierro" de tus pruebas.</p></div>
+<button onclick="quitarFierroGuardado('${prefijo}')" style="color:var(--red);"><i class="fa-solid fa-trash"></i></button>
+</div>`;
+}
+function quitarFierroGuardado(prefijo){
+if (prefijo === 'ed'){
+estado.productor.fierroImagen = null;
+if (estado.cuentaActivaId){
+const cuenta = estado.cuentasProductores.find(c => c.id === estado.cuentaActivaId);
+if (cuenta) cuenta.fierroImagen = null;
+}
+guardarEstadoLocal();
+renderVistaFierroGuardado('ed');
+}
+mostrarToast('Figura de fierro eliminada');
+}
+// ================= ALTA RÁPIDA POR ESCANEO DE DOCUMENTOS (OCR en el navegador) =================
+// Usa Tesseract.js (se carga solo cuando hace falta, desde CDN) para leer el texto
+// de la foto y unas reglas/expresiones regulares para adivinar los campos. La
+// lectura automática de documentos fotografiados con celular NUNCA es 100%
+// confiable (luz, ángulo, letra) — por eso todo lo que se detecta se muestra en
+// campos editables para que el productor/veterinario lo revise antes de guardar,
+// nunca se guarda nada de forma automática y silenciosa.
+let tesseractCargando = null;
+function cargarTesseractSiNecesario(){
+if (window.Tesseract) return Promise.resolve();
+if (tesseractCargando) return tesseractCargando;
+tesseractCargando = new Promise((resolve, reject) => {
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+script.onload = () => resolve();
+script.onerror = () => reject(new Error('No se pudo cargar el lector de texto — revisa tu conexión a internet'));
+document.head.appendChild(script);
+});
+return tesseractCargando;
+}
+async function extraerTextoDeImagen(dataUrl){
+await cargarTesseractSiNecesario();
+const resultado = await window.Tesseract.recognize(dataUrl, 'spa');
+return (resultado && resultado.data && resultado.data.text) || '';
+}
+function previsualizarEscaneo(inputEl, idPreview){
+const archivo = inputEl.files && inputEl.files[0];
+if (!archivo) return;
+const img = document.getElementById(idPreview);
+const lector = new FileReader();
+lector.onload = () => { img.src = lector.result; img.classList.remove('hidden'); };
+lector.readAsDataURL(archivo);
+}
+function cambiarPasoEscaneo(paso){
+['credencial','upp','siniiga','confirmar'].forEach(p => {
+document.getElementById('esc-paso-' + p).classList.toggle('hidden', p !== paso);
+const tab = document.getElementById('esc-tab-' + p);
+tab.style.background = p === paso ? 'var(--pine)' : '';
+tab.style.color = p === paso ? '#fff' : '';
+});
+if (paso === 'confirmar') actualizarResumenImportarEscaneo();
+}
+function abrirEscaneoDocumentos(){
+cambiarPasoEscaneo('credencial');
+irA('escaneo-documentos');
+}
+// ---- Paso 1: Credencial del productor ----
+function extraerCURP(texto){
+const m = texto.toUpperCase().replace(/\s+/g, '').match(/[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d/);
+return m ? m[0] : '';
+}
+function extraerTrasEtiqueta(texto, etiquetas){
+const lineas = texto.split(/\n+/).map(l => l.trim()).filter(Boolean);
+for (let i = 0; i < lineas.length; i++){
+const mayus = lineas[i].toUpperCase();
+for (const etq of etiquetas){
+if (mayus.includes(etq)){
+const resto = lineas[i].replace(new RegExp(etq, 'i'), '').replace(/^[:\s.-]+/, '').trim();
+if (resto && resto.length > 1) return resto;
+if (lineas[i+1] && !etiquetas.some(e => lineas[i+1].toUpperCase().includes(e))) return lineas[i+1].trim();
+}
+}
+}
+return '';
+}
+async function extraerDatosCredencial(){
+const frenteArchivo = document.getElementById('esc-cred-frente-input')?.files?.[0];
+const reversoArchivo = document.getElementById('esc-cred-reverso-input')?.files?.[0];
+if (!frenteArchivo && !reversoArchivo){ mostrarToast('Toma al menos una foto (frente o reverso)'); return; }
+const boton = document.getElementById('esc-cred-btn-extraer');
+boton.disabled = true; boton.textContent = 'Leyendo...';
+try {
+let textoFrente = '', textoReverso = '';
+if (frenteArchivo) textoFrente = await extraerTextoDeImagen(await archivoADataUrl(frenteArchivo));
+if (reversoArchivo) textoReverso = await extraerTextoDeImagen(await archivoADataUrl(reversoArchivo));
+const textoCompleto = textoFrente + '\n' + textoReverso;
+establecerValor('esc-cred-curp', extraerCURP(textoCompleto));
+establecerValor('esc-cred-nombre', extraerTrasEtiqueta(textoFrente, ['NOMBRE']));
+establecerValor('esc-cred-folio', extraerTrasEtiqueta(textoFrente, ['FOLIO']));
+establecerValor('esc-cred-upp', extraerTrasEtiqueta(textoFrente, ['UPP']));
+establecerValor('esc-cred-actividad', extraerTrasEtiqueta(textoFrente, ['ACTIVIDAD', 'TIPO DE ACTIVIDAD']));
+establecerValor('esc-cred-domicilio', extraerTrasEtiqueta(textoReverso, ['DOMICILIO']));
+establecerValor('esc-cred-municipio', extraerTrasEtiqueta(textoReverso, ['MUNICIPIO']));
+document.getElementById('esc-cred-texto-crudo').textContent = textoCompleto.trim() || '(no se detectó texto legible)';
+document.getElementById('esc-cred-resultado').classList.remove('hidden');
+mostrarToast('Listo — revisa los datos, la lectura automática puede tener errores');
+} catch(e){
+mostrarToast('No se pudo leer la foto: ' + e.message);
+} finally {
+boton.disabled = false; boton.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Extraer datos de la credencial';
+}
+}
+function iniciarRecorteDesdeEscaneo(){
+const archivo = document.getElementById('esc-cred-reverso-input')?.files?.[0];
+if (!archivo){ mostrarToast('Primero toma la foto del reverso de la credencial'); return; }
+const lector = new FileReader();
+lector.onload = () => {
+const img = new Image();
+img.onload = () => {
+document.getElementById('esc-fierro-recorte-cont').classList.remove('hidden');
+const canvas = document.getElementById('esc-fierro-canvas');
+const wrap = document.getElementById('esc-fierro-lienzo-wrap');
+const anchoMax = Math.min(wrap.clientWidth || 340, 480);
+const escala = anchoMax / img.width;
+canvas.width = anchoMax; canvas.height = img.height * escala;
+canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+RECORTE_FIERRO_ESTADO['esc'] = { imgOriginal: img, escala, rect: null, arrastrando: false, inicioX: 0, inicioY: 0 };
+activarArrastreRecorteFierro('esc');
+};
+img.src = lector.result;
+};
+lector.readAsDataURL(archivo);
+}
+// ---- Paso 2: Constancia UPP ----
+async function extraerDatosConstanciaUPP(){
+const archivo = document.getElementById('esc-upp-input')?.files?.[0];
+if (!archivo){ mostrarToast('Primero toma la foto de la constancia'); return; }
+const boton = document.getElementById('esc-upp-btn-extraer');
+boton.disabled = true; boton.textContent = 'Leyendo...';
+try {
+const texto = await extraerTextoDeImagen(await archivoADataUrl(archivo));
+establecerValor('esc-upp-predio', extraerTrasEtiqueta(texto, ['NOMBRE DEL PREDIO', 'PREDIO', 'UNIDAD DE PRODUCCIÓN']));
+const superficieMatch = texto.match(/(\d+[.,]?\d*)\s*(HA|HECTÁREAS|HECTAREAS)/i);
+establecerValor('esc-upp-superficie', superficieMatch ? superficieMatch[1].replace(',', '.') : '');
+establecerValor('esc-upp-finalidad', extraerTrasEtiqueta(texto, ['FINALIDAD ZOOTÉCNICA', 'FINALIDAD ZOOTECNICA', 'FINALIDAD']));
+establecerValor('esc-upp-municipioestado', extraerTrasEtiqueta(texto, ['MUNICIPIO', 'ESTADO']));
+establecerValor('esc-upp-referencias', extraerTrasEtiqueta(texto, ['REFERENCIA', 'LOCALIZACIÓN', 'LOCALIZACION', 'UBICACIÓN']));
+document.getElementById('esc-upp-texto-crudo').textContent = texto.trim() || '(no se detectó texto legible)';
+document.getElementById('esc-upp-resultado').classList.remove('hidden');
+mostrarToast('Listo — revisa los datos, la lectura automática puede tener errores');
+} catch(e){
+mostrarToast('No se pudo leer la foto: ' + e.message);
+} finally {
+boton.disabled = false; boton.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Extraer datos de la constancia';
+}
+}
+// ---- Paso 3: Documento SINIIGA ----
+// Convierte el prefijo "00" de un identificador SINIIGA por "MX", como lo exige
+// el estándar de aretes oficiales (ej. 001023001675 -> MX1023001675).
+function convertirAreteMX(id){
+if (!id) return id;
+const limpio = String(id).replace(/\s+/g, '');
+return limpio.startsWith('00') ? 'MX' + limpio.slice(2) : limpio;
+}
+let filasSINIIGATemp = [];
+function parsearFilasSINIIGA(texto){
+const lineas = texto.split(/\n+/).map(l => l.trim()).filter(Boolean);
+const filas = [];
+lineas.forEach(linea => {
+const idMatch = linea.match(/\b(00\d{8,13}|MX\d{8,13}|\d{10,15})\b/);
+if (!idMatch) return;
+const fechas = linea.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/g) || [];
+const mayus = linea.toUpperCase();
+const estatusMatch = mayus.match(/VIGENTE|CANCELADO|BAJA|INACTIVO/);
+const sexoMatch = mayus.match(/\bHEMBRA\b|\bMACHO\b/);
+const movMatch = mayus.match(/REARETADO|INCREMENTO NATURAL|INCREMENTO POR COMPRA|TRASPASO|ALTA|BAJA/);
+filas.push({
+identificador: convertirAreteMX(idMatch[0]),
+estatus: estatusMatch ? estatusMatch[0] : 'VIGENTE',
+sexo: sexoMatch ? (sexoMatch[0] === 'HEMBRA' ? 'H' : 'M') : 'H',
+raza: 'SIN RAZA REGISTRADA',
+fechaNacimiento: fechas[0] || '',
+fechaAretado: fechas[1] || fechas[0] || '',
+tipoMovimiento: movMatch ? movMatch[0] : '',
+});
+});
+return filas;
+}
+async function extraerTablaSINIIGA(){
+const archivo = document.getElementById('esc-siniiga-input')?.files?.[0];
+if (!archivo){ mostrarToast('Primero toma la foto del documento'); return; }
+const boton = document.getElementById('esc-siniiga-btn-extraer');
+boton.disabled = true; boton.textContent = 'Leyendo...';
+try {
+const texto = await extraerTextoDeImagen(await archivoADataUrl(archivo));
+filasSINIIGATemp = parsearFilasSINIIGA(texto);
+document.getElementById('esc-siniiga-texto-crudo').textContent = texto.trim() || '(no se detectó texto legible)';
+document.getElementById('esc-siniiga-resultado').classList.remove('hidden');
+renderFilasSINIIGA();
+if (filasSINIIGATemp.length === 0) mostrarToast('No se reconoció ninguna fila automáticamente — agrégalas a mano con el botón "Fila"');
+else mostrarToast(`${filasSINIIGATemp.length} fila(s) detectada(s) — revisa cada una, la lectura automática puede fallar`);
+} catch(e){
+mostrarToast('No se pudo leer la foto: ' + e.message);
+} finally {
+boton.disabled = false; boton.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Extraer tabla de animales';
+}
+}
+function agregarFilaSINIIGAManual(){
+filasSINIIGATemp.push({ identificador:'', estatus:'VIGENTE', sexo:'H', raza:'SIN RAZA REGISTRADA', fechaNacimiento:'', fechaAretado:'', tipoMovimiento:'' });
+document.getElementById('esc-siniiga-resultado').classList.remove('hidden');
+renderFilasSINIIGA();
+}
+function actualizarFilaSINIIGA(indice, campo, val){
+if (!filasSINIIGATemp[indice]) return;
+filasSINIIGATemp[indice][campo] = campo === 'identificador' ? convertirAreteMX(val.trim()) : val;
+document.getElementById('esc-siniiga-conteo').textContent = filasSINIIGATemp.length;
+}
+function eliminarFilaSINIIGA(indice){
+filasSINIIGATemp.splice(indice, 1);
+renderFilasSINIIGA();
+}
+function renderFilasSINIIGA(){
+document.getElementById('esc-siniiga-conteo').textContent = filasSINIIGATemp.length;
+const cont = document.getElementById('esc-siniiga-filas');
+cont.innerHTML = filasSINIIGATemp.map((f, i) => `
+<div class="bg-white rounded-xl p-2" style="border:2px solid ${f.estatus === 'VIGENTE' ? 'var(--green)' : 'var(--line)'};">
+<div class="flex items-center justify-between gap-2">
+<input class="campo-mayusculas text-xs font-bold" oninput="forzarMayusculas(this); actualizarFilaSINIIGA(${i},'identificador',this.value)" placeholder="Identificador" style="border:none; padding:.2rem;" type="text" value="${f.identificador}"/>
+<button onclick="eliminarFilaSINIIGA(${i})" style="color:var(--red);"><i class="fa-solid fa-trash"></i></button>
+</div>
+<div class="grid grid-cols-2 gap-1 mt-1">
+<select onchange="actualizarFilaSINIIGA(${i},'estatus',this.value); renderFilasSINIIGA();" style="font-size:.72rem; padding:.3rem;">
+<option ${f.estatus==='VIGENTE'?'selected':''} value="VIGENTE">VIGENTE</option>
+<option ${f.estatus==='CANCELADO'?'selected':''} value="CANCELADO">CANCELADO</option>
+<option ${f.estatus==='BAJA'?'selected':''} value="BAJA">BAJA</option>
+<option ${f.estatus==='INACTIVO'?'selected':''} value="INACTIVO">INACTIVO</option>
+</select>
+<select onchange="actualizarFilaSINIIGA(${i},'sexo',this.value)" style="font-size:.72rem; padding:.3rem;">
+<option ${f.sexo==='H'?'selected':''} value="H">Hembra</option>
+<option ${f.sexo==='M'?'selected':''} value="M">Macho</option>
+</select>
+<input oninput="actualizarFilaSINIIGA(${i},'fechaNacimiento',this.value)" style="font-size:.72rem; padding:.3rem;" type="date" value="${fechaAISOSiPosible(f.fechaNacimiento)}"/>
+<input oninput="actualizarFilaSINIIGA(${i},'fechaAretado',this.value)" style="font-size:.72rem; padding:.3rem;" type="date" value="${fechaAISOSiPosible(f.fechaAretado)}"/>
+<input class="campo-mayusculas col-span-2" oninput="forzarMayusculas(this); actualizarFilaSINIIGA(${i},'raza',this.value)" placeholder="Raza" style="font-size:.72rem; padding:.3rem;" type="text" value="${f.raza}"/>
+</div>
+</div>`).join('');
+}
+// El OCR entrega fechas en formato dd/mm/aaaa (como vienen impresas); los <input
+// type="date"> del navegador necesitan aaaa-mm-dd, así que se convierten si es
+// posible — si no cuadra el formato, se deja vacío para que se escriba a mano.
+function fechaAISOSiPosible(texto){
+if (!texto) return '';
+const m = texto.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+if (!m) return '';
+let [, d, mo, y] = m;
+if (y.length === 2) y = '20' + y;
+return `${y.padStart(4,'0')}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+}
+// ---- Paso 4: Confirmar e importar ----
+function actualizarResumenImportarEscaneo(){
+const soloVigentes = document.getElementById('esc-solo-vigentes')?.checked;
+const aImportar = soloVigentes ? filasSINIIGATemp.filter(f => f.estatus === 'VIGENTE') : filasSINIIGATemp;
+document.getElementById('esc-resumen-importar').textContent = `${aImportar.length} de ${filasSINIIGATemp.length} animal(es) se importarán al hato.`;
+}
+async function confirmarImportacionEscaneo(){
+// 1) Actualiza los datos del propietario/UPP con lo revisado en los pasos 1 y 2.
+const nombreCred = valor('esc-cred-nombre').trim();
+if (nombreCred) establecerValor('ed-nombres', nombreCred);
+if (valor('esc-cred-curp')) establecerValor('ed-curp', valor('esc-cred-curp'));
+if (valor('esc-cred-folio')) establecerValor('ed-folio', valor('esc-cred-folio'));
+if (valor('esc-cred-upp')) establecerValor('ed-upp', valor('esc-cred-upp'));
+if (valor('esc-cred-actividad')) establecerValor('ed-actividad', valor('esc-cred-actividad'));
+if (valor('esc-cred-domicilio')) establecerValor('ed-domicilio', valor('esc-cred-domicilio'));
+if (valor('esc-upp-predio')) establecerValor('ed-predio', valor('esc-upp-predio'));
+if (fierroImagenEscaneoTemp){
+estado.productor.fierroImagen = fierroImagenEscaneoTemp;
+if (estado.cuentaActivaId){
+const cuenta = estado.cuentasProductores.find(c => c.id === estado.cuentaActivaId);
+if (cuenta) cuenta.fierroImagen = fierroImagenEscaneoTemp;
+}
+}
+// 2) Importa al hato los animales revisados (filtrando por VIGENTE si se pidió),
+// comprimiendo y subiendo a Storage la foto si el animal ya trae una asignada.
+const soloVigentes = document.getElementById('esc-solo-vigentes')?.checked;
+const aImportar = (soloVigentes ? filasSINIIGATemp.filter(f => f.estatus === 'VIGENTE') : filasSINIIGATemp).filter(f => f.identificador);
+let importados = 0, omitidosPorDuplicado = 0;
+aImportar.forEach(f => {
+if (estado.animales.some(a => a.arete === f.identificador)){ omitidosPorDuplicado++; return; }
+estado.animales.push({
+arete: f.identificador, chip:'', nombre:'',
+raza: f.raza || 'SIN RAZA REGISTRADA', sexo: f.sexo === 'M' ? 'Macho' : 'Hembra',
+fecha: f.fechaNacimiento || hoyISO(), estatus:'Activo',
+madre:'', padre:'', potrero:'', motivoBaja:'', foto:null,
+proposito:'', engordaDiasObjetivo:null, engordaPesoMeta:null, engordaInicio:null,
+engordaFinalizado:false, engordaDiasFinal:null,
+fechaAretado: f.fechaAretado || '', tipoMovimientoSiniiga: f.tipoMovimiento || '',
+color:'', senasParticulares:'', numeroManejo:'',
+});
+importados++;
+});
+guardarEdicionProductor();
+mostrarToast(`Importado: ${importados} animal(es) al hato${omitidosPorDuplicado ? ` (${omitidosPorDuplicado} ya existían y se omitieron)` : ''}`);
+filasSINIIGATemp = []; fierroImagenEscaneoTemp = null;
+renderHato(); renderResumenProductor();
+}
 function abrirEdicionProductor(){
 const p = estado.productor;
 llenarSelectorEstados('ed');
@@ -15324,6 +16025,7 @@ establecerValor('ed-nombres', p.nombres || (!p.apellidoPaterno && !p.apellidoMat
 establecerValor('ed-domicilio', p.domicilio || 'Conocido');
 establecerValor('ed-localidad', p.localidad || '');
 establecerValor('ed-correo', p.correoElectronico || '');
+establecerValor('ed-cp', p.codigoPostal || '');
 establecerValor('ed-predio', p.predio || '');
 establecerValor('ed-upp', p.upp || '');
 establecerValor('ed-actualizacionupp', p.actualizacionUPP || '');
@@ -15336,6 +16038,8 @@ establecerValor('ed-curp', p.curp || '');
 establecerValor('ed-actividad', p.actividad || '');
 const spanGps = document.getElementById('ed-gps-texto');
 if (spanGps) spanGps.textContent = (p.latitudUPP && p.longitudUPP) ? `Ubicación registrada (${p.latitudUPP.toFixed(5)}, ${p.longitudUPP.toFixed(5)})` : 'Registrar ubicación GPS';
+renderVistaFierroGuardado('ed');
+document.getElementById('ed-fierro-recorte-cont')?.classList.add('hidden');
 renderCamposPersonalizadosFormulario('ed-campos-personalizados', p.camposPersonalizados);
 document.querySelectorAll('#app-productor .screen').forEach(s => s.classList.remove('active'));
 document.getElementById('screen-editar-productor').classList.add('active');
@@ -15351,6 +16055,7 @@ estado.productor = {
 apellidoPaterno, apellidoMaterno, nombres, nombre: nombreCompleto || estado.productor.nombre,
 domicilio: valor('ed-domicilio').trim() || 'Conocido',
 localidad: valor('ed-localidad').trim(), correoElectronico: valor('ed-correo').trim(),
+codigoPostal: valor('ed-cp').trim(),
 predio: valor('ed-predio'), upp: valor('ed-upp'), actualizacionUPP: valor('ed-actualizacionupp'),
 folio: valor('ed-folio'), vencimientoFierro: valor('ed-vencimientofierro'),
 estado: valor('ed-estado'), municipio: leerMunicipioSeleccionado('ed'),
@@ -15365,6 +16070,10 @@ cuenta.estadoMx = estado.productor.estado; cuenta.municipio = estado.productor.m
 cuenta.actividad = estado.productor.actividad;
 cuenta.folio = estado.productor.folio; cuenta.vencimientoFierro = estado.productor.vencimientoFierro;
 cuenta.curp = estado.productor.curp;
+cuenta.apellidoPaterno = estado.productor.apellidoPaterno; cuenta.apellidoMaterno = estado.productor.apellidoMaterno; cuenta.nombres = estado.productor.nombres;
+cuenta.domicilio = estado.productor.domicilio; cuenta.localidad = estado.productor.localidad;
+cuenta.correoElectronico = estado.productor.correoElectronico; cuenta.codigoPostal = estado.productor.codigoPostal;
+cuenta.latitud = estado.productor.latitudUPP; cuenta.longitud = estado.productor.longitudUPP;
 }
 }
 guardarEstadoLocal();
