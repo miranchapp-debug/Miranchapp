@@ -1147,12 +1147,12 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <h3 class="font-display font-bold">Credencial del productor</h3>
 <div class="grid grid-cols-2 gap-2">
 <div>
-<input accept="image/*" capture="environment" class="hidden" id="esc-cred-frente-input" onchange="previsualizarEscaneo(this,'esc-cred-frente-preview')" type="file"/>
+<input accept="image/*" capture="environment" class="hidden" id="esc-cred-frente-input" onchange="previsualizarEscaneo(this,'esc-cred-frente-preview',extraerDatosCredencial)" type="file"/>
 <button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-cred-frente-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Frente</button>
 <img class="hidden w-full mt-2 rounded-xl" id="esc-cred-frente-preview" style="max-height:140px; object-fit:contain; border:1px solid var(--line);"/>
 </div>
 <div>
-<input accept="image/*" capture="environment" class="hidden" id="esc-cred-reverso-input" onchange="previsualizarEscaneo(this,'esc-cred-reverso-preview')" type="file"/>
+<input accept="image/*" capture="environment" class="hidden" id="esc-cred-reverso-input" onchange="previsualizarEscaneo(this,'esc-cred-reverso-preview',extraerDatosCredencial)" type="file"/>
 <button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-cred-reverso-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Reverso</button>
 <img class="hidden w-full mt-2 rounded-xl" id="esc-cred-reverso-preview" style="max-height:140px; object-fit:contain; border:1px solid var(--line);"/>
 </div>
@@ -1192,7 +1192,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="hidden" id="esc-paso-upp">
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold">Constancia de actualización UPP / Padrón Ganadero</h3>
-<input accept="image/*" capture="environment" class="hidden" id="esc-upp-input" onchange="previsualizarEscaneo(this,'esc-upp-preview')" type="file"/>
+<input accept="image/*" capture="environment" class="hidden" id="esc-upp-input" onchange="previsualizarEscaneo(this,'esc-upp-preview',extraerDatosConstanciaUPP)" type="file"/>
 <button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-upp-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Tomar foto de la constancia</button>
 <img class="hidden w-full mt-2 rounded-xl" id="esc-upp-preview" style="max-height:180px; object-fit:contain; border:1px solid var(--line);"/>
 <button class="w-full text-xs font-bold py-3 rounded-full" id="esc-upp-btn-extraer" onclick="extraerDatosConstanciaUPP()" style="background:var(--purple); color:#fff;" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Extraer datos de la constancia</button>
@@ -1214,7 +1214,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="hidden" id="esc-paso-siniiga">
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold">Documento de inventario SINIIGA</h3>
-<input accept="image/*" capture="environment" class="hidden" id="esc-siniiga-input" onchange="previsualizarEscaneo(this,'esc-siniiga-preview')" type="file"/>
+<input accept="image/*" capture="environment" class="hidden" id="esc-siniiga-input" onchange="previsualizarEscaneo(this,'esc-siniiga-preview',extraerTablaSINIIGA)" type="file"/>
 <button class="w-full text-xs font-bold py-3 rounded-full" onclick="document.getElementById('esc-siniiga-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button"><i class="fa-solid fa-camera"></i> Tomar foto de la tabla</button>
 <img class="hidden w-full mt-2 rounded-xl" id="esc-siniiga-preview" style="max-height:180px; object-fit:contain; border:1px solid var(--line);"/>
 <button class="w-full text-xs font-bold py-3 rounded-full" id="esc-siniiga-btn-extraer" onclick="extraerTablaSINIIGA()" style="background:var(--purple); color:#fff;" type="button"><i class="fa-solid fa-wand-magic-sparkles"></i> Extraer tabla de animales</button>
@@ -8196,6 +8196,12 @@ encontrado = intentarLoginConEstadoActual(usuario, clave);
 }
 if (encontrado){
 guardarCuentaEnDispositivo(usuario, clave, obtenerNombreParaUsuario(usuario));
+// Se guarda la sesión en el dispositivo DE INMEDIATO (sin el retraso normal
+// de guardado, que agrupa cambios para no saturar la nube) — así, si la
+// página se recarga justo después de entrar (por la cámara, poca memoria,
+// etc.), el reinicio ya encuentra la sesión guardada y entra directo, en vez
+// de mandar de vuelta al login como si nunca se hubiera iniciado sesión.
+try { localStorage.setItem(CLAVE_ALMACENAMIENTO_LOCAL, JSON.stringify(estado)); } catch(e){}
 } else {
 mostrarToast((primeraCargaGlobalHecha || hayIndiceLocal) ? tr('login_seleccion_rol__usuario_o_contrasena_incorrectos') : tr('login_seleccion_rol__no_se_pudo_verificar_conexion'));
 }
@@ -16405,17 +16411,46 @@ tesseractCargando = new Promise((resolve, reject) => {
 const script = document.createElement('script');
 script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
 script.onload = () => resolve();
-script.onerror = () => reject(new Error('No se pudo cargar el lector de texto — revisa tu conexión a internet'));
+script.onerror = () => { tesseractCargando = null; reject(new Error('No se pudo descargar el lector de texto — revisa tu conexión a internet')); };
 document.head.appendChild(script);
 });
 return tesseractCargando;
 }
-async function extraerTextoDeImagen(dataUrl){
+// Deja el lector de texto (y su paquete de idioma español, ~10-15 MB la primera
+// vez) descargándose solo, en cuanto se abre la pantalla de escaneo — así, para
+// cuando la persona ya tomó la foto y está lista para extraer datos, es más
+// probable que ya esté listo o casi listo, en vez de tener que esperar toda esa
+// descarga justo en ese momento. En conexiones malas puede tardar o fallar de
+// todas formas — eso ya no se puede evitar del todo, pero al menos no se suma
+// al tiempo de espera del botón.
+function precargarTesseractEnSegundoPlano(){
+cargarTesseractSiNecesario().catch(() => {});
+}
+async function extraerTextoDeImagen(dataUrl, onEstado){
+try {
+if (onEstado) onEstado('descargando');
 await cargarTesseractSiNecesario();
+} catch(e){
+throw new Error('No se pudo descargar el lector de texto — revisa tu conexión a internet e inténtalo de nuevo');
+}
+if (onEstado) onEstado('leyendo');
+// Se intenta primero con el paquete de idioma "fast" (rápido, 1-2 MB en vez de
+// 10-15 MB) — clave para conexiones de campo/rancho con señal débil. Si por
+// algún motivo no está disponible (CDN caído, ruta cambiada), se reintenta
+// automáticamente con el paquete normal de Tesseract, para que la lectura
+// nunca se quede sin funcionar solo por intentar ahorrar datos.
+try {
+const resultado = await window.Tesseract.recognize(dataUrl, 'spa', {
+langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/spa@1.0.0/4.0.0_fast/',
+});
+return (resultado && resultado.data && resultado.data.text) || '';
+} catch(e){
+console.warn('Paquete de idioma rápido no disponible, se usa el normal:', e);
 const resultado = await window.Tesseract.recognize(dataUrl, 'spa');
 return (resultado && resultado.data && resultado.data.text) || '';
 }
-async function previsualizarEscaneo(inputEl, idPreview){
+}
+async function previsualizarEscaneo(inputEl, idPreview, funcionExtraerAuto){
 const archivo = inputEl.files && inputEl.files[0];
 if (!archivo) return;
 const img = document.getElementById(idPreview);
@@ -16429,10 +16464,16 @@ const comprimida = await comprimirArchivoImagen(archivo, 900, 0.75);
 img.src = comprimida; img.classList.remove('hidden');
 guardarBorradorEscaneoDoc();
 } catch(e){
+await new Promise(resolve => {
 const lector = new FileReader();
-lector.onload = () => { img.src = lector.result; img.classList.remove('hidden'); guardarBorradorEscaneoDoc(); };
+lector.onload = () => { img.src = lector.result; img.classList.remove('hidden'); guardarBorradorEscaneoDoc(); resolve(); };
 lector.readAsDataURL(archivo);
+});
 }
+// Ya no hace falta apretar "Extraer datos" — en cuanto se toma la foto, se
+// manda sola a leer. El botón se deja igual por si hace falta repetir la
+// lectura a mano (ej. si la primera vez falló por conexión).
+if (typeof funcionExtraerAuto === 'function') funcionExtraerAuto();
 }
 // ================= BORRADOR LOCAL DEL ESCANEO DE DOCUMENTOS =================
 // Guarda cada foto (ya comprimida por el propio preview en base64) y cada dato
@@ -16518,6 +16559,7 @@ function abrirEscaneoDocumentos(){
 cambiarPasoEscaneo('credencial');
 irA('escaneo-documentos');
 restaurarBorradorEscaneoDoc();
+precargarTesseractEnSegundoPlano();
 }
 // ---- Paso 1: Credencial del productor ----
 function extraerCURP(texto){
@@ -16544,10 +16586,11 @@ const reversoArchivo = document.getElementById('esc-cred-reverso-input')?.files?
 if (!frenteArchivo && !reversoArchivo){ mostrarToast('Toma al menos una foto (frente o reverso)'); return; }
 const boton = document.getElementById('esc-cred-btn-extraer');
 boton.disabled = true; boton.textContent = 'Leyendo...';
+const cambiarEstadoBoton = estado => { boton.textContent = estado === 'descargando' ? 'Descargando lector de texto...' : 'Leyendo...'; };
 try {
 let textoFrente = '', textoReverso = '';
-if (frenteArchivo) textoFrente = await extraerTextoDeImagen(await comprimirParaOCR(frenteArchivo));
-if (reversoArchivo) textoReverso = await extraerTextoDeImagen(await comprimirParaOCR(reversoArchivo));
+if (frenteArchivo) textoFrente = await extraerTextoDeImagen(await comprimirParaOCR(frenteArchivo), cambiarEstadoBoton);
+if (reversoArchivo) textoReverso = await extraerTextoDeImagen(await comprimirParaOCR(reversoArchivo), cambiarEstadoBoton);
 const textoCompleto = textoFrente + '\n' + textoReverso;
 establecerValor('esc-cred-curp', extraerCURP(textoCompleto));
 establecerValor('esc-cred-nombre', extraerTrasEtiqueta(textoFrente, ['NOMBRE']));
@@ -16600,7 +16643,7 @@ if (!archivo){ mostrarToast('Primero toma la foto de la constancia'); return; }
 const boton = document.getElementById('esc-upp-btn-extraer');
 boton.disabled = true; boton.textContent = 'Leyendo...';
 try {
-const texto = await extraerTextoDeImagen(await comprimirParaOCR(archivo));
+const texto = await extraerTextoDeImagen(await comprimirParaOCR(archivo), estado => { boton.textContent = estado === 'descargando' ? 'Descargando lector de texto...' : 'Leyendo...'; });
 establecerValor('esc-upp-predio', extraerTrasEtiqueta(texto, ['NOMBRE DEL PREDIO', 'PREDIO', 'UNIDAD DE PRODUCCIÓN']));
 const superficieMatch = texto.match(/(\d+[.,]?\d*)\s*(HA|HECTÁREAS|HECTAREAS)/i);
 establecerValor('esc-upp-superficie', superficieMatch ? superficieMatch[1].replace(',', '.') : '');
@@ -16655,7 +16698,7 @@ if (!archivo){ mostrarToast('Primero toma la foto del documento'); return; }
 const boton = document.getElementById('esc-siniiga-btn-extraer');
 boton.disabled = true; boton.textContent = 'Leyendo...';
 try {
-const texto = await extraerTextoDeImagen(await comprimirParaOCR(archivo, 1800));
+const texto = await extraerTextoDeImagen(await comprimirParaOCR(archivo, 1800), estado => { boton.textContent = estado === 'descargando' ? 'Descargando lector de texto...' : 'Leyendo...'; });
 filasSINIIGATemp = parsearFilasSINIIGA(texto);
 document.getElementById('esc-siniiga-texto-crudo').textContent = texto.trim() || '(no se detectó texto legible)';
 document.getElementById('esc-siniiga-resultado').classList.remove('hidden');
