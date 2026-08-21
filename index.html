@@ -2959,15 +2959,15 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <!-- ============ WIDGET: MOO-NITOR (asistente flotante) ============ -->
 <!-- ============================================================ -->
 <div class="hidden" id="moonitor-widget" style="position:fixed; left:12px; bottom:12px; z-index:90; align-items:flex-end; gap:0; max-width:92vw;">
-<img loading="lazy" decoding="async" alt="Moo-nitor" id="moonitor-imagen" src="" style="height:33vh; max-height:280px; width:auto; object-fit:contain; filter:drop-shadow(0 6px 10px rgba(0,0,0,0.25)); flex-shrink:0;"/>
-<div style="position:relative; margin-left:-6px; margin-bottom:14vh;">
-<div class="rounded-3xl p-4 shadow-xl" style="background:#fff; border:2px solid var(--line); max-width:min(72vw,320px);">
-<p class="text-sm font-bold" id="moonitor-mensaje" style="color:var(--ink);"></p>
-<div class="flex gap-2 mt-3" id="moonitor-acciones"></div>
+<img loading="lazy" decoding="async" alt="Moo-nitor" id="moonitor-imagen" src="" style="height:19vh; max-height:150px; width:auto; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.18)); flex-shrink:0;"/>
+<div style="position:relative; margin-left:-6px; margin-bottom:9vh;">
+<div class="rounded-3xl p-3 shadow-lg" id="moonitor-burbuja" style="background:rgba(255,255,255,0.88); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); border:1px solid rgba(0,0,0,0.08); max-width:min(68vw,280px);">
+<p class="text-xs font-bold" id="moonitor-mensaje" style="color:var(--ink);"></p>
+<div class="flex gap-2 mt-2" id="moonitor-acciones"></div>
 </div>
-<div style="position:absolute; left:-9px; bottom:18px; width:0; height:0; border-top:9px solid transparent; border-bottom:9px solid transparent; border-right:12px solid #fff;"></div>
+<div style="position:absolute; left:-8px; bottom:16px; width:0; height:0; border-top:8px solid transparent; border-bottom:8px solid transparent; border-right:10px solid rgba(255,255,255,0.88);"></div>
 </div>
-<button onclick="ocultarMoonitor()" class="flex-shrink-0" style="position:absolute; top:-4px; right:-4px; width:26px; height:26px; border-radius:999px; background:var(--slate); color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.25);"><i class="fa-solid fa-xmark text-xs"></i></button>
+<button onclick="ocultarMoonitor()" class="flex-shrink-0" style="position:absolute; top:-4px; right:-4px; width:22px; height:22px; border-radius:999px; background:var(--slate); color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.25);"><i class="fa-solid fa-xmark" style="font-size:.6rem;"></i></button>
 </div>
 
 <script>
@@ -7793,15 +7793,33 @@ cargarEstadoLocal();
 // en este dispositivo y en la nube — se sentía como si "la sacara de la cuenta".
 // Esto reanuda automáticamente la sesión activa si el dispositivo ya tenía una
 // abierta, para que una recarga a medio trabajo no boté a la persona al login.
+// Detecta si quedó un escaneo de documentos ("Alta rápida") a medias — se usa
+// tanto aquí (para regresar directo a esa pantalla al reanudar sesión) como
+// dentro del propio flujo de escaneo.
+function hayBorradorEscaneoDocActivo(){
+let datos = null;
+try { datos = JSON.parse(localStorage.getItem('miRanchAppBorradorEscaneoDocumentos') || 'null'); } catch(e){ datos = null; }
+if (!datos) return false;
+return !!((datos.imagenes && Object.keys(datos.imagenes).length > 0) || (datos.filasSINIIGATemp && datos.filasSINIIGATemp.length > 0) || (datos.campos && Object.values(datos.campos).some(v => v)));
+}
 function reanudarSesionSiAplica(){
 if (estado.modoTrabajador && estado.trabajadorActualId){
 activarEscuchaCuentaActiva();
 mostrarApp('productor');
+// Si el celular recargó la página a medio escanear un documento (lo más
+// común: el sistema operativo cierra la pestaña en segundo plano mientras
+// la cámara nativa toma la foto, sobre todo con poca memoria libre), antes
+// esto regresaba a la persona a su pantalla de inicio normal — sentía
+// exactamente como si "la sacara" de donde estaba. Ahora, si detecta que
+// había un escaneo en curso, regresa derechito a esa pantalla con todo lo
+// que ya se había avanzado restaurado, en vez de dejarla en el inicio.
+if (typeof hayBorradorEscaneoDocActivo === 'function' && hayBorradorEscaneoDocActivo() && typeof abrirEscaneoDocumentos === 'function') abrirEscaneoDocumentos();
 return true;
 }
 if (estado.cuentaActivaId){
 activarEscuchaCuentaActiva();
 mostrarApp('productor');
+if (typeof hayBorradorEscaneoDocActivo === 'function' && hayBorradorEscaneoDocActivo() && typeof abrirEscaneoDocumentos === 'function') abrirEscaneoDocumentos();
 return true;
 }
 if (estado.modoVeterinario || estado.modoCapturista || estado.modoAlmita || estado.modoMedicoCampoTB || estado.modoCapturistaTB || estado.modoComite){
@@ -9177,6 +9195,7 @@ if (estado.tipoGanado === 'carne') return m.imagenCarne || MOONITOR_DEFAULT_CARN
 if (estado.tipoGanado === 'leche') return m.imagenLeche || MOONITOR_DEFAULT_LECHE_B64;
 return m.imagenDefault || MOONITOR_DEFAULT_LECHE_B64;
 }
+let moonitorTimeoutAutoOcultar = null;
 function mostrarMoonitor(mensaje, opciones){
 opciones = opciones || {};
 const widget0 = document.getElementById('moonitor-widget');
@@ -9193,39 +9212,94 @@ acciones.innerHTML = (opciones.botones || []).map((b, i) => `
 <button onclick="(${b.accion ? b.accion.toString().replace(/"/g,'&quot;') : 'null'})(); ${opciones.cerrarAlAccionar !== false ? 'ocultarMoonitor();' : ''}" class="text-xs font-bold px-3 py-2 rounded-full" style="background:${b.color || 'var(--pine)'}; color:#fff;">${b.texto}</button>`).join('');
 widget.classList.remove('hidden');
 widget.style.display = 'flex';
-if (!yaVisible) reproducirSonidoMoonitor();
+if (!yaVisible) reproducirSonidoMoonitor(opciones.sonido);
+// Se oculta solo después de unos segundos, salvo que traiga 2+ botones de
+// decisión (ej. "Sí"/"No") — ahí se espera a que la persona responda, para no
+// desaparecer justo cuando le está pidiendo confirmar algo importante. Con 1
+// botón o ninguno, sí se oculta sola (es un aviso informativo, no una decisión).
+clearTimeout(moonitorTimeoutAutoOcultar);
+const requiereDecision = (opciones.botones || []).length >= 2;
+if (opciones.autoOcultar !== false && !requiereDecision){
+moonitorTimeoutAutoOcultar = setTimeout(() => {
+if (moonitorActual && moonitorActual.mensaje === mensaje) ocultarMoonitor();
+}, opciones.autoOcultarMs || 6000);
 }
-// ---------- Sonido de "muu" sintetizado (sin archivos de audio externos) ----------
+}
+// ---------- Sonido sintetizado (sin archivos de audio externos) ----------
+// Un solo tono con "sawtooth" sonaba más a sintetizador que a vaca — ahora se
+// combinan dos osciladores (uno grave con vibrato, otro una octava abajo más
+// tenue) para dar un timbre más grueso/animal, y hay sonidos distintos según
+// el tipo de aviso: 'moo' (default, avisos normales), 'alerta' (urgente/reactor,
+// dos "mu" cortos) y 'exito' (confirmación, un tono suave ascendente, sin moo).
 let moonitorAudioCtx = null;
-function reproducirSonidoMoonitor(){
+function reproducirSonidoMoonitor(tipo){
 if (estado.moonitor && estado.moonitor.sonidoActivado === false) return;
 try {
 if (!moonitorAudioCtx) moonitorAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const ctx = moonitorAudioCtx;
 if (ctx.state === 'suspended') ctx.resume();
-const ahora = ctx.currentTime;
-const osc = ctx.createOscillator();
-osc.type = 'sawtooth';
-const filtro = ctx.createBiquadFilter();
-filtro.type = 'lowpass';
-filtro.frequency.setValueAtTime(600, ahora);
-filtro.frequency.linearRampToValueAtTime(350, ahora + 0.7);
-const gain = ctx.createGain();
-gain.gain.setValueAtTime(0, ahora);
-osc.frequency.setValueAtTime(185, ahora);
-osc.frequency.exponentialRampToValueAtTime(120, ahora + 0.3);
-osc.frequency.exponentialRampToValueAtTime(95, ahora + 0.75);
-gain.gain.linearRampToValueAtTime(0.22, ahora + 0.09);
-gain.gain.linearRampToValueAtTime(0.18, ahora + 0.45);
-gain.gain.linearRampToValueAtTime(0, ahora + 0.8);
-osc.connect(filtro);
-filtro.connect(gain);
-gain.connect(ctx.destination);
-osc.start(ahora);
-osc.stop(ahora + 0.85);
+if (tipo === 'exito'){ sonidoMoonitorExito(ctx); return; }
+if (tipo === 'alerta'){ sonidoMoonitorMoo(ctx, ctx.currentTime); sonidoMoonitorMoo(ctx, ctx.currentTime + 0.5); return; }
+sonidoMoonitorMoo(ctx, ctx.currentTime);
 } catch(e){}
 }
+function sonidoMoonitorMoo(ctx, inicio){
+const gainMaestro = ctx.createGain();
+gainMaestro.gain.setValueAtTime(0.001, inicio);
+gainMaestro.connect(ctx.destination);
+// Oscilador principal grave con un ligero vibrato (como el temblor natural
+// de un mugido) y una caída de tono al final, típica del "muuu".
+const osc = ctx.createOscillator();
+osc.type = 'sawtooth';
+const vibrato = ctx.createOscillator();
+vibrato.frequency.setValueAtTime(6.5, inicio);
+const gananciaVibrato = ctx.createGain();
+gananciaVibrato.gain.setValueAtTime(4, inicio);
+vibrato.connect(gananciaVibrato);
+gananciaVibrato.connect(osc.frequency);
+osc.frequency.setValueAtTime(140, inicio);
+osc.frequency.linearRampToValueAtTime(155, inicio + 0.15);
+osc.frequency.exponentialRampToValueAtTime(90, inicio + 0.85);
+// Segundo oscilador una octava abajo, más suave, le da cuerpo/grosor.
+const oscGrave = ctx.createOscillator();
+oscGrave.type = 'triangle';
+oscGrave.frequency.setValueAtTime(70, inicio);
+oscGrave.frequency.exponentialRampToValueAtTime(45, inicio + 0.85);
+const filtro = ctx.createBiquadFilter();
+filtro.type = 'lowpass';
+filtro.frequency.setValueAtTime(500, inicio);
+filtro.frequency.linearRampToValueAtTime(280, inicio + 0.8);
+const gainOsc = ctx.createGain();
+gainOsc.gain.setValueAtTime(0, inicio);
+gainOsc.gain.linearRampToValueAtTime(0.22, inicio + 0.12);
+gainOsc.gain.linearRampToValueAtTime(0.16, inicio + 0.5);
+gainOsc.gain.linearRampToValueAtTime(0, inicio + 0.9);
+const gainGrave = ctx.createGain();
+gainGrave.gain.setValueAtTime(0, inicio);
+gainGrave.gain.linearRampToValueAtTime(0.12, inicio + 0.12);
+gainGrave.gain.linearRampToValueAtTime(0, inicio + 0.9);
+osc.connect(filtro); filtro.connect(gainOsc); gainOsc.connect(gainMaestro);
+oscGrave.connect(gainGrave); gainGrave.connect(gainMaestro);
+gainMaestro.gain.setValueAtTime(1, inicio);
+osc.start(inicio); osc.stop(inicio + 0.95);
+oscGrave.start(inicio); oscGrave.stop(inicio + 0.95);
+vibrato.start(inicio); vibrato.stop(inicio + 0.95);
+}
+function sonidoMoonitorExito(ctx){
+const inicio = ctx.currentTime;
+const osc = ctx.createOscillator();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(520, inicio);
+osc.frequency.exponentialRampToValueAtTime(780, inicio + 0.18);
+const gain = ctx.createGain();
+gain.gain.setValueAtTime(0, inicio);
+gain.gain.linearRampToValueAtTime(0.18, inicio + 0.05);
+gain.gain.linearRampToValueAtTime(0, inicio + 0.3);
+osc.connect(gain); gain.connect(ctx.destination);
+osc.start(inicio); osc.stop(inicio + 0.32);
+}
 function ocultarMoonitor(){
+clearTimeout(moonitorTimeoutAutoOcultar);
 const widget = document.getElementById('moonitor-widget');
 widget.classList.add('hidden');
 widget.style.display = 'none';
@@ -16373,7 +16447,9 @@ const MAPA_PREVIEWS_ESCANEO = {
 };
 const CAMPOS_BORRADOR_ESCANEO = ['esc-cred-nombre','esc-cred-curp','esc-cred-folio','esc-cred-upp','esc-cred-actividad','esc-cred-domicilio','esc-cred-municipio','esc-upp-predio','esc-upp-superficie','esc-upp-finalidad','esc-upp-municipioestado','esc-upp-referencias'];
 function guardarBorradorEscaneoDoc(){
+const pasoActivo = ['credencial','upp','siniiga','confirmar'].find(p => !document.getElementById('esc-paso-' + p)?.classList.contains('hidden')) || 'credencial';
 const datos = {
+paso: pasoActivo,
 imagenes: {}, campos: {},
 textosCrudos: {
 credencial: document.getElementById('esc-cred-texto-crudo')?.textContent || '',
@@ -16426,6 +16502,7 @@ if (filasSINIIGATemp.length > 0) renderFilasSINIIGA();
 if (fierroImagenEscaneoTemp) renderVistaFierroGuardado('esc');
 const huboAlgo = Object.keys(datos.imagenes || {}).length > 0 || Object.values(datos.campos || {}).some(v => v) || filasSINIIGATemp.length > 0;
 if (huboAlgo) mostrarToast('Se restauró lo que ya habías escaneado — sigue donde ibas');
+if (datos.paso) cambiarPasoEscaneo(datos.paso);
 }
 document.addEventListener('input', e => { if (e.target && CAMPOS_BORRADOR_ESCANEO.includes(e.target.id)) guardarBorradorEscaneoDoc(); });
 function cambiarPasoEscaneo(paso){
