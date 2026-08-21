@@ -96,9 +96,27 @@ const LOGO_QUESERIA_B64 = 'data:image/webp;base64,UklGRiJPAQBXRUJQVlA4IBZPAQDweA
   };
 
   const app = initializeApp(firebaseConfig);
+  // Todo el arranque de Firebase (Firestore + Auth + Storage) va dentro de un
+  // try/catch general: si cualquier cosa aquí falla (config equivocada, origen no
+  // autorizado en Firebase Console, sin conexión, Storage no habilitado, etc.),
+  // la app NUNCA debe quedarse esperando indefinidamente algo que nunca va a
+  // llegar — en el peor de los casos sigue funcionando en modo local (localStorage)
+  // y el login sigue pudiendo validar contra lo que ya haya guardado en este
+  // dispositivo, en vez de dejar el botón girando para siempre.
+  try {
   const db = getFirestore(app);
   const auth = getAuth(app);
-  const storage = getStorage(app);
+  // Storage se inicializa aparte y con su propio try/catch: si el proyecto de
+  // Firebase todavía no tiene Storage habilitado/configurado en la consola, esto
+  // podía lanzar un error que interrumpía TODO lo que sigue en este script —
+  // incluido lo que deja lista la conexión a Firestore (login, cuentas, etc.) —
+  // dejando la app entera sin poder validar contraseñas aunque el problema real
+  // fuera solo de Storage. Ahora un fallo aquí solo desactiva la subida de fotos
+  // a Storage (se sigue guardando la imagen comprimida localmente como respaldo)
+  // y no bloquea nada más.
+  let storage = null;
+  try { storage = getStorage(app); }
+  catch(e){ console.error('No se pudo inicializar Firebase Storage (¿está habilitado en Firebase Console > Storage?). La app sigue funcionando normal, solo las fotos no se subirán a Storage:', e); }
   const refGlobal = doc(db, "miranchapp", "estadoGlobal");
   const refCuenta = (cuentaId) => doc(db, "miranchapp_cuentas", cuentaId);
 
@@ -187,16 +205,13 @@ const LOGO_QUESERIA_B64 = 'data:image/webp;base64,UklGRiJPAQBXRUJQVlA4IBZPAQDweA
     return () => cancelar();
   };
 
-  window.firebaseListo = true;
-  window.dispatchEvent(new Event('firebase-listo'));
-
   // Sube una imagen comprimida (dataURL "data:image/jpeg;base64,...") a Firebase
   // Storage en la ruta indicada y regresa la downloadURL pública. Así Firestore
   // solo guarda el link (documento liviano) en vez de la imagen completa en base64.
   // Si no hay conexión o Storage no está habilitado, regresa null y quien llama
   // decide si se queda con la imagen en base64 como respaldo local.
   window.firebaseSubirImagen = async function(ruta, dataUrl){
-    if (!ruta || !dataUrl) return null;
+    if (!ruta || !dataUrl || !storage) return null;
     try {
       await listoAuth;
       if (!usuarioAutenticado) return null;
@@ -204,10 +219,20 @@ const LOGO_QUESERIA_B64 = 'data:image/webp;base64,UklGRiJPAQBXRUJQVlA4IBZPAQDweA
       await uploadString(referencia, dataUrl, 'data_url');
       return await getDownloadURL(referencia);
     } catch(e){
-      console.warn('No se pudo subir la imagen a Firebase Storage (¿sin conexión o Storage no habilitado en Firebase Console?):', e);
+      console.error('No se pudo subir la imagen a Firebase Storage (¿sin conexión o Storage no habilitado en Firebase Console?):', e);
       return null;
     }
   };
+  } catch(errorArranqueFirebase){
+    // Si algo en todo el bloque de arriba falló de forma inesperada (config
+    // incorrecta, origen no autorizado, red bloqueada, etc.), se registra el
+    // error exacto en consola y se libera igual la señal "firebase-listo" para
+    // que el resto de la app (login incluido) deje de esperar y pase a modo
+    // local en vez de quedarse colgada.
+    console.error('Fallo general al inicializar Firebase — la app sigue en modo local (localStorage):', errorArranqueFirebase);
+  }
+  window.firebaseListo = true;
+  window.dispatchEvent(new Event('firebase-listo'));
 </script>
 <style>@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
 :root{
@@ -7363,7 +7388,7 @@ console.warn('No se pudo cargar el estado guardado localmente', e);
 function normalizarEstadoCargado(){
 const arreglos = ['animales','salud','reproduccion','pesajes','potreros','costos','boletines',
 'bodega','movimientosAnimal','colaSincronizacion','cuentasProductores','solicitudesTransferencia',
-'auditoriaTransferencias','usuarios','trabajadores','tareas','planSanitario','mensajes','visitasVet',
+'auditoriaTransferencias','usuarios','trabajadores','veterinarios','tareas','planSanitario','mensajes','visitasVet',
 'predios','banners','ventanasExtra','produccionLeche','tanqueLeche','alimentacionLeche','becerros',
 'inventarioAlimento','lecheros','productoresLeche','recepcionesLeche','solicitudesVinculacionLeche','solicitudesRegistro'];
 arreglos.forEach(clave => { if (!Array.isArray(estado[clave])) estado[clave] = []; });
@@ -7571,6 +7596,26 @@ sincronizandoConFirebase = false;
 }
 }
 window.addEventListener('online', sincronizarConFirebase);
+// Red de seguridad global: si algo truena en cualquier parte de la app de forma
+// no controlada, se registra el error exacto en consola (para poder diagnosticarlo)
+// y, si el botón de iniciar sesión se quedó girando en ese momento, se libera solo
+// en vez de dejarlo girando para siempre sin explicación.
+function liberarBotonLoginSiSeQuedoColgado(){
+const boton = document.getElementById('btn-iniciar-sesion');
+const spinner = document.getElementById('btn-iniciar-sesion-spinner');
+const texto = document.getElementById('btn-iniciar-sesion-texto');
+if (boton && boton.disabled) boton.disabled = false;
+if (spinner && !spinner.classList.contains('hidden')) spinner.classList.add('hidden');
+if (texto && typeof tr === 'function') texto.textContent = tr('login_seleccion_rol__iniciar_sesion_mayus');
+}
+window.addEventListener('error', (evento) => {
+console.error('Error no controlado en Mi RanchApp:', evento.error || evento.message);
+liberarBotonLoginSiSeQuedoColgado();
+});
+window.addEventListener('unhandledrejection', (evento) => {
+console.error('Promesa rechazada sin capturar en Mi RanchApp:', evento.reason);
+liberarBotonLoginSiSeQuedoColgado();
+});
 cargarEstadoLocal();
 // Antes, si el navegador recargaba la página a medio uso (algo común en celulares
 // cuando la cámara nativa toma el control para tomar una foto — el sistema puede
@@ -7596,7 +7641,14 @@ return true;
 }
 return false;
 }
-if (!reanudarSesionSiAplica()) renderCuentasGuardadas();
+// Si reanudar la sesión falla por cualquier motivo inesperado (datos guardados
+// corruptos/incompletos de una versión vieja de la app, etc.), NUNCA debe dejar
+// la app a medio arrancar — se registra el error y se cae de vuelta a la
+// pantalla de login normal, que siempre debe quedar disponible.
+let huboSesionReanudada = false;
+try { huboSesionReanudada = reanudarSesionSiAplica(); }
+catch(e){ console.error('No se pudo reanudar la sesión guardada — se muestra el login normal:', e); }
+if (!huboSesionReanudada) renderCuentasGuardadas();
 detectarAccesoPorQR();
 ['modal-exportar', 'modal-conflicto-arete'].forEach(id => {
 const el = document.getElementById(id);
@@ -7930,6 +7982,7 @@ const textoBoton = document.getElementById('btn-iniciar-sesion-texto');
 const spinnerBoton = document.getElementById('btn-iniciar-sesion-spinner');
 if (boton) boton.disabled = true;
 if (spinnerBoton) spinnerBoton.classList.remove('hidden');
+try {
 // Si este dispositivo ya tiene un índice de cuentas guardado localmente (de una
 // sesión anterior), no hace falta esperar a que baje de la nube para poder
 // intentar el login: se valida contra la copia local al instante y, si hay
@@ -7942,7 +7995,6 @@ if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__verificando_tu
 await esperarPrimeraCargaGlobal(2500);
 }
 if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__procesando');
-try {
 let encontrado = intentarLoginConEstadoActual(usuario, clave);
 // Si no se encontró nada Y este dispositivo entró con la caché local (sin
 // esperar datos frescos de la nube), es posible que la cuenta exista pero
@@ -7960,6 +8012,12 @@ guardarCuentaEnDispositivo(usuario, clave, obtenerNombreParaUsuario(usuario));
 } else {
 mostrarToast((primeraCargaGlobalHecha || hayIndiceLocal) ? tr('login_seleccion_rol__usuario_o_contrasena_incorrectos') : tr('login_seleccion_rol__no_se_pudo_verificar_conexion'));
 }
+} catch(error){
+// Nunca se debe dejar el botón girando sin explicación — se registra el error
+// exacto en consola para poder diagnosticarlo y se avisa a la persona en
+// pantalla que algo falló, en vez de dejarla adivinando.
+console.error('Error al iniciar sesión:', error);
+mostrarToast('Ocurrió un error al iniciar sesión — inténtalo de nuevo. Si sigue fallando, revisa tu conexión.');
 } finally {
 if (boton) boton.disabled = false;
 if (spinnerBoton) spinnerBoton.classList.add('hidden');
