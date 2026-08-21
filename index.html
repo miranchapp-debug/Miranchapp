@@ -447,6 +447,34 @@ animation: miranchapp-barrido-espejo 3.4s ease-in-out infinite;
 0%, 100%{ transform:scale(1); }
 50%{ transform:scale(1.07); }
 }
+/* ---- Banner de notificación chico, esquina inferior izquierda, tipo cortina ---- */
+#banner-notificacion-cortina{
+position:fixed; left:12px; bottom:16px; z-index:200;
+display:flex; align-items:center; gap:.5rem;
+background:var(--pine); color:#fff; font-weight:700; font-size:.78rem;
+padding:.55rem .9rem; border-radius:999px; box-shadow:0 8px 20px -6px rgba(0,0,0,0.4);
+max-width:78vw; white-space:nowrap; overflow:hidden;
+clip-path:inset(0 100% 0 0); opacity:0;
+pointer-events:none;
+}
+#banner-notificacion-cortina.mostrar{
+animation: miranchapp-cortina-entra .45s ease-out forwards;
+}
+#banner-notificacion-cortina.ocultar{
+animation: miranchapp-cortina-sale .35s ease-in forwards;
+}
+@keyframes miranchapp-cortina-entra{
+0%{ clip-path:inset(0 100% 0 0); opacity:0; }
+15%{ opacity:1; }
+100%{ clip-path:inset(0 0 0 0); opacity:1; }
+}
+@keyframes miranchapp-cortina-sale{
+0%{ clip-path:inset(0 0 0 0); opacity:1; }
+100%{ clip-path:inset(0 100% 0 0); opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+#banner-notificacion-cortina.mostrar, #banner-notificacion-cortina.ocultar{ animation:none; clip-path:inset(0 0 0 0); opacity:1; }
+}
 @media (prefers-reduced-motion: reduce){
 .btn-espejo::after{ animation:none; }
 .btn-latido{ animation:none; }
@@ -625,6 +653,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <select id="reg-cefp-puesto">
 <option value="capturista">Capturista</option>
 <option value="almita">Emisora de solicitudes</option>
+<option value="capturista_tb">Capturista TB (departamento de Tuberculosis)</option>
 </select>
 <label class="campo-label">Centro de trabajo</label>
 <input id="reg-cefp-centro" type="text"/>
@@ -1608,15 +1637,31 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <h2 class="font-display text-2xl font-bold">Pruebas listas para capturar</h2>
 <p class="text-sm" style="color:var(--sage);">Pruebas y areteos ya concretados por los veterinarios, con su dictamen. Extrae los datos y márcalos como capturados cuando termines.</p>
 <div class="grid grid-cols-2 gap-2">
-<select id="capt-filtro-estatus" onchange="renderPruebasCapturista()">
+<select id="capt-filtro-estatus" onchange="renderPruebasCapturista(false)">
 <option value="pendientes">Recibidas (pendientes)</option>
 <option value="capturadas">Ya capturadas</option>
 <option value="impresas">Impresas</option>
 <option value="todas">Historial completo</option>
 </select>
-<input id="capt-buscar" oninput="renderPruebasCapturista()" placeholder="Buscar productor..." type="text"/>
+<input id="capt-buscar" oninput="renderPruebasCapturista(false)" placeholder="Buscar productor..." type="text"/>
 </div>
 <div class="space-y-3" id="lista-pruebas-capturista"></div>
+</div>
+<!-- ---------- CAPTURISTA TB (rol dedicado, solo ve pruebas de TB) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-capturistatb">
+<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Capturista TB</h2>
+<p class="text-sm" style="color:var(--sage);">Solo pruebas de tuberculosis (hato/barrido) ya concretadas por los veterinarios. Extrae los datos y captura los dictámenes.</p>
+<div class="grid grid-cols-2 gap-2">
+<select id="capttb-filtro-estatus" onchange="renderPruebasCapturista(true)">
+<option value="pendientes">Recibidas (pendientes)</option>
+<option value="capturadas">Ya capturadas</option>
+<option value="impresas">Impresas</option>
+<option value="todas">Historial completo</option>
+</select>
+<input id="capttb-buscar" oninput="renderPruebasCapturista(true)" placeholder="Buscar productor..." type="text"/>
+</div>
+<div class="space-y-3" id="lista-pruebas-capturista-tb"></div>
 </div>
 <!-- ---------- PRUEBAS REALIZADAS (buscador, exportar, compartir) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-admin-pruebasrealizadas">
@@ -1651,9 +1696,82 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="space-y-3" id="lista-solicitudes-cefpp-generadas"></div>
 </div>
 </div>
+<!-- ---------- TB — HUB DEL DEPARTAMENTO (punto de entrada fijo a las 3 formas de trabajar) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-tbhub">
+<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">TB — Departamento de Tuberculosis</h2>
+<p class="text-sm" style="color:var(--sage);">Punto de entrada fijo a las 3 formas de trabajar en el departamento.</p>
+<div class="space-y-3">
+<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red w-full" style="min-height:96px;">
+<span class="icono"><i class="fa-solid fa-user-doctor"></i></span>
+<span>Admin TB — avisos de reactores y médicos de campo</span>
+</button>
+<button onclick="irAdmin('reportestb')" class="tile bg-purple w-full" style="min-height:96px;">
+<span class="icono"><i class="fa-solid fa-chart-column"></i></span>
+<span>Reportes de pruebas TB</span>
+</button>
+<button onclick="irAdmin('generartb')" class="tile bg-slate w-full" style="min-height:96px;">
+<span class="icono"><i class="fa-solid fa-file-lines"></i></span>
+<span>Generar informe general</span>
+</button>
+</div>
+</div>
+<!-- ---------- REPORTES DE PRUEBAS TB (gráficas + filtro por tipo de prueba) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-reportestb">
+<button class="btn-volver" onclick="volverAtrasAdmin('tbhub')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Reportes de pruebas TB</h2>
+<div class="grid grid-cols-3 gap-2" id="tarjetas-resumen-reportes-tb"></div>
+<div class="bg-white rounded-3xl p-4" style="border:2px solid var(--line);">
+<p class="text-sm font-bold mb-2">Animales probados por tipo de prueba</p>
+<canvas height="220" id="grafica-tb-por-tipo"></canvas>
+</div>
+<div class="bg-white rounded-3xl p-4" style="border:2px solid var(--line);">
+<p class="text-sm font-bold mb-2">Reportes de reactores</p>
+<canvas height="220" id="grafica-tb-reactores"></canvas>
+</div>
+<div class="bg-white rounded-3xl p-4 space-y-2" style="border:2px solid var(--line);">
+<p class="text-sm font-bold">Filtrar pruebas realizadas por tipo</p>
+<select id="reptb-filtro-tipo" onchange="renderReportesTB()">
+<option value="todas">Todas</option>
+<option value="hato">Pruebas de hato (TB)</option>
+<option value="barrido">Pruebas de barrido</option>
+<option value="cervical">Pruebas cervicales comparativas (PCC)</option>
+<option value="brucelosis">Brucelosis</option>
+<option value="otras">Otras</option>
+</select>
+<div class="space-y-2 mt-2" id="lista-reportes-tb-filtrado"></div>
+</div>
+</div>
+<!-- ---------- GENERAR INFORME GENERAL (todas las pruebas del sistema, filtro avanzado) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-generartb">
+<button class="btn-volver" onclick="volverAtrasAdmin('tbhub')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Generar informe general</h2>
+<p class="text-sm" style="color:var(--sage);">Todas las pruebas registradas por todo el personal del comité y todos los veterinarios del sistema.</p>
+<div class="bg-white rounded-3xl p-4 space-y-2" style="border:2px solid var(--line);">
+<p class="text-sm font-bold">Filtro avanzado</p>
+<div class="grid grid-cols-2 gap-2">
+<div><label class="campo-label">Desde</label><input id="gentb-fecha-desde" type="date"/></div>
+<div><label class="campo-label">Hasta</label><input id="gentb-fecha-hasta" type="date"/></div>
+</div>
+<div><label class="campo-label">Tipo de prueba</label>
+<select id="gentb-tipo">
+<option value="todas">Todas</option>
+<option value="TB">TB</option>
+<option value="Brucelosis">Brucelosis</option>
+<option value="Areteo">Areteo</option>
+</select>
+</div>
+<div><label class="campo-label">Motivo de prueba</label><input id="gentb-motivo" placeholder="ej. Movilización, Constancia de hato libre..." type="text"/></div>
+<div><label class="campo-label">Veterinario</label><input id="gentb-veterinario" placeholder="Nombre del veterinario" type="text"/></div>
+<div><label class="campo-label">Productor / predio / UPP</label><input id="gentb-buscar" placeholder="Buscar..." type="text"/></div>
+<button class="w-full btn-primario-plano" onclick="renderGenerarInformeTB()" style="background:var(--slate);"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+</div>
+<div class="grid grid-cols-2 gap-2" id="tarjetas-resumen-generar-tb"></div>
+<div class="space-y-2" id="lista-generar-informe-tb"></div>
+</div>
 <!-- ---------- VENTANA GENERAL DE TB (comité/oficina) — avisos de reactores + catálogo de médicos ---------- -->
 <div class="screen px-5 py-6 space-y-5" id="screen-admin-ventanageneraltb">
-<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<button class="btn-volver" onclick="volverAtrasAdmin('tbhub')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold">Ventana general de TB</h2>
 <p class="text-sm" style="color:var(--sage);">Cuando una lectura de tuberculina arroja animales Reactor, aquí aparece el aviso automático. Asigna un médico de campo del comité para que haga la prueba cervical comparativa.</p>
 <div class="flex gap-2 rounded-full p-1" style="background:var(--parchment);">
@@ -1676,8 +1794,14 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold mb-1">Registrar médico de campo</h3>
 <div><label class="campo-label">Nombre completo</label><input class="campo-mayusculas" id="tbm-nombre" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="grid grid-cols-2 gap-2">
+<div><label class="campo-label">Cédula profesional</label><input class="campo-mayusculas" id="tbm-cedula" oninput="forzarMayusculas(this)" type="text"/></div>
 <div><label class="campo-label">Clave MVZ</label><input class="campo-mayusculas" id="tbm-clave-mvz" oninput="forzarMayusculas(this)" type="text"/></div>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<div><label class="campo-label">Vigencia (fecha)</label><input id="tbm-vigencia" type="date"/></div>
 <div><label class="campo-label">Teléfono</label><input id="tbm-telefono" type="tel"/></div>
+</div>
 <button class="w-full btn-primario-plano" onclick="agregarMedicoComiteTB()" style="background:var(--red);"><i class="fa-solid fa-user-plus"></i> Registrar</button>
 </div>
 <div class="pt-2">
@@ -1688,10 +1812,20 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <!-- ---------- ASIGNAR MÉDICO A UN AVISO DE REACTORES ---------- -->
 <div class="hidden" id="modal-asignar-medico-tb" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:95; align-items:flex-end;">
-<div class="w-full bg-white rounded-t-3xl p-5 space-y-3">
+<div class="w-full bg-white rounded-t-3xl p-5 space-y-3" style="max-height:88vh; overflow-y:auto;">
 <h3 class="font-display text-lg font-bold">Asignar médico de campo</h3>
 <p class="text-xs" style="color:var(--sage);">Se le notificará en su interfaz como "Prueba cervical comparativa pendiente".</p>
-<select id="tb-select-medico"></select>
+<div>
+<label class="campo-label">Médico de campo (todos los del catálogo TB)</label>
+<div class="flex flex-wrap gap-2" id="tb-pestanas-medico"></div>
+<input id="tb-select-medico" type="hidden"/>
+</div>
+<p class="text-xs font-bold mt-2" style="color:var(--sage);">Datos de folio (escritos a mano en la hoja de campo)</p>
+<div class="grid grid-cols-2 gap-2">
+<div><label class="campo-label">Folio</label><input class="campo-mayusculas" id="tb-asig-folio" oninput="forzarMayusculas(this)" type="text"/></div>
+<div><label class="campo-label">Folio hoja de campo</label><input class="campo-mayusculas" id="tb-asig-folio-hoja-campo" oninput="forzarMayusculas(this)" type="text"/></div>
+</div>
+<div><label class="campo-label">Consecutivo</label><input class="campo-mayusculas" id="tb-asig-consecutivo" oninput="forzarMayusculas(this)" type="text"/></div>
 <div class="grid grid-cols-2 gap-2 pt-2">
 <button class="text-xs font-bold py-3 rounded-full" onclick="cerrarModalAsignarMedicoTB()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button">Cancelar</button>
 <button class="text-xs font-bold py-3 rounded-full" onclick="confirmarAsignarMedicoTB()" style="background:var(--red); color:#fff;" type="button">Asignar</button>
@@ -7213,6 +7347,7 @@ estado.avisosReactoresTB = [];
 estado.medicosComiteTB = [];
 estado.modoMedicoCampoTB = false;
 estado.medicoComiteActivoId = null;
+estado.modoCapturistaTB = false;
 estado.moonitor = { imagenDefault: null, imagenCarne: null, imagenLeche: null, recordatorioCompartirActivo: false, diaRecordatorioCompartir: 1, ultimoRecordatorioCompartir: null, sonidoActivado: true };
 const HATO_DEMO = estado.animales;
 const SALUD_DEMO = estado.salud;
@@ -7430,6 +7565,7 @@ if (!Array.isArray(estado.avisosReactoresTB)) estado.avisosReactoresTB = [];
 if (!Array.isArray(estado.medicosComiteTB)) estado.medicosComiteTB = [];
 if (typeof estado.modoMedicoCampoTB !== 'boolean') estado.modoMedicoCampoTB = false;
 if (!('medicoComiteActivoId' in estado)) estado.medicoComiteActivoId = null;
+if (typeof estado.modoCapturistaTB !== 'boolean') estado.modoCapturistaTB = false;
 if (!Array.isArray(estado.enviosAlmita)) estado.enviosAlmita = [];
 if (!Array.isArray(estado.solicitudesCEFPPVet)) estado.solicitudesCEFPPVet = [];
 if (!Array.isArray(estado.historialImpresiones)) estado.historialImpresiones = [];
@@ -7635,7 +7771,7 @@ activarEscuchaCuentaActiva();
 mostrarApp('productor');
 return true;
 }
-if (estado.modoVeterinario || estado.modoCapturista || estado.modoAlmita || estado.modoMedicoCampoTB){
+if (estado.modoVeterinario || estado.modoCapturista || estado.modoAlmita || estado.modoMedicoCampoTB || estado.modoCapturistaTB){
 mostrarApp('admin');
 return true;
 }
@@ -8048,7 +8184,13 @@ estado.productor.nombre = cuenta.nombre;
 estado.productor.predio = cuenta.predio;
 estado.productor.upp = cuenta.upp;
 estado.productor.telefono = cuenta.telefono;
-estado.productor.suscripcion = { fechaAlta: cuenta.fechaAlta, diasVigencia: cuenta.suscripcion.diasVigencia, fechaVencimiento: cuenta.suscripcion.fechaVencimiento };
+// Antes esto asumía que cuenta.suscripcion SIEMPRE existe — si una cuenta vieja
+// o mal sincronizada llegaba sin ese campo, `cuenta.suscripcion.diasVigencia`
+// lanzaba un TypeError (no se puede leer una propiedad de undefined) y el login
+// fallaba con el error genérico en vez de entrar. Se pone un respaldo por si
+// falta, para que nunca sea la causa de que una cuenta válida no abra.
+const suscripcionCuenta = cuenta.suscripcion || { diasVigencia: 365, fechaVencimiento: null };
+estado.productor.suscripcion = { fechaAlta: cuenta.fechaAlta, diasVigencia: suscripcionCuenta.diasVigencia, fechaVencimiento: suscripcionCuenta.fechaVencimiento };
 estado.tipoGanado = cuenta.tipo;
 // Entra de inmediato con lo que ya haya en caché local (instantáneo, sin esperar
 // a la nube) y deja que activarEscuchaCuentaActiva() traiga/actualice los datos
@@ -8081,6 +8223,12 @@ if (usr.rol === 'capturista'){
 estado.modoCapturista = true;
 mostrarApp('admin');
 registrarEvento('login', 'capturista');
+return true;
+}
+if (usr.rol === 'capturista_tb'){
+estado.modoCapturistaTB = true;
+mostrarApp('admin');
+registrarEvento('login', 'capturista_tb');
 return true;
 }
 if (usr.rol === 'almita'){
@@ -8801,6 +8949,7 @@ estado.modoCapturista = false;
 estado.modoAlmita = false;
 estado.modoMedicoCampoTB = false;
 estado.medicoComiteActivoId = null;
+estado.modoCapturistaTB = false;
 if (typeof activarEscuchaCuentaActiva === 'function') activarEscuchaCuentaActiva();
 limpiarDatosDeCuentaActiva();
 estado.animales = HATO_DEMO;
@@ -9248,11 +9397,14 @@ if (nombre === 'config-orden'){ renderTogglesModulos(); renderListaOrdenMas(); r
 if (nombre === 'config-permisos'){ renderTogglesPermisosTrabajador(); inicializarQrAcceso(); }
 if (nombre === 'config-contenido'){ renderListaPlanSanitario(); renderTogglesVentanasExtra(); renderListaBanners(); renderListaPredios(); }
 if (nombre === 'pruebascampo'){ renderListaPruebasCampo(); renderSolicitudesAretesVet(); renderSolicitudesPruebaVet(); renderSolicitudesCEFPPVet(); if (typeof hayBorradorPruebaCampoActivo === 'function' && hayBorradorPruebaCampoActivo()) mostrarAvisoBorradorPruebaCampoPendiente(); }
-if (nombre === 'pruebascapturista') renderPruebasCapturista();
+if (nombre === 'pruebascapturista') renderPruebasCapturista(false);
+if (nombre === 'capturistatb') renderPruebasCapturista(true);
 if (nombre === 'pruebasrealizadas') renderPruebasRealizadas();
 if (nombre === 'almita'){ renderEnviosAlmita(); renderSolicitudesCEFPPGeneradas(); }
 if (nombre === 'ventanageneraltb'){ renderAvisosReactoresTB(); renderMedicosComiteTB(); }
 if (nombre === 'medicocampotb'){ renderCasosMedicoCampoTB(); }
+if (nombre === 'reportestb'){ renderReportesTB(); }
+if (nombre === 'generartb'){ renderGenerarInformeTB(); }
 if (nombre === 'solicitudescefp') renderSolicitudesCEFP();
 if (nombre === 'reportes') actualizarReportesRegionales();
 if (nombre === 'metricas') renderMetricasInteraccion();
@@ -10252,6 +10404,15 @@ lector.readAsDataURL(archivo);
 async function comprimirArchivoImagen(archivo, maxAncho, calidad){
 const dataUrl = await archivoADataUrl(archivo);
 return comprimirImagenDataUrl(dataUrl, maxAncho, calidad);
+}
+// Comprime específicamente para que la lea el OCR (Tesseract). Antes el OCR leía
+// el archivo ORIGINAL sin comprimir — una foto de celular normal (3000-4000px,
+// varios MB) podía agotar la memoria del navegador y cerrar la app de golpe,
+// sobre todo en celulares con poca RAM. 1600px de ancho conserva letra legible
+// para el OCR y sigue siendo una fracción del tamaño de la foto original.
+async function comprimirParaOCR(archivo, maxAncho){
+try { return await comprimirArchivoImagen(archivo, maxAncho || 1600, 0.85); }
+catch(e){ console.warn('No se pudo comprimir la imagen para OCR, se intenta con el archivo original', e); return archivoADataUrl(archivo); }
 }
 // Sube una imagen ya comprimida a Firebase Storage bajo la ruta indicada y regresa
 // su downloadURL; si no hay conexión o Storage no está disponible, regresa la
@@ -11480,15 +11641,23 @@ cont.innerHTML = `
 </button>`;
 return;
 }
+if (estado.modoCapturistaTB){
+cont.innerHTML = `
+<button onclick="irAdmin('capturistatb')" class="tile bg-teal col-span-2">
+<span class="icono"><i class="fa-solid fa-keyboard"></i></span>
+<span>Capturista TB — pruebas listas para capturar</span>
+</button>`;
+return;
+}
 if (estado.modoCapturista){
 cont.innerHTML = `
 <button onclick="irAdmin('pruebascapturista')" class="tile bg-teal col-span-2">
 <span class="icono"><i class="fa-solid fa-keyboard"></i></span>
 <span>Pruebas listas para capturar</span>
 </button>
-<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red col-span-2">
+<button onclick="irAdmin('tbhub')" class="tile bg-red col-span-2">
 <span class="icono"><i class="fa-solid fa-triangle-exclamation"></i></span>
-<span>Ventana general de TB (reactores)</span>
+<span>TB — Departamento de Tuberculosis</span>
 </button>`;
 return;
 }
@@ -11498,9 +11667,9 @@ cont.innerHTML = `
 <span class="icono"><i class="fa-solid fa-envelope-open-text"></i></span>
 <span>Centro de solicitudes CEFPP</span>
 </button>
-<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red col-span-2">
+<button onclick="irAdmin('tbhub')" class="tile bg-red col-span-2">
 <span class="icono"><i class="fa-solid fa-triangle-exclamation"></i></span>
-<span>Ventana general de TB (reactores)</span>
+<span>TB — Departamento de Tuberculosis</span>
 </button>`;
 return;
 }
@@ -11558,9 +11727,9 @@ ${iconoChicoHTML('adm_config', 'fa-sliders')}
 <span>Solicitudes de cuenta CEFPP</span>
 ${(estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${estado.solicitudesCEFP.filter(s => s.estatus === 'pendiente').length}</span>` : ''}
 </button>
-<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red col-span-2" style="position:relative;">
+<button onclick="irAdmin('tbhub')" class="tile bg-red col-span-2" style="position:relative;">
 <span class="icono"><i class="fa-solid fa-triangle-exclamation"></i></span>
-<span>Ventana general de TB (reactores)</span>
+<span>TB — Departamento de Tuberculosis</span>
 ${(estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${estado.avisosReactoresTB.filter(a => a.estatus === 'pendiente').length}</span>` : ''}
 </button>`;
 }
@@ -13455,6 +13624,7 @@ cont.innerHTML = items.map(a => `
 <p class="text-sm" style="color:var(--sage);">${a.aretesReactores.length} reactor(es) de ${a.totalHato} probados</p>
 <span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:${COLORES[a.estatus]}; color:#fff;">${ETIQUETAS[a.estatus]}</span>
 ${a.medicoAsignadoNombre ? `<p class="text-xs mt-1" style="color:var(--sage);"><i class="fa-solid fa-user-doctor mr-1"></i>${a.medicoAsignadoNombre}</p>` : ''}
+${(a.folioTB || a.folioHojaCampo || a.consecutivo) ? `<p class="text-xs mt-1" style="color:var(--sage);">${a.folioTB ? 'Folio: ' + a.folioTB + ' ' : ''}${a.folioHojaCampo ? '· Hoja de campo: ' + a.folioHojaCampo + ' ' : ''}${a.consecutivo ? '· Consecutivo: ' + a.consecutivo : ''}</p>` : ''}
 <div class="flex flex-wrap gap-2 mt-3">
 ${a.estatus === 'pendiente' ? `<button onclick="abrirModalAsignarMedicoTB('${a.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--red); color:#fff;"><i class="fa-solid fa-user-doctor"></i> Asignar médico</button>` : ''}
 ${(a.estatus === 'asignado' || a.estatus === 'en_proceso') ? `<button onclick="abrirModalAsignarMedicoTB('${a.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-arrows-rotate"></i> Reasignar</button>` : ''}
@@ -13466,10 +13636,21 @@ let avisoTBSeleccionadoParaAsignar = null;
 function abrirModalAsignarMedicoTB(avisoId){
 if ((estado.medicosComiteTB || []).length === 0){ mostrarToast('Registra primero al menos un médico de campo en la pestaña "Médicos del comité"'); return; }
 avisoTBSeleccionadoParaAsignar = avisoId;
-const sel = document.getElementById('tb-select-medico');
-sel.innerHTML = estado.medicosComiteTB.map(m => `<option value="${m.id}">${m.nombre}${m.claveMvz ? ' — ' + m.claveMvz : ''}</option>`).join('');
+const aviso = (estado.avisosReactoresTB || []).find(a => a.id === avisoId);
+const pestanas = document.getElementById('tb-pestanas-medico');
+pestanas.innerHTML = estado.medicosComiteTB.map(m => `<button class="subtab" data-medico-id="${m.id}" onclick="elegirMedicoParaAsignar('${m.id}', this)" type="button">${m.nombre}</button>`).join('');
+establecerValor('tb-select-medico', aviso && aviso.medicoAsignadoId ? aviso.medicoAsignadoId : '');
+pestanas.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.medicoId === valor('tb-select-medico')));
+establecerValor('tb-asig-folio', (aviso && aviso.folioTB) || '');
+establecerValor('tb-asig-folio-hoja-campo', (aviso && aviso.folioHojaCampo) || '');
+establecerValor('tb-asig-consecutivo', (aviso && aviso.consecutivo) || '');
 const m = document.getElementById('modal-asignar-medico-tb');
 m.classList.remove('hidden'); m.style.display = 'flex';
+}
+function elegirMedicoParaAsignar(medicoId, btnEl){
+establecerValor('tb-select-medico', medicoId);
+btnEl.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+btnEl.classList.add('active');
 }
 function cerrarModalAsignarMedicoTB(){
 const m = document.getElementById('modal-asignar-medico-tb');
@@ -13480,11 +13661,16 @@ function confirmarAsignarMedicoTB(){
 const aviso = (estado.avisosReactoresTB || []).find(a => a.id === avisoTBSeleccionadoParaAsignar);
 const medicoId = valor('tb-select-medico');
 const medico = estado.medicosComiteTB.find(m => m.id === medicoId);
-if (!aviso || !medico){ cerrarModalAsignarMedicoTB(); return; }
+if (!aviso){ cerrarModalAsignarMedicoTB(); return; }
+if (!medico){ mostrarToast('Selecciona un médico de campo'); return; }
 aviso.medicoAsignadoId = medico.id;
 aviso.medicoAsignadoNombre = medico.nombre;
 aviso.fechaAsignacion = hoyISO();
 aviso.estatus = 'asignado';
+// Folio/hoja de campo/consecutivo: siempre se escriben a mano, no se generan solos.
+aviso.folioTB = valor('tb-asig-folio').trim();
+aviso.folioHojaCampo = valor('tb-asig-folio-hoja-campo').trim();
+aviso.consecutivo = valor('tb-asig-consecutivo').trim();
 guardarEstadoLocal();
 cerrarModalAsignarMedicoTB();
 renderAvisosReactoresTB();
@@ -13492,16 +13678,18 @@ mostrarToast(`Asignado a ${medico.nombre}`);
 }
 function agregarMedicoComiteTB(){
 const nombre = valor('tbm-nombre').trim();
+const cedula = valor('tbm-cedula').trim();
 const claveMvz = valor('tbm-clave-mvz').trim();
+const vigencia = valor('tbm-vigencia');
 const telefono = valor('tbm-telefono').trim();
 if (!nombre){ mostrarToast('Escribe el nombre del médico'); return; }
 const usuario = generarUsuarioDesdeNombre(nombre);
 if (existeUsuarioDuplicado(usuario)){ mostrarToast('Ya existe un usuario con ese nombre — cámbialo ligeramente'); return; }
 const clave = generarContrasenaProvisional();
-estado.medicosComiteTB.push({ id: 'tbm_' + Date.now(), nombre, claveMvz, telefono, usuario, clave });
+estado.medicosComiteTB.push({ id: 'tbm_' + Date.now(), nombre, cedula, claveMvz, vigencia, telefono, usuario, clave });
 estado.usuarios.push({ nombre: nombre + ' (Médico de campo TB)', usuario, clave, rol: 'medico_campo_tb' });
 guardarEstadoLocal();
-establecerValor('tbm-nombre', ''); establecerValor('tbm-clave-mvz', ''); establecerValor('tbm-telefono', '');
+establecerValor('tbm-nombre', ''); establecerValor('tbm-cedula', ''); establecerValor('tbm-clave-mvz', ''); establecerValor('tbm-vigencia', ''); establecerValor('tbm-telefono', '');
 renderMedicosComiteTB();
 mostrarToast(`Médico registrado — usuario: ${usuario} / contraseña: ${clave}`);
 }
@@ -13519,7 +13707,8 @@ cont.innerHTML = estado.medicosComiteTB.map(m => `
 <div class="item-registro flex items-center justify-between gap-3">
 <div>
 <p class="font-bold">${m.nombre}</p>
-<p class="text-sm" style="color:var(--sage);">${m.claveMvz ? 'Clave MVZ: ' + m.claveMvz : ''} ${m.telefono ? '· Tel: ' + m.telefono : ''}</p>
+<p class="text-sm" style="color:var(--sage);">${m.cedula ? 'Cédula: ' + m.cedula + ' · ' : ''}${m.claveMvz ? 'Clave MVZ: ' + m.claveMvz : ''} ${m.telefono ? '· Tel: ' + m.telefono : ''}</p>
+${m.vigencia ? `<p class="text-xs" style="color:var(--sage);">Vigencia: ${m.vigencia}</p>` : ''}
 <p class="text-xs" style="color:var(--sage);">Usuario: ${m.usuario}</p>
 </div>
 <button onclick="eliminarMedicoComiteTB('${m.id}')" style="color:var(--red);"><i class="fa-solid fa-trash"></i></button>
@@ -13538,6 +13727,108 @@ cont.innerHTML = items.map(a => `
 <p class="text-sm" style="color:var(--sage);">${a.aretesReactores.length} animal(es) reactor(es) a confirmar</p>
 <span class="text-xs px-2 py-0.5 rounded-full inline-block mt-1" style="background:var(--red); color:#fff;">Prueba cervical comparativa pendiente</span>
 <button onclick="abrirCapturaPCC('${a.id}')" class="w-full text-xs font-bold px-3 py-2 rounded-full mt-3" style="background:var(--red); color:#fff;"><i class="fa-solid fa-syringe"></i> Capturar prueba cervical comparativa</button>
+</div>`).join('');
+}
+// ================= REPORTES TB (gráficas + filtro por tipo de prueba) =================
+// Clasifica cada prueba/aviso registrado en una de las categorías que pidió Luis:
+// hato, barrido, cervical (PCC), brucelosis, otras — usando el motivo/tipoPrueba
+// ya capturado, sin inventar datos nuevos.
+function categoriaTB(p){
+if (p.tipoPrueba === 'Brucelosis') return 'brucelosis';
+if (p.categoria === 'areteo') return 'otras';
+if (p.tipoPrueba === 'TB'){
+const motivo = (p.motivo || '').toLowerCase();
+if (motivo.includes('barrido')) return 'barrido';
+return 'hato';
+}
+return 'otras';
+}
+const ETIQUETAS_CATEGORIA_TB = { hato:'Pruebas de hato (TB)', barrido:'Pruebas de barrido', cervical:'Cervicales comparativas (PCC)', brucelosis:'Brucelosis', otras:'Otras' };
+function renderReportesTB(){
+const pruebas = estado.pruebasCampoVet || [];
+const avisos = estado.avisosReactoresTB || [];
+const pccFinalizadas = avisos.filter(a => a.estatus === 'finalizado');
+const conteos = { hato:0, barrido:0, cervical: pccFinalizadas.length, brucelosis:0, otras:0 };
+let totalAnimales = 0;
+pruebas.forEach(p => { conteos[categoriaTB(p)]++; totalAnimales += (p.animales || []).length; });
+pccFinalizadas.forEach(a => { totalAnimales += (a.animalesPCC || []).length; });
+const totalReactores = avisos.reduce((acc, a) => acc + (a.aretesReactores || []).length, 0);
+const tarjetas = document.getElementById('tarjetas-resumen-reportes-tb');
+if (tarjetas){
+tarjetas.innerHTML = `
+<div class="bg-white rounded-2xl p-3 text-center" style="border:2px solid var(--line);"><p class="text-2xl font-display font-bold">${pruebas.length + pccFinalizadas.length}</p><p class="text-xs" style="color:var(--sage);">Pruebas totales</p></div>
+<div class="bg-white rounded-2xl p-3 text-center" style="border:2px solid var(--line);"><p class="text-2xl font-display font-bold">${totalAnimales}</p><p class="text-xs" style="color:var(--sage);">Animales probados</p></div>
+<div class="bg-white rounded-2xl p-3 text-center" style="border:2px solid var(--red);"><p class="text-2xl font-display font-bold" style="color:var(--red);">${totalReactores}</p><p class="text-xs" style="color:var(--sage);">Reactores</p></div>`;
+}
+if (typeof Chart !== 'undefined'){
+const ctxTipo = document.getElementById('grafica-tb-por-tipo');
+if (ctxTipo){
+if (window._chartTBTipo) window._chartTBTipo.destroy();
+window._chartTBTipo = new Chart(ctxTipo.getContext('2d'), {
+type: 'bar',
+data: { labels: Object.keys(conteos).map(k => ETIQUETAS_CATEGORIA_TB[k]), datasets: [{ label:'Pruebas', data: Object.values(conteos), backgroundColor:['#EF4444','#F59E0B','#7C3AED','#0D9488','#334155'] }] },
+options: { plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+});
+}
+const ctxReact = document.getElementById('grafica-tb-reactores');
+if (ctxReact){
+const ETIQUETAS_ESTATUS_AVISO = { pendiente:'Pendientes', asignado:'Asignados', en_proceso:'En proceso', finalizado:'Finalizados' };
+const conteoEstatus = { pendiente:0, asignado:0, en_proceso:0, finalizado:0 };
+avisos.forEach(a => { if (a.estatus in conteoEstatus) conteoEstatus[a.estatus]++; });
+if (window._chartTBReact) window._chartTBReact.destroy();
+window._chartTBReact = new Chart(ctxReact.getContext('2d'), {
+type: 'doughnut',
+data: { labels: Object.keys(conteoEstatus).map(k => ETIQUETAS_ESTATUS_AVISO[k]), datasets: [{ data: Object.values(conteoEstatus), backgroundColor:['#EF4444','#F59E0B','#2563EB','#16A34A'] }] },
+options: { plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{ size:10 } } } } }
+});
+}
+}
+const filtro = valor('reptb-filtro-tipo') || 'todas';
+const cont = document.getElementById('lista-reportes-tb-filtrado');
+if (cont){
+let items = pruebas.map(p => ({ tipo: categoriaTB(p), nombre: p.productorNombre, fecha: p.fecha, animales: (p.animales || []).length, vet: p.veterinarioNombre }));
+items = items.concat(pccFinalizadas.map(a => ({ tipo:'cervical', nombre: a.productorNombre, fecha: a.fechaFinalizado, animales: (a.animalesPCC || []).length, vet: a.medicoAsignadoNombre })));
+if (filtro !== 'todas') items = items.filter(i => i.tipo === filtro);
+items = items.sort((a,b) => (b.fecha || '').localeCompare(a.fecha || ''));
+if (items.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin pruebas con este filtro.</p>`; return; }
+cont.innerHTML = items.slice(0, 100).map(i => `
+<div class="flex items-center justify-between text-xs py-1" style="border-bottom:1px solid var(--line);">
+<span>${ETIQUETAS_CATEGORIA_TB[i.tipo]} — ${i.nombre}</span>
+<span style="color:var(--sage);">${i.animales} animal(es) · ${i.fecha || ''}</span>
+</div>`).join('');
+}
+}
+// ================= GENERAR INFORME GENERAL (todas las pruebas, filtro avanzado) =================
+function renderGenerarInformeTB(){
+const desde = valor('gentb-fecha-desde');
+const hasta = valor('gentb-fecha-hasta');
+const tipo = valor('gentb-tipo') || 'todas';
+const motivo = (valor('gentb-motivo') || '').trim().toLowerCase();
+const vetTxt = (valor('gentb-veterinario') || '').trim().toLowerCase();
+const q = (valor('gentb-buscar') || '').trim().toLowerCase();
+let items = (estado.pruebasCampoVet || []).slice();
+if (desde) items = items.filter(p => (p.fecha || '') >= desde);
+if (hasta) items = items.filter(p => (p.fecha || '') <= hasta);
+if (tipo !== 'todas') items = items.filter(p => p.tipoPrueba === tipo);
+if (motivo) items = items.filter(p => (p.motivo || '').toLowerCase().includes(motivo));
+if (vetTxt) items = items.filter(p => (p.veterinarioNombre || '').toLowerCase().includes(vetTxt));
+if (q) items = items.filter(p => (p.productorNombre || '').toLowerCase().includes(q) || (p.predio || '').toLowerCase().includes(q) || (p.upp || '').toLowerCase().includes(q));
+items = items.sort((a,b) => (b.fecha || '').localeCompare(a.fecha || ''));
+const totalAnimales = items.reduce((acc, p) => acc + (p.animales || []).length, 0);
+const tarjetas = document.getElementById('tarjetas-resumen-generar-tb');
+if (tarjetas){
+tarjetas.innerHTML = `
+<div class="bg-white rounded-2xl p-3 text-center" style="border:2px solid var(--line);"><p class="text-2xl font-display font-bold">${items.length}</p><p class="text-xs" style="color:var(--sage);">Pruebas encontradas</p></div>
+<div class="bg-white rounded-2xl p-3 text-center" style="border:2px solid var(--line);"><p class="text-2xl font-display font-bold">${totalAnimales}</p><p class="text-xs" style="color:var(--sage);">Animales probados</p></div>`;
+}
+const cont = document.getElementById('lista-generar-informe-tb');
+if (!cont) return;
+if (items.length === 0){ cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-magnifying-glass"></i><p>Sin resultados con este filtro.</p></div>`; return; }
+cont.innerHTML = items.slice(0, 200).map(p => `
+<div class="item-registro" style="border-left:6px solid var(--slate);">
+<p class="font-bold">${p.tipoPrueba} — ${p.productorNombre}</p>
+<p class="text-xs" style="color:var(--sage);">${p.predio || ''} ${p.upp ? '· UPP ' + p.upp : ''} · ${p.fecha} · ${(p.animales || []).length} animal(es)</p>
+<p class="text-xs" style="color:var(--sage);">Motivo: ${p.motivo || '—'} · Veterinario: ${p.veterinarioNombre || '—'}</p>
 </div>`).join('');
 }
 // ---- Captura de la Prueba Cervical Comparativa (PCC) ----
@@ -13648,6 +13939,8 @@ return `<div class="hoja-senasica hoja-oficial">
 </div>
 <div class="caja-folios">
 <div><span>FOLIO TB</span><b>${aviso.folioTB || ''}</b></div>
+<div><span>FOLIO HOJA DE CAMPO</span><b>${aviso.folioHojaCampo || ''}</b></div>
+<div><span>CONSECUTIVO</span><b>${aviso.consecutivo || ''}</b></div>
 </div>
 <div style="clear:both;"></div>
 <div class="seccion-dictamen">
@@ -13719,12 +14012,14 @@ generarCSVConPie(`Reporte de reactores - ${p.tipoPrueba} - ${p.productorNombre} 
 mostrarToast('Reporte de reactores generado — envíalo junto con la hoja de campo digital');
 }
 // ================= CAPTURISTA (oficina) =================
-function renderPruebasCapturista(){
-const cont = document.getElementById('lista-pruebas-capturista');
+function renderPruebasCapturista(soloTB){
+const cont = document.getElementById(soloTB ? 'lista-pruebas-capturista-tb' : 'lista-pruebas-capturista');
 if (!cont) return;
-const filtroEstatus = valor('capt-filtro-estatus') || 'pendientes';
-const q = (valor('capt-buscar') || '').trim().toLowerCase();
+const prefijo = soloTB ? 'capttb' : 'capt';
+const filtroEstatus = valor(prefijo + '-filtro-estatus') || 'pendientes';
+const q = (valor(prefijo + '-buscar') || '').trim().toLowerCase();
 let items = estado.pruebasCampoVet.filter(p => p.categoria === 'areteo' || p.leida);
+if (soloTB) items = items.filter(p => p.tipoPrueba === 'TB');
 if (filtroEstatus === 'pendientes') items = items.filter(p => !p.capturada);
 else if (filtroEstatus === 'capturadas') items = items.filter(p => p.capturada);
 else if (filtroEstatus === 'impresas') items = items.filter(p => p.impresa);
@@ -13778,7 +14073,7 @@ const p = estado.pruebasCampoVet.find(x => x.id === id);
 if (!p) return;
 p.capturada = true;
 guardarEstadoLocal();
-renderPruebasCapturista();
+renderPruebasCapturista(false); renderPruebasCapturista(true);
 mostrarToast('Marcada como capturada');
 }
 // ================= PRUEBAS REALIZADAS (buscador + exportar/compartir) =================
@@ -13832,7 +14127,7 @@ if (items.length === 0){
 cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-user-clock"></i><p>No hay solicitudes de cuenta CEFPP.</p></div>`;
 return;
 }
-const ETIQUETAS_PUESTO = { capturista:'Capturista', almita:'Emisora de solicitudes' };
+const ETIQUETAS_PUESTO = { capturista:'Capturista', almita:'Emisora de solicitudes', capturista_tb:'Capturista TB' };
 const ETIQUETAS_ESTATUS = { pendiente:'Pendiente de autorizar', aprobada:'Aprobada', rechazada:'Rechazada' };
 const COLORES = { pendiente:'var(--yellow)', aprobada:'var(--green)', rechazada:'var(--red)' };
 cont.innerHTML = items.map(s => `
@@ -13852,7 +14147,8 @@ function aprobarSolicitudCEFP(id){
 const s = (estado.solicitudesCEFP || []).find(x => x.id === id);
 if (!s) return;
 if (existeUsuarioDuplicado(s.usuario)){ mostrarToast('Ese usuario ya existe, no se puede autorizar'); return; }
-estado.usuarios.push({ nombre: s.nombre + ' (' + (s.puesto === 'almita' ? 'Emisora de solicitudes' : 'Capturista') + ')', usuario: s.usuario, clave: s.clave, rol: s.puesto });
+const ETIQUETAS_PUESTO_USR = { almita:'Emisora de solicitudes', capturista_tb:'Capturista TB', capturista:'Capturista' };
+estado.usuarios.push({ nombre: s.nombre + ' (' + (ETIQUETAS_PUESTO_USR[s.puesto] || 'Capturista') + ')', usuario: s.usuario, clave: s.clave, rol: s.puesto });
 s.estatus = 'aprobada';
 guardarEstadoLocal();
 renderSolicitudesCEFP(); renderGridAdminHome(); renderListaUsuarios();
@@ -14097,7 +14393,7 @@ p.fechaImpresion = hoyISO();
 if (!Array.isArray(estado.historialImpresiones)) estado.historialImpresiones = [];
 estado.historialImpresiones.push({ id:'imp_' + Date.now(), pruebaId: p.id, productorNombre: p.productorNombre, tipoPrueba: p.tipoPrueba, fecha: hoyISO() });
 guardarEstadoLocal();
-renderPruebasCapturista();
+renderPruebasCapturista(false); renderPruebasCapturista(true);
 mostrarToast('Marcada como impresa');
 }
 function compartirPruebaCampo(id){
@@ -16092,8 +16388,8 @@ const boton = document.getElementById('esc-cred-btn-extraer');
 boton.disabled = true; boton.textContent = 'Leyendo...';
 try {
 let textoFrente = '', textoReverso = '';
-if (frenteArchivo) textoFrente = await extraerTextoDeImagen(await archivoADataUrl(frenteArchivo));
-if (reversoArchivo) textoReverso = await extraerTextoDeImagen(await archivoADataUrl(reversoArchivo));
+if (frenteArchivo) textoFrente = await extraerTextoDeImagen(await comprimirParaOCR(frenteArchivo));
+if (reversoArchivo) textoReverso = await extraerTextoDeImagen(await comprimirParaOCR(reversoArchivo));
 const textoCompleto = textoFrente + '\n' + textoReverso;
 establecerValor('esc-cred-curp', extraerCURP(textoCompleto));
 establecerValor('esc-cred-nombre', extraerTrasEtiqueta(textoFrente, ['NOMBRE']));
@@ -16140,7 +16436,7 @@ if (!archivo){ mostrarToast('Primero toma la foto de la constancia'); return; }
 const boton = document.getElementById('esc-upp-btn-extraer');
 boton.disabled = true; boton.textContent = 'Leyendo...';
 try {
-const texto = await extraerTextoDeImagen(await archivoADataUrl(archivo));
+const texto = await extraerTextoDeImagen(await comprimirParaOCR(archivo));
 establecerValor('esc-upp-predio', extraerTrasEtiqueta(texto, ['NOMBRE DEL PREDIO', 'PREDIO', 'UNIDAD DE PRODUCCIÓN']));
 const superficieMatch = texto.match(/(\d+[.,]?\d*)\s*(HA|HECTÁREAS|HECTAREAS)/i);
 establecerValor('esc-upp-superficie', superficieMatch ? superficieMatch[1].replace(',', '.') : '');
@@ -16195,7 +16491,7 @@ if (!archivo){ mostrarToast('Primero toma la foto del documento'); return; }
 const boton = document.getElementById('esc-siniiga-btn-extraer');
 boton.disabled = true; boton.textContent = 'Leyendo...';
 try {
-const texto = await extraerTextoDeImagen(await archivoADataUrl(archivo));
+const texto = await extraerTextoDeImagen(await comprimirParaOCR(archivo, 1800));
 filasSINIIGATemp = parsearFilasSINIIGA(texto);
 document.getElementById('esc-siniiga-texto-crudo').textContent = texto.trim() || '(no se detectó texto legible)';
 document.getElementById('esc-siniiga-resultado').classList.remove('hidden');
@@ -16304,6 +16600,7 @@ importados++;
 });
 guardarEdicionProductor();
 mostrarToast(`Importado: ${importados} animal(es) al hato${omitidosPorDuplicado ? ` (${omitidosPorDuplicado} ya existían y se omitieron)` : ''}`);
+mostrarBannerNotificacion('Documentos y fotos guardados', 3500, 'fa-cloud-arrow-up');
 filasSINIIGATemp = []; fierroImagenEscaneoTemp = null;
 renderHato(); renderResumenProductor();
 }
@@ -16968,6 +17265,31 @@ toastDeshacerFn = null;
 const toast = document.getElementById('toast-confirmacion');
 if (toast){ toast.style.opacity = '0'; toast.style.transform = 'translateX(-50%) translateY(20px)'; }
 clearTimeout(toastTimeout);
+}
+// Banner chico de notificación, esquina inferior izquierda, con animación de
+// "cortina" (se revela de izquierda a derecha) y que se oculta solo después de
+// unos segundos. Pensado para avisos de fondo que no necesitan interrumpir a la
+// persona (ej. "Foto subida", "Sincronizado") — a diferencia de mostrarToast(),
+// que es para confirmaciones de una acción que la persona acaba de hacer.
+let bannerNotificacionTimeout = null;
+function mostrarBannerNotificacion(mensaje, duracionMs, icono){
+let banner = document.getElementById('banner-notificacion-cortina');
+if (!banner){
+banner = document.createElement('div');
+banner.id = 'banner-notificacion-cortina';
+document.body.appendChild(banner);
+}
+clearTimeout(bannerNotificacionTimeout);
+banner.classList.remove('ocultar');
+banner.innerHTML = `<i class="fa-solid ${icono || 'fa-circle-check'}"></i><span>${mensaje}</span>`;
+// Se fuerza un reflow antes de agregar la clase para que la animación de
+// entrada se reproduzca de nuevo aunque el banner ya estuviera visible.
+void banner.offsetWidth;
+banner.classList.add('mostrar');
+bannerNotificacionTimeout = setTimeout(() => {
+banner.classList.remove('mostrar');
+banner.classList.add('ocultar');
+}, duracionMs || 3500);
 }
 function buscarGlobal(){
 const q = valor('buscador-global').trim().toLowerCase();
