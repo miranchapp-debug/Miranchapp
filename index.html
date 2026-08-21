@@ -529,6 +529,11 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <div class="rounded-3xl p-6 space-y-4 shadow-xl" style="background:rgba(245,236,216,0.68); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.35);">
 <p class="text-xl font-display font-bold text-center mb-1" data-i18n="login_seleccion_rol__inicia_sesion" style="color:var(--pine);">Inicia Sesión</p>
+<div class="hidden space-y-2" id="bloque-cuentas-guardadas">
+<label class="campo-label" style="color:#5C3A1E;">Cuentas en este dispositivo</label>
+<div class="space-y-1" id="lista-cuentas-guardadas"></div>
+<p class="text-xs text-center" style="color:#5C3A1E;">o inicia sesión con otra cuenta abajo</p>
+</div>
 <div>
 <label class="campo-label" data-i18n="login_seleccion_rol__usuario" style="color:#5C3A1E;">Usuario</label>
 <div class="flex items-center gap-2 rounded-2xl px-3" style="background:rgba(255,255,255,0.55); border:1px solid rgba(92,58,30,0.25);">
@@ -546,7 +551,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="text-right">
 <button class="text-sm font-bold" onclick="abrirRecuperarContrasena()" style="color:#8A5323; text-decoration:underline;" data-i18n="login_seleccion_rol__olvide_mi_contrasena">¿Olvidé mi contraseña?</button>
 </div>
-<button class="w-full btn-primario-plano btn-espejo" id="btn-iniciar-sesion" onclick="iniciarSesion()" style="background:var(--green); min-height:60px;">
+<button class="w-full btn-primario-plano" id="btn-iniciar-sesion" onclick="iniciarSesion()" style="background:var(--green); min-height:60px;">
 <span class="hidden spinner-mini" id="btn-iniciar-sesion-spinner"></span>
 <span id="btn-iniciar-sesion-texto" data-i18n="login_seleccion_rol__iniciar_sesion_mayus">INICIAR SESIÓN</span>
 </button>
@@ -7437,6 +7442,88 @@ primeraCargaGlobalPromise,
 new Promise(resolve => setTimeout(resolve, timeoutMs || 6000))
 ]);
 }
+// La promesa de arriba solo se resuelve UNA vez, la primera vez que llega el
+// índice global — reusarla más tarde ya no sirve para esperar una actualización
+// FRESCA (ya está resuelta desde hace rato). Este contador sí sube cada vez que
+// llega una actualización nueva del índice global, así se puede esperar una
+// actualización reciente de verdad (ej. al fallar un login con caché vieja,
+// por si la cuenta se creó/editó en otro dispositivo después de la última vez
+// que este dispositivo se sincronizó).
+let contadorActualizacionesGlobales = 0;
+function esperarNuevaActualizacionGlobal(timeoutMs){
+const inicio = contadorActualizacionesGlobales;
+return new Promise(resolve => {
+const limite = setTimeout(() => { clearInterval(revisar); resolve(false); }, timeoutMs || 3000);
+const revisar = setInterval(() => {
+if (contadorActualizacionesGlobales > inicio){
+clearInterval(revisar); clearTimeout(limite); resolve(true);
+}
+}, 150);
+});
+}
+// ================= CUENTAS GUARDADAS EN ESTE DISPOSITIVO (entrar de un toque) =================
+// Lista SOLO local (nunca se sube a Firestore) de usuario/contraseña con los que
+// ya se inició sesión en este dispositivo, para poder volver a entrar sin
+// escribirlos de nuevo. Se guarda igual de "protegido" que el resto de la app
+// (usuario/contraseña en texto plano — esta app no tiene backend propio ni
+// hashing en ningún lado, ver notas de arquitectura), así que quien tenga acceso
+// físico al celular puede entrar a las cuentas guardadas — igual que casi
+// cualquier app con "recordar sesión".
+const CLAVE_CUENTAS_GUARDADAS = 'miRanchAppCuentasGuardadas';
+function leerCuentasGuardadas(){
+try { return JSON.parse(localStorage.getItem(CLAVE_CUENTAS_GUARDADAS) || '[]'); } catch(e){ return []; }
+}
+function guardarCuentaEnDispositivo(usuario, clave, etiqueta){
+if (!usuario || !clave) return;
+try {
+let lista = leerCuentasGuardadas().filter(c => c.usuario !== usuario);
+lista.unshift({ usuario, clave, etiqueta: etiqueta || usuario, ultimoAcceso: new Date().toISOString() });
+lista = lista.slice(0, 6);
+localStorage.setItem(CLAVE_CUENTAS_GUARDADAS, JSON.stringify(lista));
+} catch(e){}
+}
+function olvidarCuentaGuardada(usuario){
+try {
+const lista = leerCuentasGuardadas().filter(c => c.usuario !== usuario);
+localStorage.setItem(CLAVE_CUENTAS_GUARDADAS, JSON.stringify(lista));
+} catch(e){}
+renderCuentasGuardadas();
+}
+function iniciarSesionConCuentaGuardada(usuario, clave){
+establecerValor('login-usuario', usuario);
+establecerValor('login-clave', clave);
+iniciarSesion();
+}
+function renderCuentasGuardadas(){
+const bloque = document.getElementById('bloque-cuentas-guardadas');
+const cont = document.getElementById('lista-cuentas-guardadas');
+if (!bloque || !cont) return;
+const lista = leerCuentasGuardadas();
+if (lista.length === 0){ bloque.classList.add('hidden'); return; }
+bloque.classList.remove('hidden');
+cont.innerHTML = lista.map(c => `
+<div class="flex items-center gap-2 rounded-2xl px-3 py-2" style="background:rgba(255,255,255,0.55); border:1px solid rgba(92,58,30,0.25);">
+<button class="flex-1 flex items-center gap-2 text-left" onclick="iniciarSesionConCuentaGuardada('${c.usuario.replace(/'/g,"\\'")}','${c.clave.replace(/'/g,"\\'")}')" type="button">
+${avatarHtml(c.etiqueta, null, 32)}
+<span class="font-bold text-sm" style="color:#3A2A15;">${c.etiqueta}</span>
+</button>
+<button onclick="olvidarCuentaGuardada('${c.usuario.replace(/'/g,"\\'")}')" style="color:#8A5323;" type="button"><i class="fa-solid fa-xmark"></i></button>
+</div>`).join('');
+}
+// Busca un nombre amigable para mostrar en la tarjeta de "cuentas guardadas" a
+// partir del usuario que acaba de iniciar sesión con éxito.
+function obtenerNombreParaUsuario(usuario){
+const u = usuario.toLowerCase();
+const cuenta = estado.cuentasProductores.find(c => (c.usuario || '').toLowerCase() === u);
+if (cuenta) return cuenta.nombre || usuario;
+const usr = estado.usuarios.find(x => (x.usuario || '').toLowerCase() === u);
+if (usr) return usr.nombre || usuario;
+const trabajador = estado.trabajadores.find(t => (t.usuario || '').toLowerCase() === u);
+if (trabajador) return trabajador.nombre || usuario;
+const operador = estado.operadoresQueseria.find(o => (o.usuario || '').toLowerCase() === u);
+if (operador) return operador.nombre || usuario;
+return usuario;
+}
 function guardarEstadoLocal(){
 if (guardadoLocalPendiente) clearTimeout(guardadoLocalPendiente);
 guardadoLocalPendiente = setTimeout(() => {
@@ -7484,6 +7571,7 @@ sincronizandoConFirebase = false;
 }
 window.addEventListener('online', sincronizarConFirebase);
 cargarEstadoLocal();
+renderCuentasGuardadas();
 detectarAccesoPorQR();
 ['modal-exportar', 'modal-conflicto-arete'].forEach(id => {
 const el = document.getElementById(id);
@@ -7519,6 +7607,7 @@ sincronizarConFirebase();
 activarEscuchaCuentaActiva();
 if (typeof window.firebaseEscucharGlobal === 'function'){
 window.firebaseEscucharGlobal((datosRemotos, actualizado) => {
+contadorActualizacionesGlobales++;
 if (!primeraCargaGlobalHecha){ primeraCargaGlobalHecha = true; resolverPrimeraCargaGlobal(); }
 if (actualizado && estado.ultimaSincronizacion === actualizado) return;
 // Si hay un guardado local pendiente (debounce) o una sincronización en curso,
@@ -7766,6 +7855,7 @@ document.getElementById('screen-tipo-ganado').classList.add('active');
 function mostrarPantallaLogin(){
 document.getElementById('screen-tipo-ganado').classList.remove('active');
 document.getElementById('screen-login').classList.add('active');
+renderCuentasGuardadas();
 }
 function elegirTipoGanado(tipo){
 estado.tipoGanado = tipo;
@@ -7817,6 +7907,35 @@ await esperarPrimeraCargaGlobal(2500);
 }
 if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__procesando');
 try {
+let encontrado = intentarLoginConEstadoActual(usuario, clave);
+// Si no se encontró nada Y este dispositivo entró con la caché local (sin
+// esperar datos frescos de la nube), es posible que la cuenta exista pero
+// se haya creado/editado en otro dispositivo después de la última vez que
+// este se sincronizó — antes esto fallaba con "usuario o contraseña
+// incorrectos" aunque la cuenta sí existiera. Se espera una actualización
+// fresca del índice global (hasta 3s) y se reintenta antes de rendirse.
+if (!encontrado && hayIndiceLocal && navigator.onLine){
+if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__verificando_tu_cuenta');
+await esperarNuevaActualizacionGlobal(3000);
+encontrado = intentarLoginConEstadoActual(usuario, clave);
+}
+if (encontrado){
+guardarCuentaEnDispositivo(usuario, clave, obtenerNombreParaUsuario(usuario));
+} else {
+mostrarToast((primeraCargaGlobalHecha || hayIndiceLocal) ? tr('login_seleccion_rol__usuario_o_contrasena_incorrectos') : tr('login_seleccion_rol__no_se_pudo_verificar_conexion'));
+}
+} finally {
+if (boton) boton.disabled = false;
+if (spinnerBoton) spinnerBoton.classList.add('hidden');
+if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__iniciar_sesion_mayus');
+}
+}
+// Busca la pareja usuario/clave en todos los catálogos posibles (cuentas de
+// productor, usuarios genéricos, trabajadores, quesería) contra lo que HAY EN
+// ESTE MOMENTO en `estado` y entra si encuentra algo. Regresa true si encontró
+// y procesó un login, false si no coincidió con nada — así iniciarSesion()
+// puede reintentar después de refrescar los datos sin duplicar toda la lógica.
+function intentarLoginConEstadoActual(usuario, clave){
 // 1) cuentas de productor reales (multi-tenant, creadas por el admin)
 const cuenta = estado.cuentasProductores.find(c => (c.usuario || '').toLowerCase() === usuario && c.clave === clave);
 if (cuenta && cuenta.tipo === 'punto'){
@@ -7827,7 +7946,7 @@ estado.queseria.rolActivoQueseria = 'admin';
 document.getElementById('screen-login').classList.remove('active');
 document.getElementById('app-quesera').classList.remove('hidden');
 irAQueseraPantalla('menu');
-return;
+return true;
 }
 if (cuenta){
 estado.cuentaActivaId = cuenta.id;
@@ -7848,13 +7967,13 @@ establecerValor('login-usuario', ''); establecerValor('login-clave', '');
 registrarEvento('login', cuenta.tipo === 'punto' ? 'punto' : 'productor');
 mostrarApp('productor');
 activarEscuchaCuentaActiva();
-return;
+return true;
 }
 // 2) usuarios genéricos (administradores, o productores de prueba sin cuenta multi-tenant)
 const usr = estado.usuarios.find(u => (u.usuario || '').toLowerCase() === usuario && u.clave === clave);
 if (usr){
 establecerValor('login-usuario', ''); establecerValor('login-clave', '');
-if (usr.rol === 'admin'){ mostrarApp('admin'); return; }
+if (usr.rol === 'admin'){ mostrarApp('admin'); return true; }
 if (usr.rol === 'veterinario'){
 estado.modoVeterinario = true;
 estado.vistaVeterinario = true;
@@ -7862,19 +7981,19 @@ const vet = estado.veterinarios.find(v => (v.usuario || '').toLowerCase() === us
 estado.veterinarioActivoId = vet ? vet.id : null;
 mostrarApp('admin');
 registrarEvento('login', 'veterinario');
-return;
+return true;
 }
 if (usr.rol === 'capturista'){
 estado.modoCapturista = true;
 mostrarApp('admin');
 registrarEvento('login', 'capturista');
-return;
+return true;
 }
 if (usr.rol === 'almita'){
 estado.modoAlmita = true;
 mostrarApp('admin');
 registrarEvento('login', 'almita');
-return;
+return true;
 }
 if (usr.rol === 'medico_campo_tb'){
 estado.modoMedicoCampoTB = true;
@@ -7882,11 +8001,11 @@ const medico = estado.medicosComiteTB.find(m => (m.usuario || '').toLowerCase() 
 estado.medicoComiteActivoId = medico ? medico.id : null;
 mostrarApp('admin');
 registrarEvento('login', 'medico_campo_tb');
-return;
+return true;
 }
 if (!estado.tipoGanado) mostrarPantallaTipoGanado();
 else mostrarApp('productor');
-return;
+return true;
 }
 // 3) trabajadores (hasta 2 por cuenta, permisos limitados)
 const trabajador = estado.trabajadores.find(t => (t.usuario || '').toLowerCase() === usuario && t.clave === clave);
@@ -7909,7 +8028,7 @@ registrarEvento('login', 'trabajador');
 mostrarApp('productor');
 if (trabajador.cuentaId) activarEscuchaCuentaActiva();
 mostrarToast(`${tr('login_seleccion_rol__bienvenido')}, ${trabajador.nombre}`);
-return;
+return true;
 }
 // 4) quesería (administrador u operadores)
 if (usuario === (estado.queseria.usuarioAdmin || '').toLowerCase() && clave === estado.queseria.claveAdmin){
@@ -7917,7 +8036,7 @@ establecerValor('login-usuario', ''); establecerValor('login-clave', '');
 document.getElementById('screen-login').classList.remove('active');
 document.getElementById('app-quesera').classList.remove('hidden');
 entrarQueseriaComo('admin', tr('queseria__administrador'));
-return;
+return true;
 }
 const operador = estado.operadoresQueseria.find(o => (o.usuario || '').toLowerCase() === usuario && o.clave === clave);
 if (operador){
@@ -7925,14 +8044,9 @@ establecerValor('login-usuario', ''); establecerValor('login-clave', '');
 document.getElementById('screen-login').classList.remove('active');
 document.getElementById('app-quesera').classList.remove('hidden');
 entrarQueseriaComo(operador.id, operador.nombre);
-return;
+return true;
 }
-mostrarToast((primeraCargaGlobalHecha || hayIndiceLocal) ? tr('login_seleccion_rol__usuario_o_contrasena_incorrectos') : tr('login_seleccion_rol__no_se_pudo_verificar_conexion'));
-} finally {
-if (boton) boton.disabled = false;
-if (spinnerBoton) spinnerBoton.classList.add('hidden');
-if (textoBoton) textoBoton.textContent = tr('login_seleccion_rol__iniciar_sesion_mayus');
-}
+return false;
 }
 // ---------- Olvidé mi contraseña / Registro de nueva cuenta ----------
 function abrirRecuperarContrasena(){ const m = document.getElementById('modal-recuperar-contrasena'); m.classList.remove('hidden'); m.style.display = 'flex'; }
@@ -8603,6 +8717,7 @@ estado.relojSimulado = null;
 estado.productor.suscripcion = { fechaAlta: hoyISO(), diasVigencia: 365, fechaVencimiento: sumarDiasISO(hoyISO(), 365) };
 document.getElementById('screen-login').classList.add('active');
 guardarEstadoLocal();
+renderCuentasGuardadas();
 }
 let historialPantallas = [];
 function irA(nombre){
