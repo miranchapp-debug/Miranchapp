@@ -10535,9 +10535,43 @@ return comprimirImagenDataUrl(dataUrl, maxAncho, calidad);
 // varios MB) podía agotar la memoria del navegador y cerrar la app de golpe,
 // sobre todo en celulares con poca RAM. 1600px de ancho conserva letra legible
 // para el OCR y sigue siendo una fracción del tamaño de la foto original.
+// Además se preprocesa a escala de grises con más contraste — el color y las
+// sombras de una foto tomada con celular (reflejos, luz pareja) confunden
+// mucho al lector de texto; en blanco y negro con más contraste, las letras
+// resaltan mejor contra el fondo y sube bastante la precisión de la lectura.
 async function comprimirParaOCR(archivo, maxAncho){
-try { return await comprimirArchivoImagen(archivo, maxAncho || 1600, 0.85); }
-catch(e){ console.warn('No se pudo comprimir la imagen para OCR, se intenta con el archivo original', e); return archivoADataUrl(archivo); }
+try {
+const comprimida = await comprimirArchivoImagen(archivo, maxAncho || 1600, 0.85);
+return await escalaDeGrisesConContraste(comprimida);
+} catch(e){ console.warn('No se pudo comprimir/preprocesar la imagen para OCR, se intenta con el archivo original', e); return archivoADataUrl(archivo); }
+}
+function escalaDeGrisesConContraste(dataUrl, contraste){
+contraste = contraste == null ? 45 : contraste;
+return new Promise((resolve, reject) => {
+const img = new Image();
+img.onload = () => {
+const canvas = document.createElement('canvas');
+canvas.width = img.width; canvas.height = img.height;
+const ctx = canvas.getContext('2d');
+ctx.drawImage(img, 0, 0);
+const datos = ctx.getImageData(0, 0, canvas.width, canvas.height);
+const px = datos.data;
+// El factor de contraste convierte un valor de -100 a 100 en la fórmula
+// estándar de ajuste de contraste sobre el punto medio (128).
+const factor = (259 * (contraste + 255)) / (255 * (259 - contraste));
+for (let i = 0; i < px.length; i += 4){
+// Escala de grises ponderada (percepción humana de luminancia).
+let gris = px[i] * 0.299 + px[i+1] * 0.587 + px[i+2] * 0.114;
+gris = factor * (gris - 128) + 128;
+gris = gris < 0 ? 0 : (gris > 255 ? 255 : gris);
+px[i] = px[i+1] = px[i+2] = gris;
+}
+ctx.putImageData(datos, 0, 0);
+resolve(canvas.toDataURL('image/jpeg', 0.9));
+};
+img.onerror = reject;
+img.src = dataUrl;
+});
 }
 // Sube una imagen ya comprimida a Firebase Storage bajo la ruta indicada y regresa
 // su downloadURL; si no hay conexión o Storage no está disponible, regresa la
@@ -16269,6 +16303,15 @@ mostrarToast('No se pudo obtener tu ubicación. Revisa los permisos.');
 // tiene) — en vez de eso, el productor toma la foto y dibuja con el dedo/mouse un
 // recuadro sobre la figura; se recorta esa parte y se guarda como imagen, lista
 // para usarse automáticamente donde se pida "fierro" en las pruebas de campo.
+// Compresión SIN preprocesar (sin escala de grises) — para todo lo que la
+// persona necesita VER y recortar a simple vista (como la figura del fierro),
+// que debe seguir a color; el preprocesamiento a blanco y negro con más
+// contraste (comprimirParaOCR) es solo para lo que va a LEER el OCR, nunca
+// para lo que la persona tiene que mirar y recortar con el dedo.
+async function comprimirParaRecorte(archivo, maxAncho){
+try { return await comprimirArchivoImagen(archivo, maxAncho || 1800, 0.88); }
+catch(e){ console.warn('No se pudo comprimir la imagen para recorte, se intenta con el archivo original', e); return archivoADataUrl(archivo); }
+}
 const RECORTE_FIERRO_ESTADO = {};
 function cargarFotoParaRecorteFierro(inputEl, prefijo){
 const archivo = inputEl.files && inputEl.files[0];
@@ -16277,8 +16320,8 @@ inputEl.value = '';
 // Misma corrección que en "Alta rápida por escaneo": se comprime la foto antes
 // de cargarla al recorte, en vez de decodificar la original a resolución
 // completa — evita que el navegador se quede sin memoria y recargue la página
-// de golpe en celulares con poca RAM.
-comprimirParaOCR(archivo, 1800).then(dataUrlComprimido => {
+// de golpe en celulares con poca RAM. A COLOR (no la versión para OCR).
+comprimirParaRecorte(archivo, 1800).then(dataUrlComprimido => {
 const img = new Image();
 img.onload = () => {
 const canvas = document.getElementById(prefijo + '-fierro-canvas');
@@ -16584,13 +16627,21 @@ return m ? m[0] : '';
 }
 function extraerTrasEtiqueta(texto, etiquetas){
 const lineas = texto.split(/\n+/).map(l => l.trim()).filter(Boolean);
+// Las etiquetas se revisan de la más larga a la más corta: por ejemplo, si se
+// busca "ACTIVIDAD" y también "TIPO DE ACTIVIDAD", antes se topaba primero con
+// "ACTIVIDAD" (que también está contenida dentro de "TIPO DE ACTIVIDAD") y
+// cortaba mal el texto, dejando basura como "TIPO DE : GANADERO" en vez de
+// "GANADERO". Al revisar primero la etiqueta más larga y específica, esto ya
+// no pasa. Mismo problema existía con "PREDIO"/"NOMBRE DEL PREDIO" y con
+// "FINALIDAD"/"FINALIDAD ZOOTÉCNICA".
+const etiquetasOrdenadas = [...etiquetas].sort((a, b) => b.length - a.length);
 for (let i = 0; i < lineas.length; i++){
 const mayus = lineas[i].toUpperCase();
-for (const etq of etiquetas){
+for (const etq of etiquetasOrdenadas){
 if (mayus.includes(etq)){
 const resto = lineas[i].replace(new RegExp(etq, 'i'), '').replace(/^[:\s.-]+/, '').trim();
 if (resto && resto.length > 1) return resto;
-if (lineas[i+1] && !etiquetas.some(e => lineas[i+1].toUpperCase().includes(e))) return lineas[i+1].trim();
+if (lineas[i+1] && !etiquetasOrdenadas.some(e => lineas[i+1].toUpperCase().includes(e))) return lineas[i+1].trim();
 }
 }
 }
@@ -16645,9 +16696,10 @@ if (!archivo){ mostrarToast('Primero toma la foto del reverso de la credencial')
 // después de la delantera y después de correr el OCR sobre ella, era la que más
 // memoria acumulada tenía en ese momento y la que más frecuentemente hacía que
 // el navegador recargara la página de golpe (lo que se sentía como "me saca de
-// la cuenta"). Ahora se comprime primero (igual que ya hace el OCR) — sigue
-// siendo grande de sobra para recortar bien la figura del fierro a mano.
-comprimirParaOCR(archivo, 1800).then(dataUrlComprimido => {
+// la cuenta"). Ahora se comprime primero, a color (no la versión en blanco y
+// negro que usa el OCR) — sigue siendo grande de sobra para recortar bien la
+// figura del fierro a mano.
+comprimirParaRecorte(archivo, 1800).then(dataUrlComprimido => {
 const img = new Image();
 img.onload = () => {
 document.getElementById('esc-fierro-recorte-cont').classList.remove('hidden');
