@@ -1519,13 +1519,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <main class="flex-1 overflow-y-auto pb-28">
 <!-- ---------- HOME ADMIN ---------- -->
 <div class="screen active px-5 py-6 space-y-6" id="screen-admin-home">
-<div class="flex items-center justify-between bg-white rounded-2xl p-3" id="fila-switch-modo-vet" style="border:2px solid var(--line);">
-<span class="text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-user-doctor" style="color:var(--purple);"></i><span data-i18n="inicio_administrador__modo_veterinario_solo_salud">Modo veterinario (solo salud)</span></span>
-<label class="switch">
-<input id="switch-modo-vet" onchange="toggleModoVeterinario(this.checked)" type="checkbox"/>
-<span class="switch-slider"></span>
-</label>
-</div>
 <div class="grid grid-cols-2 gap-4" id="grid-admin-home"></div>
 <button class="w-full btn-primario-plano" id="btn-metricas-admin" onclick="irAdmin('metricas')" style="background:var(--purple);">
 <i class="fa-solid fa-chart-pie"></i><span data-i18n="metricas_admin__metricas_de_interaccion">Métricas de Interacción</span>
@@ -2637,7 +2630,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="space-y-1" id="reportes-tabla"></div>
 </div>
 </div>
-<!-- ---------- MÉTRICAS DE INTERACCIÓN (ADMIN) ---------- -->
+<!-- ---------- MÉTRICAS DE INTERACCIÓN (solo administrador general — NUNCA para la cuenta del comité) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-admin-metricas">
 <button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold" data-i18n="metricas_admin__metricas_de_interaccion">Métricas de Interacción</h2>
@@ -2971,7 +2964,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <!-- ============================================================ -->
 <!-- ============ FAB GLOBAL: COMANDOS DE VOZ ============ -->
 <!-- ============================================================ -->
-<button aria-label="Comando de voz" id="fab-comando-voz" onclick="alternarComandoVoz()" style="position:fixed; right:16px; bottom:16px; z-index:9999; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease;">
+<button aria-label="Comando de voz" class="hidden" id="fab-comando-voz" onclick="alternarComandoVoz()" style="position:fixed; left:16px; bottom:78px; z-index:9999; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease;">
 <span id="fab-voz-anillo" style="position:absolute; inset:-6px; border-radius:999px; border:3px solid var(--red); opacity:0; pointer-events:none;"></span>
 <i class="fa-solid fa-microphone" id="fab-voz-icono"></i>
 </button>
@@ -7772,6 +7765,16 @@ return usuario;
 function guardarEstadoLocal(){
 if (guardadoLocalPendiente) clearTimeout(guardadoLocalPendiente);
 guardadoLocalPendiente = setTimeout(() => {
+// Se libera la bandera ANTES de hacer nada más: esta variable solo debe
+// indicar "hay un guardado en espera todavía sin disparar" (para no aplicar
+// una actualización remota vieja encima de un cambio local que aún no se
+// mandó). Antes nunca se limpiaba de vuelta a null una vez que el temporizador
+// disparaba — eso dejaba a la app "sorda" a cualquier actualización nueva de
+// Firebase para el resto de la sesión después del primer guardado (el listener
+// de `firebaseEscucharGlobal` se salía siempre por esta bandera, sin importar
+// que ya no hubiera nada pendiente) — causaba que cuentas creadas en otro
+// dispositivo/sesión nunca se vieran reflejadas, aunque si llegaran a Firebase.
+guardadoLocalPendiente = null;
 try {
 localStorage.setItem(CLAVE_ALMACENAMIENTO_LOCAL, JSON.stringify(estado));
 if (aplicandoCambioRemoto){ actualizarBadgeSincronizacion(); return; }
@@ -8229,6 +8232,8 @@ function mostrarPantallaLogin(){
 document.getElementById('screen-tipo-ganado').classList.remove('active');
 document.getElementById('screen-login').classList.add('active');
 renderCuentasGuardadas();
+const fabVoz = document.getElementById('fab-comando-voz');
+if (fabVoz) fabVoz.classList.add('hidden');
 }
 function alternarVerContrasenaLogin(){
 const campo = document.getElementById('login-clave');
@@ -8262,6 +8267,8 @@ document.getElementById('screen-login').classList.remove('active');
 document.getElementById('app-productor').classList.toggle('hidden', rol !== 'productor');
 document.getElementById('app-admin').classList.toggle('hidden', rol !== 'admin');
 estado.rolActual = rol;
+const fabVoz = document.getElementById('fab-comando-voz');
+if (fabVoz) fabVoz.classList.remove('hidden');
 if (rol === 'productor') { renderTodoProductor(); verificarVigenciaProductor(); setTimeout(revisarAlertasMoonitor, 1200); actualizarBadgeChatProductor(); }
 else { renderTodoAdmin(); irAdmin(quiereAbrirChatDirecto ? 'mensajes' : 'home'); revisarMensajesProgramadosDebidos(); setInterval(revisarMensajesProgramadosDebidos, 60000); actualizarBadgeChatAdmin(); }
 }
@@ -9147,6 +9154,8 @@ estado.productor.suscripcion = { fechaAlta: hoyISO(), diasVigencia: 365, fechaVe
 document.getElementById('screen-login').classList.add('active');
 guardarEstadoLocal();
 renderCuentasGuardadas();
+const fabVoz = document.getElementById('fab-comando-voz');
+if (fabVoz) fabVoz.classList.add('hidden');
 }
 let historialPantallas = [];
 function irA(nombre){
@@ -11899,15 +11908,6 @@ actualizarBadgeNotificaciones();
 actualizarBannerConexion();
 renderModulo();
 }
-function toggleModoVeterinario(val){
-estado.modoVeterinario = val;
-renderGridAdminHome();
-const cajaResumen = document.getElementById('caja-resumen-admin');
-const tileInfo = document.getElementById('tile-info-general');
-if (cajaResumen) cajaResumen.classList.toggle('hidden', val);
-if (tileInfo) tileInfo.classList.toggle('hidden', val);
-mostrarToast(val ? tr('modo_veterinario__modo_veterinario_activado_solo_ver') : tr('modo_veterinario__modo_veterinario_desactivado'));
-}
 function renderGridAdminHome(){
 const cont = document.getElementById('grid-admin-home');
 if (!cont) return;
@@ -12030,15 +12030,21 @@ function veterinarioActivo(){
 return estado.veterinarios.find(v => v.id === estado.veterinarioActivoId) || null;
 }
 function aplicarVistaSegunRol(){
-const filaSwitch = document.getElementById('fila-switch-modo-vet');
-const btnMetricas = document.getElementById('btn-metricas-admin');
 const btnMas = document.getElementById('btn-mas-admin');
+const btnMetricas = document.getElementById('btn-metricas-admin');
 const subtitulo = document.getElementById('subtitulo-panel-admin');
 const btnPerfilVet = document.getElementById('btn-perfil-vet');
 const esVet = !!estado.vistaVeterinario;
-if (filaSwitch) filaSwitch.classList.toggle('hidden', esVet);
-if (btnMetricas) btnMetricas.classList.toggle('hidden', esVet);
 if (btnMas) btnMas.classList.toggle('hidden', esVet);
+// Métricas de Interacción es SOLO para la cuenta de administrador general
+// (Luis) — nunca para la cuenta del comité (comitedgo/tv1, que se le da a
+// personal externo sin relación con la programación/diseño de la app) ni
+// para ningún otro rol (capturista, almita, veterinario, médico TB, etc.).
+// Se oculta apenas se detecta cualquier bandera de rol que NO sea el admin
+// puro, sin importar por cuál entraron.
+const esAdminGeneral = !esVet && !estado.modoComite && !estado.modoCapturista && !estado.modoAlmita
+&& !estado.modoMedicoCampoTB && !estado.modoCapturistaTB && !estado.modoTrabajador;
+if (btnMetricas) btnMetricas.classList.toggle('hidden', !esAdminGeneral);
 if (btnPerfilVet) btnPerfilVet.classList.toggle('hidden', !esVet);
 if (subtitulo) subtitulo.textContent = esVet ? (veterinarioActivo() ? veterinarioActivo().nombre + ' · MVZ' : 'MVZ') : 'Panel de administrador';
 document.querySelectorAll('#navbar-admin .navbar-item').forEach(btn => {
@@ -15822,7 +15828,7 @@ contTabla.innerHTML = filasTabla.length === 0
 </div>`).join('');
 }
 }
-// ================= MÉTRICAS DE INTERACCIÓN (admin) =================
+// ================= MÉTRICAS DE INTERACCIÓN (solo admin general, nunca comité) =================
 let graficasMetricas = {};
 function dibujarGraficaCircular(idCanvas, etiquetas, valores, colores){
 const canvas = document.getElementById(idCanvas);
@@ -15913,7 +15919,6 @@ renderTogglesCampos();
 renderTogglesVentanasExtra();
 renderListaBanners();
 renderListaPredios();
-if (document.getElementById('switch-modo-vet')) document.getElementById('switch-modo-vet').checked = estado.modoVeterinario;
 renderGridAdminHome();
 const cajaResumen = document.getElementById('caja-resumen-admin');
 const tileInfo = document.getElementById('tile-info-general');
