@@ -9,6 +9,7 @@
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
@@ -872,7 +873,19 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <span class="tile-texto">Solicitud de aretes</span>
 <span class="tile-icono-grande"><i class="fa-solid fa-tags"></i></span>
 </button>
+<button class="tile-btn" onclick="irA('bitacoravoz')" style="background:var(--pine); --tile-color:var(--pine); position:relative;">
+<span class="tile-texto">Historial de comandos de voz</span>
+<span class="tile-icono-grande"><i class="fa-solid fa-microphone-lines"></i></span>
+</button>
 <div class="space-y-2" id="grid-menu-mas"></div>
+</div>
+<!-- ---------- BITÁCORA DE COMANDOS DE VOZ ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-bitacoravoz">
+<button class="btn-volver" onclick="volverAtras('mas')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold">Historial de comandos de voz</h2>
+<p class="text-sm" style="color:var(--sage);">Qué dijiste y qué hizo la app con cada comando — para revisar tú mismo si algo se está entendiendo mal.</p>
+<button class="w-full text-xs font-bold py-2 rounded-full" onclick="limpiarBitacoraVoz()" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button"><i class="fa-solid fa-trash"></i> Borrar historial</button>
+<div class="space-y-2" id="lista-bitacora-voz"></div>
 </div>
 <!-- ---------- PRUEBAS DE CAMPO COMPARTIDAS (PRODUCTOR) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-pruebascampoproductor">
@@ -2955,6 +2968,41 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </div>
 </div>
+<!-- ============================================================ -->
+<!-- ============ FAB GLOBAL: COMANDOS DE VOZ ============ -->
+<!-- ============================================================ -->
+<button aria-label="Comando de voz" id="fab-comando-voz" onclick="alternarComandoVoz()" style="position:fixed; right:16px; bottom:16px; z-index:9999; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease;">
+<span id="fab-voz-anillo" style="position:absolute; inset:-6px; border-radius:999px; border:3px solid var(--red); opacity:0; pointer-events:none;"></span>
+<i class="fa-solid fa-microphone" id="fab-voz-icono"></i>
+</button>
+<!-- ---- Confirmación antes de guardar un comando de voz en segundo plano ---- -->
+<div class="hidden" id="modal-confirmar-voz" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9998; align-items:flex-end;">
+<div class="w-full bg-white rounded-t-3xl p-5 space-y-3">
+<div class="flex items-center gap-2">
+<i class="fa-solid fa-microphone-lines text-xl" style="color:var(--pine);"></i>
+<h3 class="font-display text-lg font-bold">¿Guardo esto?</h3>
+</div>
+<p class="text-sm" id="texto-confirmar-voz" style="color:var(--ink);"></p>
+<p class="text-xs italic rounded-xl px-3 py-2" id="texto-crudo-confirmar-voz" style="background:var(--parchment); color:var(--sage);"></p>
+<p class="text-xs" style="color:var(--sage);">Puedes decir "sí" o "no", o tocar un botón.</p>
+<div class="grid grid-cols-2 gap-2 pt-2">
+<button class="text-xs font-bold py-3 rounded-full" onclick="responderConfirmacionVoz(false)" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button"><i class="fa-solid fa-xmark"></i> No, cancelar</button>
+<button class="text-xs font-bold py-3 rounded-full" onclick="responderConfirmacionVoz(true)" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-check"></i> Sí, guardar</button>
+</div>
+</div>
+</div>
+<style>
+@keyframes miranchapp-anillo-voz{
+0%{ transform:scale(0.9); opacity:.9; }
+70%{ transform:scale(1.35); opacity:0; }
+100%{ transform:scale(1.35); opacity:0; }
+}
+#fab-voz-anillo.escuchando{ animation:miranchapp-anillo-voz 1.1s ease-out infinite; opacity:1; }
+#fab-comando-voz.voz-escuchando{ background:var(--red); }
+#fab-comando-voz.voz-exito{ background:var(--green); }
+#fab-comando-voz.voz-error{ background:var(--slate); }
+#fab-comando-voz:active{ transform:scale(0.93); }
+</style>
 <!-- ============================================================ -->
 <!-- ============ WIDGET: MOO-NITOR (asistente flotante) ============ -->
 <!-- ============================================================ -->
@@ -7380,6 +7428,7 @@ estado.modoMedicoCampoTB = false;
 estado.medicoComiteActivoId = null;
 estado.modoCapturistaTB = false;
 estado.modoComite = false;
+estado.bitacoraVoz = [];
 estado.moonitor = { imagenDefault: null, imagenCarne: null, imagenLeche: null, recordatorioCompartirActivo: false, diaRecordatorioCompartir: 1, ultimoRecordatorioCompartir: null, sonidoActivado: true };
 const HATO_DEMO = estado.animales;
 const SALUD_DEMO = estado.salud;
@@ -7599,6 +7648,7 @@ if (typeof estado.modoMedicoCampoTB !== 'boolean') estado.modoMedicoCampoTB = fa
 if (!('medicoComiteActivoId' in estado)) estado.medicoComiteActivoId = null;
 if (typeof estado.modoCapturistaTB !== 'boolean') estado.modoCapturistaTB = false;
 if (typeof estado.modoComite !== 'boolean') estado.modoComite = false;
+if (!Array.isArray(estado.bitacoraVoz)) estado.bitacoraVoz = [];
 if (!Array.isArray(estado.enviosAlmita)) estado.enviosAlmita = [];
 if (!Array.isArray(estado.solicitudesCEFPPVet)) estado.solicitudesCEFPPVet = [];
 if (!Array.isArray(estado.historialImpresiones)) estado.historialImpresiones = [];
@@ -7786,6 +7836,65 @@ console.error('Promesa rechazada sin capturar en Mi RanchApp:', evento.reason);
 liberarBotonLoginSiSeQuedoColgado();
 });
 cargarEstadoLocal();
+// ================= CUENTAS DE PRUEBA (una sola vez, a pedido de Luis) =================
+// Crea las 8 cuentas de prueba con contraseña simple "123456" para probar
+// cada rol rápido — corre UNA sola vez por dispositivo (usa una bandera en
+// localStorage para no duplicar cuentas cada vez que se recarga la app).
+function crearCuentasDePruebaSiHaceFalta(){
+try { if (localStorage.getItem('miRanchAppCuentasPruebaCreadas') === 'v1') return; } catch(e){}
+const CLAVE_PRUEBA = '123456';
+function usuarioLibre(usuario){ return !existeUsuarioDuplicado(usuario); }
+// 1) TV1 — acceso alterno a la Ventana del comité (TB), además de "comitedgo".
+// (No se crea como usuario normal porque ese rol usa una credencial fija
+// especial — se agrega como una segunda combinación reconocida más abajo,
+// en intentarLoginConEstadoActual.)
+// 2) Capturista general
+if (usuarioLibre('capturista1')){
+estado.usuarios.push({ nombre: 'Capturista de prueba 1', usuario: 'capturista1', clave: CLAVE_PRUEBA, rol: 'capturista' });
+}
+// 3) Emisora de solicitudes (almita) — Luis pidió el nombre "capturista2" para este rol
+if (usuarioLibre('capturista2')){
+estado.usuarios.push({ nombre: 'Emisora de solicitudes de prueba', usuario: 'capturista2', clave: CLAVE_PRUEBA, rol: 'almita' });
+}
+// 4) Productor de leche
+if (!estado.cuentasProductores.some(c => (c.usuario || '') === 'lechero1')){
+const fechaAlta = hoyISO();
+estado.cuentasProductores.push({
+id: 'cta_prueba_lechero1', nombre: 'Productor Lechero de Prueba', predio: 'Predio Lechero Demo', upp: 'UPP-LECHE-001',
+tipo: 'leche', telefono: '5550000001', ip: '', usuario: 'lechero1', clave: CLAVE_PRUEBA, fechaAlta,
+suscripcion: { diasVigencia: 365, fechaVencimiento: sumarDiasISO(fechaAlta, 365) },
+hato: [], salud: [], pesajes: [], reproduccion: [],
+});
+estado.usuarios.push({ nombre: 'Productor Lechero de Prueba (Productor)', usuario: 'lechero1', clave: CLAVE_PRUEBA, rol: 'productor' });
+}
+// 5) Productor de carne
+if (!estado.cuentasProductores.some(c => (c.usuario || '') === 'carne1')){
+const fechaAlta = hoyISO();
+estado.cuentasProductores.push({
+id: 'cta_prueba_carne1', nombre: 'Productor de Carne de Prueba', predio: 'Predio Carne Demo', upp: 'UPP-CARNE-001',
+tipo: 'carne', telefono: '5550000002', ip: '', usuario: 'carne1', clave: CLAVE_PRUEBA, fechaAlta,
+suscripcion: { diasVigencia: 365, fechaVencimiento: sumarDiasISO(fechaAlta, 365) },
+hato: [], salud: [], pesajes: [], reproduccion: [],
+});
+estado.usuarios.push({ nombre: 'Productor de Carne de Prueba (Productor)', usuario: 'carne1', clave: CLAVE_PRUEBA, rol: 'productor' });
+}
+// 6) Veterinario de campo (rol general, pruebas de campo TB/Brucelosis normales)
+if (usuarioLibre('veterinario1')){
+estado.veterinarios.push({
+id: 'vet_prueba_1', nombre: 'Veterinario de Prueba 1', cedula: '00000001', telefono: '5550000003', residencia: '',
+usuario: 'veterinario1', clave: CLAVE_PRUEBA, fechaAlta: hoyISO(), especialidad: '', descripcion: '', foto: null, zonaAtencion: [], notas: [],
+});
+estado.usuarios.push({ nombre: 'Veterinario de Prueba 1 (MVZ)', usuario: 'veterinario1', clave: CLAVE_PRUEBA, rol: 'veterinario' });
+}
+// 7) Médico de campo TB (asignado por el comité para pruebas cervicales comparativas)
+if (usuarioLibre('veterinario2')){
+estado.medicosComiteTB.push({ id: 'tbm_prueba_1', nombre: 'Veterinario de Prueba 2 (Médico TB)', cedula: '00000002', claveMvz: '', vigencia: '', telefono: '5550000004', usuario: 'veterinario2', clave: CLAVE_PRUEBA });
+estado.usuarios.push({ nombre: 'Veterinario de Prueba 2 (Médico de campo TB)', usuario: 'veterinario2', clave: CLAVE_PRUEBA, rol: 'medico_campo_tb' });
+}
+guardarEstadoLocal();
+try { localStorage.setItem('miRanchAppCuentasPruebaCreadas', 'v1'); } catch(e){}
+}
+crearCuentasDePruebaSiHaceFalta();
 // Antes, si el navegador recargaba la página a medio uso (algo común en celulares
 // cuando la cámara nativa toma el control para tomar una foto — el sistema puede
 // descargar la pestaña de memoria y al volver la recarga desde cero), la persona
@@ -8227,6 +8336,15 @@ function intentarLoginConEstadoActual(usuario, clave){
 // usuarios ni por aprobación, es una credencial compartida de acceso directo
 // a todas las ventanas del comité (TB, reportes, informe general).
 if (usuario === 'comitedgo' && clave === 'comitedgo'){
+establecerValor('login-usuario', ''); establecerValor('login-clave', '');
+estado.modoComite = true;
+mostrarApp('admin');
+registrarEvento('login', 'comite');
+return true;
+}
+// 0.5) Acceso alterno de prueba a la misma Ventana del comité — "tv1"/"123456",
+// pedido por Luis para probar cada rol con contraseñas simples.
+if (usuario === 'tv1' && clave === '123456'){
 establecerValor('login-usuario', ''); establecerValor('login-clave', '');
 estado.modoComite = true;
 mostrarApp('admin');
@@ -9066,6 +9184,7 @@ if (nombre === 'transferencias') renderSolicitudesTransferencia();
 if (nombre === 'pruebascampoproductor') renderPruebasCampoCompartidas();
 if (nombre === 'solicitudaretes') renderSolicitudAretesProductor();
 if (nombre === 'trabajadores') renderListaTrabajadores();
+if (nombre === 'bitacoravoz') renderBitacoraVoz();
 if (nombre === 'home') renderTiles();
 const fabChatProd = document.getElementById('btn-chat-flotante-productor');
 const fabMasProd = document.querySelector('#app-productor button[onclick="toggleFab()"]');
@@ -17595,6 +17714,615 @@ bannerNotificacionTimeout = setTimeout(() => {
 banner.classList.remove('mostrar');
 banner.classList.add('ocultar');
 }, duracionMs || 3500);
+}
+// ============================================================
+// ===== SISTEMA GLOBAL DE COMANDOS DE VOZ (Web Speech API) =====
+// ============================================================
+// IMPORTANTE — límites reales de esta tecnología (léase antes de tocar nada):
+// 1) NO es offline de verdad: SpeechRecognition en la gran mayoría de
+//    navegadores (Chrome incluido) manda el audio a servidores de Google para
+//    reconocerlo — funciona sin costo y sin API key propia, pero necesita
+//    internet en el momento de dictar.
+// 2) Plautdietsch no es un idioma que ningún motor de voz reconozca de forma
+//    nativa. Aquí se usa el reconocedor en alemán estándar (de-DE) como base y
+//    se traduce por un diccionario fonético — es un mejor-esfuerzo, no una
+//    solución exacta: el alemán estándar va a "enderezar" palabras del
+//    dialecto a su aproximación más cercana, y el diccionario de abajo
+//    necesita que alguien que hable el dialecto lo revise y lo amplíe.
+const CONFIG_VOZ = {
+idiomaReconocimiento: 'es-MX', // cambiar a 'de-DE' con activarModoPlautdietschVoz()
+};
+function activarModoPlautdietschVoz(activar){
+CONFIG_VOZ.idiomaReconocimiento = activar ? 'de-DE' : 'es-MX';
+try { localStorage.setItem('miRanchAppVozIdioma', CONFIG_VOZ.idiomaReconocimiento); } catch(e){}
+}
+try {
+const guardado = localStorage.getItem('miRanchAppVozIdioma');
+if (guardado) CONFIG_VOZ.idiomaReconocimiento = guardado;
+} catch(e){}
+
+// ---- Tono auditivo corto al empezar a escuchar (Web Audio API) ----
+let vozAudioCtx = null;
+function tonoInicioEscucha(){
+try {
+if (!vozAudioCtx) vozAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const ctx = vozAudioCtx;
+if (ctx.state === 'suspended') ctx.resume();
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(880, ctx.currentTime);
+gain.gain.setValueAtTime(0, ctx.currentTime);
+gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.18);
+osc.connect(gain); gain.connect(ctx.destination);
+osc.start(); osc.stop(ctx.currentTime + 0.2);
+} catch(e){}
+}
+
+// ---- Texto a voz (confirmación / error / instrucciones) ----
+function decirEnVoz(texto){
+try {
+if (!('speechSynthesis' in window)) return;
+const u = new SpeechSynthesisUtterance(texto);
+u.lang = CONFIG_VOZ.idiomaReconocimiento === 'de-DE' ? 'de-DE' : 'es-MX';
+u.rate = 1;
+window.speechSynthesis.cancel();
+window.speechSynthesis.speak(u);
+} catch(e){}
+}
+
+// ---- Estados visuales del botón ----
+function estadoVisualVoz(estadoNuevo){
+const boton = document.getElementById('fab-comando-voz');
+const icono = document.getElementById('fab-voz-icono');
+const anillo = document.getElementById('fab-voz-anillo');
+if (!boton) return;
+boton.classList.remove('voz-escuchando', 'voz-exito', 'voz-error');
+anillo.classList.remove('escuchando');
+if (estadoNuevo === 'escuchando'){
+boton.classList.add('voz-escuchando');
+anillo.classList.add('escuchando');
+icono.className = 'fa-solid fa-microphone-lines';
+} else if (estadoNuevo === 'procesando'){
+icono.className = 'fa-solid fa-circle-notch fa-spin';
+} else if (estadoNuevo === 'exito'){
+boton.classList.add('voz-exito');
+icono.className = 'fa-solid fa-check';
+setTimeout(() => estadoVisualVoz('inactivo'), 1600);
+} else if (estadoNuevo === 'error'){
+boton.classList.add('voz-error');
+icono.className = 'fa-solid fa-triangle-exclamation';
+setTimeout(() => estadoVisualVoz('inactivo'), 1600);
+} else {
+icono.className = 'fa-solid fa-microphone';
+}
+}
+
+// ---- Reconocimiento de voz ----
+let reconocimientoVozActivo = null;
+function alternarComandoVoz(){
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR){ mostrarToast('Este navegador no tiene reconocimiento de voz disponible'); return; }
+if (reconocimientoVozActivo){ reconocimientoVozActivo.stop(); return; }
+const rec = new SR();
+rec.lang = CONFIG_VOZ.idiomaReconocimiento;
+rec.continuous = false;
+rec.interimResults = false;
+rec.maxAlternatives = 1;
+reconocimientoVozActivo = rec;
+rec.onstart = () => { estadoVisualVoz('escuchando'); tonoInicioEscucha(); };
+rec.onresult = evt => {
+const texto = evt.results[0][0].transcript || '';
+estadoVisualVoz('procesando');
+procesarComandoVoz(texto);
+};
+rec.onerror = evt => {
+estadoVisualVoz('error');
+if (evt.error === 'no-speech') mostrarToast('No se escuchó nada — inténtalo de nuevo');
+else if (evt.error === 'not-allowed' || evt.error === 'permission-denied') mostrarToast('Falta permiso del micrófono — actívalo en los ajustes del navegador');
+else mostrarToast('No se pudo usar el micrófono — revisa tu conexión e inténtalo de nuevo');
+};
+rec.onend = () => { reconocimientoVozActivo = null; };
+try { rec.start(); } catch(e){ estadoVisualVoz('error'); reconocimientoVozActivo = null; }
+}
+
+// ---- Diccionario fonético Plautdietsch → palabras clave internas ----
+// Base de arranque, revisada por Luis según su comunidad — el reconocedor
+// alemán (de-DE) va a "enderezar" el dialecto a su aproximación más cercana en
+// alemán estándar, así que aquí se mapean tanto formas en Plautdietsch como en
+// alemán estándar hacia las mismas palabras clave en español que usa el parser.
+const DICCIONARIO_PLAUTDIETSCH = {
+// acciones
+'wajcht': 'peso', 'gewicht': 'peso', 'wieren': 'peso',
+'kult': 'vacuna', 'sprute': 'vacuna', 'medizin': 'tratamiento',
+'schluv': 'potrero', 'weid': 'potrero', 'wees': 'potrero',
+'foul': 'parto', 'jeborne': 'nacimiento', 'geburt': 'nacimiento',
+// sexo de la cría
+'faarsch': 'hembra', 'kuh': 'hembra', 'wajefe': 'hembra',
+'boll': 'macho', 'oss': 'macho', 'stea': 'macho',
+// unidades
+'kilo': 'kilos', 'kilogramm': 'kilos',
+// dígitos en alemán (para cuando el número se dicta en palabras)
+'null':'0','eins':'1','ein':'1','eine':'1','zwei':'2','drei':'3','vier':'4','fünf':'5','funf':'5',
+'sechs':'6','sieben':'7','acht':'8','neun':'9','zehn':'10',
+'elf':'11','zwölf':'12','zwolf':'12','dreizehn':'13','vierzehn':'14','fünfzehn':'15','funfzehn':'15',
+'sechzehn':'16','siebzehn':'17','achtzehn':'18','neunzehn':'19','zwanzig':'20',
+'dreißig':'30','dreissig':'30','vierzig':'40','fünfzig':'50','funfzig':'50',
+'sechzig':'60','siebzig':'70','achtzig':'80','neunzig':'90','hundert':'100',
+};
+function traducirDesdePlautdietsch(texto){
+let palabras = texto.toLowerCase().split(/\s+/);
+palabras = palabras.map(p => DICCIONARIO_PLAUTDIETSCH[p] || p);
+return palabras.join(' ');
+}
+
+// ---- Números dictados como palabras ("cuatrocientos cincuenta" -> "450") ----
+// Google suele transcribir los números que se dictan como dígitos, pero no
+// siempre — sobre todo con números compuestos dichos rápido o con acento
+// marcado. Este conversor cubre 0-999, que es más que suficiente para arete y
+// kilos en un rancho.
+const UNIDADES_ES = {'cero':0,'uno':1,'un':1,'una':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,'siete':7,'ocho':8,'nueve':9,
+'diez':10,'once':11,'doce':12,'trece':13,'catorce':14,'quince':15,
+'dieciseis':16,'dieciséis':16,'diecisiete':17,'dieciocho':18,'diecinueve':19,'veinte':20,
+'veintiuno':21,'veintiún':21,'veintidos':22,'veintidós':22,'veintitres':23,'veintitrés':23,'veinticuatro':24,'veinticinco':25,
+'veintiseis':26,'veintiséis':26,'veintisiete':27,'veintiocho':28,'veintinueve':29};
+const DECENAS_ES = {'treinta':30,'cuarenta':40,'cincuenta':50,'sesenta':60,'setenta':70,'ochenta':80,'noventa':90};
+const CENTENAS_ES = {'cien':100,'ciento':100,'doscientos':200,'doscientas':200,'trescientos':300,'trescientas':300,
+'cuatrocientos':400,'cuatrocientas':400,'quinientos':500,'quinientas':500,'seiscientos':600,'seiscientas':600,
+'setecientos':700,'setecientas':700,'ochocientos':800,'ochocientas':800,'novecientos':900,'novecientas':900};
+function convertirNumerosEspanolADigitos(texto){
+const tokens = texto.split(/\s+/);
+const resultado = [];
+let i = 0;
+while (i < tokens.length){
+const limpio = tokens[i].toLowerCase().replace(/[.,]/g, '');
+const esCentena = CENTENAS_ES[limpio] !== undefined;
+const esDecena = DECENAS_ES[limpio] !== undefined;
+const esUnidad = UNIDADES_ES[limpio] !== undefined;
+if (!esCentena && !esDecena && !esUnidad){ resultado.push(tokens[i]); i++; continue; }
+let valor = 0;
+if (esCentena){
+valor = CENTENAS_ES[limpio]; i++;
+let sig = tokens[i] ? tokens[i].toLowerCase().replace(/[.,]/g, '') : '';
+if (DECENAS_ES[sig] !== undefined){
+valor += DECENAS_ES[sig]; i++;
+sig = tokens[i] ? tokens[i].toLowerCase() : '';
+if (sig === 'y'){ i++; sig = tokens[i] ? tokens[i].toLowerCase().replace(/[.,]/g, '') : ''; }
+if (UNIDADES_ES[sig] !== undefined){ valor += UNIDADES_ES[sig]; i++; }
+} else if (UNIDADES_ES[sig] !== undefined){ valor += UNIDADES_ES[sig]; i++; }
+} else if (esDecena){
+valor = DECENAS_ES[limpio]; i++;
+let sig = tokens[i] ? tokens[i].toLowerCase() : '';
+if (sig === 'y'){ i++; sig = tokens[i] ? tokens[i].toLowerCase().replace(/[.,]/g, '') : ''; }
+sig = sig.replace(/[.,]/g, '');
+if (UNIDADES_ES[sig] !== undefined){ valor += UNIDADES_ES[sig]; i++; }
+} else {
+valor = UNIDADES_ES[limpio]; i++;
+}
+resultado.push(String(valor));
+}
+return resultado.join(' ');
+}
+
+// ---- Búsqueda difusa de nombres (productor/trabajador) con Fuse.js ----
+// Antes se buscaba coincidencia exacta de palabras del nombre contra la
+// frase dictada — fallaba seguido con acentos marcados o si el reconocedor de
+// voz transcribía el nombre un poco distinto. Fuse.js compara qué tan
+// PARECIDO es cada nombre real (no una coincidencia perfecta), probando
+// contra ventanas de 1 a 3 palabras de la frase dictada.
+function buscarPersonaFuzzy(texto, lista, obtenerNombre){
+if (!lista || lista.length === 0) return null;
+if (typeof Fuse === 'undefined'){
+// Respaldo si Fuse.js no cargó (sin conexión la primera vez, etc.):
+// coincidencia exacta de palabras, igual que antes.
+const textoNorm = texto.toLowerCase();
+let mejor = null, posicion = -1;
+lista.forEach(p => {
+const primerNombre = (obtenerNombre(p) || '').trim().split(/\s+/)[0];
+if (!primerNombre || primerNombre.length < 3) return;
+const idx = textoNorm.indexOf(primerNombre.toLowerCase());
+if (idx !== -1 && (posicion === -1 || idx < posicion)){ mejor = p; posicion = idx; }
+});
+return mejor ? { persona: mejor, posicion, largo: obtenerNombre(mejor).trim().split(/\s+/)[0].length } : null;
+}
+const items = lista.map(p => ({ ref: p, nombreNorm: (obtenerNombre(p) || '').toLowerCase() }));
+const fuse = new Fuse(items, { keys: ['nombreNorm'], threshold: 0.4, includeScore: true });
+const palabras = texto.toLowerCase().split(/\s+/);
+let mejor = null;
+for (let tam = 1; tam <= 3; tam++){
+for (let i = 0; i + tam <= palabras.length; i++){
+const ventana = palabras.slice(i, i + tam).join(' ');
+if (ventana.length < 3) continue;
+const resultados = fuse.search(ventana);
+if (resultados.length && (!mejor || resultados[0].score < mejor.score)){
+mejor = { item: resultados[0].item.ref, score: resultados[0].score, ventana };
+}
+}
+}
+if (!mejor || mejor.score > 0.4) return null;
+const posicion = texto.toLowerCase().indexOf(mejor.ventana);
+return { persona: mejor.item, posicion: posicion === -1 ? 0 : posicion, largo: mejor.ventana.length };
+}
+
+// ---- Parser de reglas (expresiones regulares) ----
+const REGLAS_COMANDO_VOZ = [
+{
+tipo: 'pesaje',
+patron: /\b(?:peso|pesaje|pes[oó])\b.*?(?:arete\s*)?(\d+)\D+(\d+(?:[.,]\d+)?)\s*(?:kilo|kilos|kg)/i,
+extraer: m => ({ arete: m[1], peso: parseFloat(m[2].replace(',', '.')) }),
+ejemplo: 'Peso arete 402 450 kilos',
+},
+{
+tipo: 'sanidad',
+patron: /\b(?:vacuna|vacunar|tratamiento|desparasit\w*)\b.*?(?:arete\s*)?(\d+)\s*(?:con|producto)?\s*(.+)/i,
+extraer: m => ({ arete: m[1], producto: m[2].trim() }),
+ejemplo: 'Vacuna arete 205 con Ivermectina',
+},
+{
+tipo: 'potrero',
+patron: /\b(?:mover|mueve|cambia|potrero)\b.*?(?:arete\s*)?(\d+)\D+(.+)/i,
+extraer: m => ({ arete: m[1], potrero: m[2].replace(/\b(al|a la|para el|para|potrero)\b/gi, '').trim() }),
+ejemplo: 'Mover arete 118 al potrero Norte',
+},
+{
+tipo: 'parto',
+patron: /\b(?:parto|nacimiento|pari[oó])\b.*?(?:arete\s*)?(\d+).*?\b(macho|hembra)\b/i,
+extraer: m => ({ areteMadre: m[1], sexo: m[2].toLowerCase() }),
+ejemplo: 'Parto arete madre 88 hembra',
+},
+];
+// ============================================================
+// ===== EXTRACTOR DE COMANDOS COMPLEJOS (pruebas de campo) =====
+// ============================================================
+// Esto NO es una inteligencia artificial que "entiende" cualquier frase — es
+// un extractor de entidades por reglas, especializado en el vocabulario del
+// módulo de pruebas de campo. Busca en la frase: productor (comparado contra
+// tus cuentas de productor reales), UPP, tipo de prueba (TB/Brucelosis) y
+// motivo — y si encuentra al menos el productor, prepara la pantalla de
+// "Nueva prueba" ya con todo lo que se entendió, lista para que confirmes y
+// sigas capturando animales — nunca guarda una prueba completa sola, porque
+// eso requiere ir agregando los animales uno por uno de cualquier forma.
+const PALABRAS_TIPO_PRUEBA_VOZ = [
+{ re: /\bbrucel[oó]sis\b/i, valor: 'Brucelosis' },
+{ re: /\btuberculin[ao]|\btuberculosis\b|\bT\.?B\.?\b/i, valor: 'TB' },
+];
+const PALABRAS_MOTIVO_VOZ = [
+{ re: /\bmovilizaci[oó]n\b/i, valor: 'Movilización' },
+{ re: /\bcuarentena\b/i, valor: 'Cuarentena definitiva' },
+{ re: /\bfin zoot[eé]cnico\b/i, valor: 'Fin zootécnico' },
+{ re: /\bdiagn[oó]stico\b/i, valor: 'Diagnóstico' },
+];
+function buscarProductorEnFrase(texto){
+// Compara la frase dictada contra los nombres/predios/UPP reales de tus
+// cuentas de productor — así "productor" no es una palabra suelta, sino un
+// dato de verdad que ya existe en tu base de datos.
+const textoNorm = texto.toLowerCase();
+const cuentas = (estado.cuentasProductores || []).filter(c => c.tipo !== 'punto');
+const porUpp = cuentas.find(c => c.upp && textoNorm.includes(c.upp.toLowerCase()));
+if (porUpp) return porUpp;
+const encontrado = buscarPersonaFuzzy(texto, cuentas, c => c.nombre);
+return encontrado ? encontrado.persona : null;
+}
+function interpretarComandoComplejoPruebaCampo(texto){
+// Palabras gatillo que indican "quiere iniciar/registrar una prueba" — si no
+// aparece ninguna, no es este tipo de comando y se deja pasar a las reglas
+// simples de abajo.
+if (!/\b(prueba|registra|registrar|inicia|iniciar|nueva prueba)\b/i.test(texto)) return null;
+if (!/\b(tuberculin[ao]|tuberculosis|brucel[oó]sis|\bT\.?B\.?\b)\b/i.test(texto)) return null;
+const productor = buscarProductorEnFrase(texto);
+if (!productor) return null; // sin poder identificar al productor, no se arriesga a adivinar
+const tipoPrueba = (PALABRAS_TIPO_PRUEBA_VOZ.find(p => p.re.test(texto)) || {}).valor || 'TB';
+const motivo = (PALABRAS_MOTIVO_VOZ.find(p => p.re.test(texto)) || {}).valor || null;
+const uppMatch = texto.match(/upp\s*[:\s]?\s*([a-z0-9-]{5,20})/i);
+return { tipo: 'prueba_campo_compleja', datos: { productor, tipoPrueba, motivo, uppMencionada: uppMatch ? uppMatch[1] : null }, textoOriginal: texto };
+}
+// ============================================================
+// ===== COMANDO: INDICACIÓN DE VOZ PARA UN TRABAJADOR =====
+// ============================================================
+// "Envíale a Jorge la indicación de checar los becerros del corral 25" /
+// "Dile a Jorge que revise la vaca 102435 recién parida" — el productor dicta
+// una indicación con el nombre de un trabajador YA registrado, y se manda
+// directo a la lista de tareas de ese trabajador (el mismo sistema de tareas
+// que ya existía en la app) — le aparece como cualquier tarea asignada, no es
+// un sistema aparte.
+function buscarTrabajadorEnFrase(texto){
+const lista = typeof trabajadoresDelAmbito === 'function' ? trabajadoresDelAmbito() : (estado.trabajadores || []);
+const encontrado = buscarPersonaFuzzy(texto, lista, t => t.nombre);
+if (!encontrado) return null;
+return { trabajador: encontrado.persona, posicion: encontrado.posicion, largoNombre: encontrado.largo };
+}
+function interpretarComandoTareaTrabajador(texto){
+if (!/\b(env[ií]a(le)?|manda(le)?|dile|ind[ií]ca(le)?|av[ií]sa(le)?)\b/i.test(texto)) return null;
+const encontrado = buscarTrabajadorEnFrase(texto);
+if (!encontrado) return null; // sin identificar a un trabajador real, no se arriesga a adivinar
+let instruccion = texto.slice(encontrado.posicion + encontrado.largoNombre);
+instruccion = instruccion.replace(/^[,\s]*(la indicaci[oó]n de|que|de)\s*/i, '').trim();
+if (!instruccion || instruccion.length < 4) return null;
+instruccion = instruccion.charAt(0).toUpperCase() + instruccion.slice(1);
+return { tipo: 'tarea_trabajador', datos: { trabajador: encontrado.trabajador, instruccion }, textoOriginal: texto };
+}
+function ejecutarComandoTareaTrabajador(datos){
+if (estado.modoTrabajador){
+mostrarToast('Esta función es solo para el productor, no para el trabajador');
+decirEnVoz('Solo el productor puede enviar indicaciones a los trabajadores.');
+return;
+}
+estado.tareas.unshift({ id:'k' + Date.now(), texto: datos.instruccion, asignadoA: datos.trabajador.id, fecha: hoyISO(), hecha:false, origen:'comando_voz' });
+guardarEstadoLocal();
+if (typeof renderListaTareasAdmin === 'function') renderListaTareasAdmin();
+mostrarBannerNotificacion(`Indicación enviada a ${datos.trabajador.nombre}`, 4000, 'fa-microphone');
+decirEnVoz(`Listo, se le envió la indicación a ${datos.trabajador.nombre}.`);
+}
+async function ejecutarComandoPruebaCampoComplejo(datos){
+if (!estado.modoVeterinario && !estado.vistaVeterinario){
+mostrarToast('Esta función es solo para el veterinario');
+decirEnVoz('Esta función solo está disponible con la sesión de veterinario abierta.');
+return;
+}
+irAdmin('pruebascampo');
+await new Promise(r => setTimeout(r, 150)); // deja que la pantalla termine de montarse
+abrirNuevaPruebaCampo('prueba');
+establecerValor('pc-tipo-prueba', datos.tipoPrueba);
+if (typeof actualizarCamposSegunTipoPrueba === 'function') actualizarCamposSegunTipoPrueba();
+if (datos.motivo) establecerValor('pc-motivo', datos.motivo);
+await seleccionarProductorParaPrueba(datos.productor.id);
+mostrarBannerNotificacion(`Prueba de ${datos.tipoPrueba} preparada para ${datos.productor.nombre} — revisa y agrega los animales`, 5000, 'fa-microphone');
+decirEnVoz(`Prueba de ${datos.tipoPrueba === 'TB' ? 'tuberculina' : 'brucelosis'} preparada para ${datos.productor.nombre}. Agrega los animales para continuar.`);
+}
+function interpretarComandoVoz(textoOriginal){
+let texto = textoOriginal.trim();
+// El diccionario de Plautdietsch se aplica SIEMPRE, sin importar el idioma de
+// reconocimiento configurado — así, si alguien mezcla español y Plautdietsch
+// en la misma frase (algo común en la comunidad), las palabras del dialecto
+// que se reconozcan en el diccionario se traducen igual, en vez de solo
+// funcionar cuando todo el reconocimiento está puesto en modo alemán.
+texto = traducirDesdePlautdietsch(texto);
+texto = convertirNumerosEspanolADigitos(texto);
+const complejo = interpretarComandoComplejoPruebaCampo(texto);
+if (complejo) return complejo;
+const tarea = interpretarComandoTareaTrabajador(texto);
+if (tarea) return tarea;
+for (const regla of REGLAS_COMANDO_VOZ){
+const m = texto.match(regla.patron);
+if (m) return { tipo: regla.tipo, datos: regla.extraer(m), textoOriginal };
+}
+return null;
+}
+
+// ---- Ejecución: llena un formulario activo, o guarda directo si no hay uno ----
+function hayFormularioActivoParaVoz(tipo){
+const mapaCampos = {
+pesaje: { pantalla: 'f-peso', arete: 'f-animal', valor: 'f-peso' },
+sanidad: { pantalla: 'f-producto', arete: 'f-animal', valor: 'f-producto' },
+potrero: { pantalla: 'f-potrero', arete: null, valor: 'f-potrero' },
+};
+const cfg = mapaCampos[tipo];
+if (!cfg) return null;
+const campo = document.getElementById(cfg.pantalla);
+// Se considera "activo" si el campo existe Y su pantalla está realmente visible.
+if (campo && campo.offsetParent !== null) return cfg;
+return null;
+}
+function dispararEventosCampo(el){
+el.dispatchEvent(new Event('input', { bubbles: true }));
+el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+function procesarComandoVoz(textoOriginal){
+const interpretado = interpretarComandoVoz(textoOriginal);
+if (!interpretado){
+estadoVisualVoz('error');
+mostrarToast('No se reconoció el comando — revisa el formato');
+decirEnVoz('No entendí ese comando. Por favor intenta de nuevo con el formato correcto.');
+registrarBitacoraVoz(textoOriginal, 'no_reconocido', '');
+return;
+}
+const { tipo, datos } = interpretado;
+// 0) Comando complejo de prueba de campo (productor + tipo de prueba +
+// motivo) — prepara la pantalla en vez de intentar guardar algo directo,
+// porque una prueba real necesita ir agregando animales uno por uno.
+if (tipo === 'prueba_campo_compleja'){
+estadoVisualVoz('exito');
+ejecutarComandoPruebaCampoComplejo(datos).catch(e => {
+console.error('Error al preparar la prueba por voz:', e);
+mostrarToast('No se pudo preparar la prueba — ábrela manualmente');
+});
+return;
+}
+// 0.5) Indicación por voz para un trabajador ya registrado — se confirma
+// antes de mandarla, para no arriesgarse a que el reconocedor haya entendido
+// mal el nombre o la instrucción.
+if (tipo === 'tarea_trabajador'){
+pedirConfirmacionComandoVoz(tipo, datos, textoOriginal);
+return;
+}
+// 1) Si hay un formulario de ese tipo abierto en pantalla, se rellena ahí
+// (la persona confirma y guarda ella misma, con oportunidad de corregir).
+const formularioActivo = hayFormularioActivoParaVoz(tipo);
+if (formularioActivo){
+if (formularioActivo.arete && datos.arete){
+const campoArete = document.getElementById(formularioActivo.arete);
+if (campoArete){ campoArete.value = datos.arete; dispararEventosCampo(campoArete); }
+}
+const campoValor = document.getElementById(formularioActivo.valor);
+if (campoValor){
+campoValor.value = tipo === 'pesaje' ? datos.peso : (tipo === 'sanidad' ? datos.producto : datos.potrero);
+dispararEventosCampo(campoValor);
+}
+estadoVisualVoz('exito');
+mostrarBannerNotificacion('Formulario llenado por voz — revisa y guarda', 3500, 'fa-microphone');
+decirEnVoz('Listo, revisa los datos y guarda.');
+return;
+}
+// 2) Si no hay formulario abierto, se pide confirmar ANTES de guardar en
+// segundo plano — si el reconocedor de voz entendió mal (ruido, señal,
+// acento), esto evita que se guarde un dato equivocado sin que nadie se dé
+// cuenta hasta después.
+pedirConfirmacionComandoVoz(tipo, datos, textoOriginal);
+}
+// ---- Confirmación antes de guardar (banner + botones + escucha "sí/no") ----
+function resumenComandoVoz(tipo, datos){
+if (tipo === 'pesaje') return `Peso de ${datos.peso} kilos para el arete ${datos.arete}`;
+if (tipo === 'sanidad') return `${datos.producto} para el arete ${datos.arete}`;
+if (tipo === 'potrero') return `Mover el arete ${datos.arete} al potrero ${datos.potrero}`;
+if (tipo === 'parto') return `Registrar cría ${datos.sexo} de la madre con arete ${datos.areteMadre}`;
+if (tipo === 'tarea_trabajador') return `Indicación para ${datos.trabajador.nombre}: ${datos.instruccion}`;
+return 'este registro';
+}
+let comandoVozPendiente = null;
+let reconocimientoConfirmacionVoz = null;
+function pedirConfirmacionComandoVoz(tipo, datos, textoOriginal){
+comandoVozPendiente = { tipo, datos, textoOriginal };
+const resumen = resumenComandoVoz(tipo, datos);
+document.getElementById('texto-confirmar-voz').textContent = resumen;
+// Muestra también el texto exacto que captó el micrófono — si hay ruido de
+// fondo y no se alcanza a oír bien la confirmación por voz, se puede leer
+// aquí qué fue lo que la app entendió que se dijo.
+const cajaTextoCrudo = document.getElementById('texto-crudo-confirmar-voz');
+if (cajaTextoCrudo) cajaTextoCrudo.textContent = `Se escuchó: "${textoOriginal}"`;
+const modal = document.getElementById('modal-confirmar-voz');
+modal.classList.remove('hidden'); modal.style.display = 'flex';
+estadoVisualVoz('inactivo');
+decirEnVoz(`Vas a registrar: ${resumen}. Di sí para confirmar, o no para cancelar.`);
+// Escucha automáticamente la respuesta corta, para que no haga falta tocar
+// la pantalla si se tienen las manos ocupadas — los botones siguen ahí por
+// si el micrófono no capta bien el "sí"/"no".
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR){
+setTimeout(() => {
+if (!comandoVozPendiente) return; // ya se respondió por botón mientras tanto
+try {
+const rec = new SR();
+rec.lang = CONFIG_VOZ.idiomaReconocimiento;
+rec.continuous = false;
+rec.interimResults = false;
+reconocimientoConfirmacionVoz = rec;
+rec.onresult = evt => {
+const dicho = (evt.results[0][0].transcript || '').toLowerCase();
+if (/\b(s[ií]|confirmo|correcto|guardar?)\b/.test(dicho)) responderConfirmacionVoz(true);
+else if (/\b(no|cancela?r?|incorrecto)\b/.test(dicho)) responderConfirmacionVoz(false);
+};
+rec.onend = () => { reconocimientoConfirmacionVoz = null; };
+rec.start();
+} catch(e){}
+}, 900);
+}
+}
+function responderConfirmacionVoz(confirmado){
+if (reconocimientoConfirmacionVoz){ try { reconocimientoConfirmacionVoz.stop(); } catch(e){} reconocimientoConfirmacionVoz = null; }
+const modal = document.getElementById('modal-confirmar-voz');
+modal.classList.add('hidden'); modal.style.display = 'none';
+const pendiente = comandoVozPendiente;
+comandoVozPendiente = null;
+if (!pendiente) return;
+if (!confirmado){
+decirEnVoz('Cancelado.');
+mostrarToast('Comando de voz cancelado');
+registrarBitacoraVoz(pendiente.textoOriginal, 'cancelado', resumenComandoVoz(pendiente.tipo, pendiente.datos));
+return;
+}
+const { tipo, datos, textoOriginal } = pendiente;
+try {
+if (tipo === 'tarea_trabajador') ejecutarComandoTareaTrabajador(datos);
+else guardarComandoVozEnSegundoPlano(tipo, datos, textoOriginal);
+estadoVisualVoz('exito');
+if (tipo !== 'tarea_trabajador') decirEnVoz('Registro guardado exitosamente.');
+registrarBitacoraVoz(textoOriginal, 'guardado', resumenComandoVoz(tipo, datos));
+} catch(e){
+console.error('Error al guardar comando de voz:', e);
+estadoVisualVoz('error');
+mostrarToast('No se pudo guardar el registro por voz — inténtalo desde el formulario');
+decirEnVoz('No se pudo guardar el registro. Por favor inténtalo desde el formulario.');
+registrarBitacoraVoz(textoOriginal, 'error', e.message || '');
+}
+}
+// ---- Bitácora de comandos de voz (para que la persona pueda auditar ella
+// misma qué se dictó y qué pasó, sin depender de que yo revise su celular) ----
+function registrarBitacoraVoz(textoOriginal, resultado, detalle){
+if (!Array.isArray(estado.bitacoraVoz)) estado.bitacoraVoz = [];
+estado.bitacoraVoz.unshift({ texto: textoOriginal, resultado, detalle, fecha: new Date().toISOString() });
+if (estado.bitacoraVoz.length > 50) estado.bitacoraVoz.length = 50;
+guardarEstadoLocal();
+if (typeof renderBitacoraVoz === 'function') renderBitacoraVoz();
+}
+function limpiarBitacoraVoz(){
+estado.bitacoraVoz = [];
+guardarEstadoLocal();
+renderBitacoraVoz();
+}
+function renderBitacoraVoz(){
+const cont = document.getElementById('lista-bitacora-voz');
+if (!cont) return;
+const items = estado.bitacoraVoz || [];
+if (items.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage);">Aún no hay comandos de voz registrados.</p>`; return; }
+const ETIQUETAS_RESULTADO_VOZ = {
+guardado: { texto: 'Guardado', color: 'var(--green)', icono: 'fa-circle-check' },
+cancelado: { texto: 'Cancelado', color: 'var(--sage)', icono: 'fa-circle-xmark' },
+error: { texto: 'Error', color: 'var(--red)', icono: 'fa-triangle-exclamation' },
+no_reconocido: { texto: 'No se entendió', color: 'var(--orange)', icono: 'fa-circle-question' },
+};
+cont.innerHTML = items.map(item => {
+const et = ETIQUETAS_RESULTADO_VOZ[item.resultado] || ETIQUETAS_RESULTADO_VOZ.error;
+const fecha = new Date(item.fecha);
+const fechaTexto = isNaN(fecha) ? '' : fecha.toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+return `
+<div class="bg-white rounded-2xl p-3" style="border:2px solid var(--line); border-left:5px solid ${et.color};">
+<p class="text-sm font-bold" style="color:var(--ink);">"${item.texto}"</p>
+${item.detalle ? `<p class="text-xs mt-1" style="color:var(--sage);">${item.detalle}</p>` : ''}
+<div class="flex items-center justify-between mt-2">
+<span class="text-xs font-bold" style="color:${et.color};"><i class="fa-solid ${et.icono}"></i> ${et.texto}</span>
+<span class="text-xs" style="color:var(--sage);">${fechaTexto}</span>
+</div>
+</div>`;
+}).join('');
+}
+// Guarda directo en las mismas listas que usa el resto de la app (pesajes,
+// salud, animales) — así el registro aparece de inmediato en las pantallas
+// normales y se sincroniza igual que cualquier otro dato, sin sistemas
+// paralelos. Cada registro se marca con origen:'comando_voz' para poder
+// identificarlo después si hace falta revisar los que se crearon por voz.
+function guardarComandoVozEnSegundoPlano(tipo, datos, textoOriginal){
+// Busca coincidencia exacta primero; si no hay, busca por TERMINACIÓN del
+// arete (los últimos dígitos que se hayan dictado) — igual que ya funciona en
+// el resto de la app, para no obligar a decir el número completo cada vez.
+// Si la terminación coincide con más de un animal, se rechaza en vez de
+// adivinar cuál — mejor pedir más dígitos que arriesgarse a elegir mal.
+function animalEncontrado(areteDictado){
+const buscado = String(areteDictado).trim().toLowerCase();
+const exacto = estado.animales.find(a => (a.arete || '').toLowerCase() === buscado);
+if (exacto) return exacto;
+const porTerminacion = estado.animales.filter(a => (a.arete || '').toLowerCase().endsWith(buscado));
+if (porTerminacion.length === 1) return porTerminacion[0];
+if (porTerminacion.length > 1) throw new Error(`Hay ${porTerminacion.length} animales que terminan en ${areteDictado} — di el número completo`);
+return null;
+}
+if (tipo === 'pesaje'){
+const animal = animalEncontrado(datos.arete);
+if (!animal) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
+estado.pesajes.push({ animal: animal.arete, fecha: hoyISO(), peso: datos.peso, lote: null, condicionCorporal: null, origen: 'comando_voz', textoOriginal });
+} else if (tipo === 'sanidad'){
+const animal = animalEncontrado(datos.arete);
+if (!animal) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
+estado.salud.push({ animal: animal.arete, producto: datos.producto, fecha: hoyISO(), proxima: '', notas: 'Registrado por comando de voz', diasRetiro: null, origen: 'comando_voz', textoOriginal });
+} else if (tipo === 'potrero'){
+const a = animalEncontrado(datos.arete);
+if (!a) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
+a.potrero = datos.potrero;
+estado.movimientosAnimal.push({ animal: a.arete, tipo: 'potrero', concepto: 'Cambio de potrero por voz a ' + datos.potrero, monto: 0, fecha: hoyISO(), origen: 'comando_voz' });
+} else if (tipo === 'parto'){
+const madre = animalEncontrado(datos.areteMadre);
+if (!madre) throw new Error('Arete de la madre no encontrado: ' + datos.areteMadre);
+const nuevoArete = 'VOZ-' + Date.now().toString().slice(-8);
+estado.animales.push({
+arete: nuevoArete, chip:'', nombre:'', raza:'', sexo: datos.sexo === 'macho' ? 'Macho' : 'Hembra',
+fecha: hoyISO(), estatus:'Activo', madre: madre.arete, padre:'', potrero:'', motivoBaja:'', foto:null,
+proposito:'', engordaDiasObjetivo:null, engordaPesoMeta:null, engordaInicio:null, engordaFinalizado:false, engordaDiasFinal:null,
+origen: 'comando_voz', textoOriginal,
+});
+}
+guardarEstadoLocal();
+if (typeof renderHato === 'function') renderHato();
+if (typeof renderResumenProductor === 'function') renderResumenProductor();
 }
 function buscarGlobal(){
 const q = valor('buscador-global').trim().toLowerCase();
