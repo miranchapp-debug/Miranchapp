@@ -416,7 +416,7 @@ transition:background .12s ease, transform .1s ease;
 .btn-volver:active{ transform:scale(0.96); }
 .btn-primario-plano{
 display:flex; align-items:center; justify-content:center; gap:.6rem;
-min-height:60px; border-radius:999px; font-weight:800; font-size:1.05rem;
+min-height:60px; padding:14px 22px; border-radius:999px; font-weight:800; font-size:1.05rem;
 background:var(--pine); color:#fff; cursor:pointer;
 box-shadow:0 8px 18px -8px rgba(0,0,0,0.35);
 transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
@@ -2057,6 +2057,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <p class="text-xs font-bold mt-2" style="color:var(--sage);">Para el dictamen impreso (opcional)</p>
 <div class="grid grid-cols-2 gap-3">
 <div><label class="campo-label">Folio (TB o BR)</label><input id="pc-of-folio-tb" type="text"/></div>
+<div id="campo-caducidad-junto-folio" class="hidden"><label class="campo-label">Fecha de caducidad (lote)</label><input id="pc-fecha-caducidad" type="date"/></div>
 <div><label class="campo-label">CC No.</label><input id="pc-of-cc-no" type="text"/></div>
 <div><label class="campo-label">Dictamen de prueba (No.)</label><input id="pc-of-dictamen-tb" type="text"/></div>
 <div>
@@ -2077,7 +2078,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div><label class="campo-label">Hora de inyección</label><input id="pc-hora-inyeccion" type="time"/></div>
 <div><label class="campo-label">Fecha de lectura</label><input id="pc-fecha-lectura" type="date"/></div>
 <div><label class="campo-label">Hora de lectura</label><input id="pc-hora-lectura" type="time"/></div>
-<div class="col-span-2"><label class="campo-label">Fecha de caducidad (lote)</label><input id="pc-fecha-caducidad" type="date"/></div>
 </div>
 <div class="hidden" id="campos-brucelosis">
 <label class="campo-label">Fecha de toma de muestra</label>
@@ -2965,8 +2965,9 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <!-- ============================================================ -->
 <!-- ============ FAB GLOBAL: COMANDOS DE VOZ ============ -->
 <!-- ============================================================ -->
-<button aria-label="Comando de voz" class="hidden" id="fab-comando-voz" onclick="alternarComandoVoz()" style="position:fixed; left:16px; bottom:78px; z-index:9999; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease;">
+<button aria-label="Comando de voz — mantén presionado mientras hablas, suelta cuando termines" class="hidden" id="fab-comando-voz" onmousedown="iniciarEscuchaContinua()" onmouseup="detenerEscuchaContinua()" onmouseleave="detenerEscuchaContinua()" ontouchstart="event.preventDefault(); iniciarEscuchaContinua();" ontouchend="event.preventDefault(); detenerEscuchaContinua();" ontouchcancel="detenerEscuchaContinua()" style="position:fixed; left:16px; bottom:78px; z-index:9999; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease; touch-action:none;">
 <span id="fab-voz-anillo" style="position:absolute; inset:-6px; border-radius:999px; border:3px solid var(--red); opacity:0; pointer-events:none;"></span>
+<span id="fab-voz-etiqueta" style="position:absolute; left:66px; bottom:8px; white-space:nowrap; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,0.25); pointer-events:none; opacity:0; transform:translateX(-6px); transition:opacity .18s ease, transform .18s ease;">Toca y habla</span>
 <i class="fa-solid fa-microphone" id="fab-voz-icono"></i>
 </button>
 <!-- ---- Confirmación antes de guardar un comando de voz en segundo plano ---- -->
@@ -8294,6 +8295,12 @@ document.getElementById('app-admin').classList.toggle('hidden', rol !== 'admin')
 estado.rolActual = rol;
 const fabVoz = document.getElementById('fab-comando-voz');
 if (fabVoz) fabVoz.classList.remove('hidden');
+const etiquetaVoz = document.getElementById('fab-voz-etiqueta');
+if (etiquetaVoz){
+etiquetaVoz.textContent = 'Toca y habla';
+etiquetaVoz.style.opacity = '1'; etiquetaVoz.style.transform = 'translateX(0)';
+setTimeout(() => { etiquetaVoz.style.opacity = '0'; etiquetaVoz.style.transform = 'translateX(-6px)'; }, 3200);
+}
 if (rol === 'productor') { renderTodoProductor(); verificarVigenciaProductor(); setTimeout(revisarAlertasMoonitor, 1200); actualizarBadgeChatProductor(); }
 else { renderTodoAdmin(); irAdmin(quiereAbrirChatDirecto ? 'mensajes' : 'home'); revisarMensajesProgramadosDebidos(); setInterval(revisarMensajesProgramadosDebidos, 60000); actualizarBadgeChatAdmin(); }
 }
@@ -12016,14 +12023,11 @@ ${iconoChicoHTML('vet_pruebascampo', 'fa-vial-circle-check')}
 </button>`;
 return;
 }
-if (estado.modoVeterinario){
-cont.innerHTML = `
-<button onclick="irAdmin('productor')" class="tile bg-orange col-span-2">
-${iconoChicoHTML('adm_productor', 'fa-id-card')}
-<span>${tr('datos_productor__datos_del_productor')}</span>
-</button>`;
-return;
-}
+// Nota: existía aquí un bloque "if (estado.modoVeterinario)" que nunca se
+// podía ejecutar — vistaVeterinario siempre está activo junto con
+// modoVeterinario (se ponen juntos al iniciar sesión), así que el bloque de
+// arriba (vistaVeterinario) siempre atrapaba primero y regresaba antes de
+// llegar aquí. Se quitó por ser código muerto, confirmado por Luis.
 cont.innerHTML = `
 <button onclick="irAdmin('cuentas')" class="tile bg-red">
 ${iconoChicoHTML('adm_cuentas', 'fa-id-card-clip')}
@@ -12059,17 +12063,28 @@ const btnMas = document.getElementById('btn-mas-admin');
 const btnMetricas = document.getElementById('btn-metricas-admin');
 const subtitulo = document.getElementById('subtitulo-panel-admin');
 const btnPerfilVet = document.getElementById('btn-perfil-vet');
+const cajaResumen = document.getElementById('caja-resumen-admin');
+const tileInfo = document.getElementById('tile-info-general');
 const esVet = !!estado.vistaVeterinario;
-if (btnMas) btnMas.classList.toggle('hidden', esVet);
+// "Más funciones" es la puerta de entrada a Cuentas de productores, Reportes
+// regionales, Mensajes y Resumen general — información de negocio de TODAS
+// las cuentas, no solo de lo que cada rol necesita ver. Antes solo se
+// ocultaba para veterinario; se oculta para CUALQUIER rol que no sea la
+// cuenta de administrador general (rueda/luis), incluyendo comité,
+// capturista, almita (emisora de solicitudes), capturista TB y médico de
+// campo TB — ellos son prestadores de servicio, no dueños del negocio.
+const esAdminGeneral = !esVet && !estado.modoComite && !estado.modoCapturista && !estado.modoAlmita
+&& !estado.modoMedicoCampoTB && !estado.modoCapturistaTB && !estado.modoTrabajador;
+if (btnMas) btnMas.classList.toggle('hidden', !esAdminGeneral);
 // Métricas de Interacción es SOLO para la cuenta de administrador general
 // (Luis) — nunca para la cuenta del comité (comitedgo/tv1, que se le da a
 // personal externo sin relación con la programación/diseño de la app) ni
 // para ningún otro rol (capturista, almita, veterinario, médico TB, etc.).
 // Se oculta apenas se detecta cualquier bandera de rol que NO sea el admin
 // puro, sin importar por cuál entraron.
-const esAdminGeneral = !esVet && !estado.modoComite && !estado.modoCapturista && !estado.modoAlmita
-&& !estado.modoMedicoCampoTB && !estado.modoCapturistaTB && !estado.modoTrabajador;
 if (btnMetricas) btnMetricas.classList.toggle('hidden', !esAdminGeneral);
+if (cajaResumen) cajaResumen.classList.toggle('hidden', !esAdminGeneral);
+if (tileInfo) tileInfo.classList.toggle('hidden', !esAdminGeneral);
 if (btnPerfilVet) btnPerfilVet.classList.toggle('hidden', !esVet);
 if (subtitulo) subtitulo.textContent = esVet ? (veterinarioActivo() ? veterinarioActivo().nombre + ' · MVZ' : 'MVZ') : 'Panel de administrador';
 document.querySelectorAll('#navbar-admin .navbar-item').forEach(btn => {
@@ -12318,6 +12333,8 @@ const esBrucelosis = tabPruebasCampoActual === 'prueba' && valor('pc-tipo-prueba
 const esTB = tabPruebasCampoActual === 'prueba' && valor('pc-tipo-prueba') !== 'Brucelosis';
 document.getElementById('campos-tuberculina').classList.toggle('hidden', !esTB);
 document.getElementById('campos-brucelosis').classList.toggle('hidden', !esBrucelosis);
+const campoCaducidad = document.getElementById('campo-caducidad-junto-folio');
+if (campoCaducidad) campoCaducidad.classList.toggle('hidden', !esTB);
 }
 let editandoEsLectura = false;
 function editarPruebaCampo(id){
@@ -15945,10 +15962,6 @@ renderTogglesVentanasExtra();
 renderListaBanners();
 renderListaPredios();
 renderGridAdminHome();
-const cajaResumen = document.getElementById('caja-resumen-admin');
-const tileInfo = document.getElementById('tile-info-general');
-if (cajaResumen) cajaResumen.classList.toggle('hidden', estado.modoVeterinario);
-if (tileInfo) tileInfo.classList.toggle('hidden', estado.modoVeterinario);
 aplicarVistaSegunRol();
 if (estado.vistaVeterinario) renderListaVetProductores();
 if (estado.vistaVeterinario) renderListaVetNotas();
@@ -17807,54 +17820,100 @@ function estadoVisualVoz(estadoNuevo){
 const boton = document.getElementById('fab-comando-voz');
 const icono = document.getElementById('fab-voz-icono');
 const anillo = document.getElementById('fab-voz-anillo');
+const etiqueta = document.getElementById('fab-voz-etiqueta');
 if (!boton) return;
 boton.classList.remove('voz-escuchando', 'voz-exito', 'voz-error');
 anillo.classList.remove('escuchando');
+function mostrarEtiqueta(texto, ocultarDespues){
+if (!etiqueta) return;
+etiqueta.textContent = texto;
+etiqueta.style.opacity = '1';
+etiqueta.style.transform = 'translateX(0)';
+if (ocultarDespues) setTimeout(() => { etiqueta.style.opacity = '0'; etiqueta.style.transform = 'translateX(-6px)'; }, ocultarDespues);
+}
 if (estadoNuevo === 'escuchando'){
 boton.classList.add('voz-escuchando');
 anillo.classList.add('escuchando');
 icono.className = 'fa-solid fa-microphone-lines';
+mostrarEtiqueta('Escuchando…');
 } else if (estadoNuevo === 'procesando'){
 icono.className = 'fa-solid fa-circle-notch fa-spin';
+mostrarEtiqueta('Procesando…');
 } else if (estadoNuevo === 'exito'){
 boton.classList.add('voz-exito');
 icono.className = 'fa-solid fa-check';
+mostrarEtiqueta('¡Listo!', 1600);
 setTimeout(() => estadoVisualVoz('inactivo'), 1600);
 } else if (estadoNuevo === 'error'){
 boton.classList.add('voz-error');
 icono.className = 'fa-solid fa-triangle-exclamation';
+mostrarEtiqueta('No entendí', 1600);
 setTimeout(() => estadoVisualVoz('inactivo'), 1600);
 } else {
 icono.className = 'fa-solid fa-microphone';
+if (etiqueta){ etiqueta.textContent = 'Toca y habla'; etiqueta.style.opacity = '0'; etiqueta.style.transform = 'translateX(-6px)'; }
 }
 }
 
 // ---- Reconocimiento de voz ----
 let reconocimientoVozActivo = null;
-function alternarComandoVoz(){
+// ---- Voz por "mantener presionado" ----
+// Antes, el botón alternaba: un toque empezaba a escuchar, y el propio
+// navegador cortaba solo apenas detectaba CUALQUIER pausa natural al hablar
+// — si la persona hacía una pausa breve a medio pensamiento (ej. "arete 2235
+// [pausa] dale indicación a un trabajador de que lo revise"), el navegador
+// procesaba solo el primer pedazo como si fuera el comando completo,
+// guardando algo que nunca se terminó de decir. Ahora el botón graba
+// mientras se mantiene presionado (con el dedo o el mouse) y solo procesa
+// TODO junto hasta que se suelta — una pausa breve al hablar ya no corta ni
+// guarda nada a medias.
+let vozAcumuladaContinua = '';
+function iniciarEscuchaContinua(){
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!SR){ mostrarToast('Este navegador no tiene reconocimiento de voz disponible'); return; }
-if (reconocimientoVozActivo){ reconocimientoVozActivo.stop(); return; }
+if (reconocimientoVozActivo) return; // ya se está grabando, no abrir dos veces
+vozAcumuladaContinua = '';
 const rec = new SR();
 rec.lang = CONFIG_VOZ.idiomaReconocimiento;
-rec.continuous = false;
+rec.continuous = true; // no se corta solo por una pausa — sigue escuchando hasta que se suelte el botón
 rec.interimResults = false;
 rec.maxAlternatives = 1;
 reconocimientoVozActivo = rec;
 rec.onstart = () => { estadoVisualVoz('escuchando'); tonoInicioEscucha(); };
 rec.onresult = evt => {
-const texto = evt.results[0][0].transcript || '';
-estadoVisualVoz('procesando');
-procesarComandoVoz(texto);
+// Con continuous=true pueden llegar varios resultados mientras se sigue
+// presionando el botón (uno por cada pausa breve que el navegador nota) —
+// se van juntando en vez de procesar cada pedazo por separado.
+for (let i = evt.resultIndex; i < evt.results.length; i++){
+if (evt.results[i].isFinal){
+vozAcumuladaContinua += (vozAcumuladaContinua ? ' ' : '') + (evt.results[i][0].transcript || '');
+}
+}
 };
 rec.onerror = evt => {
+if (evt.error === 'no-speech') return; // con "mantener presionado" esto es normal mientras la persona respira/piensa, no es un error real
 estadoVisualVoz('error');
-if (evt.error === 'no-speech') mostrarToast('No se escuchó nada — inténtalo de nuevo');
-else if (evt.error === 'not-allowed' || evt.error === 'permission-denied') mostrarToast('Falta permiso del micrófono — actívalo en los ajustes del navegador');
+if (evt.error === 'not-allowed' || evt.error === 'permission-denied') mostrarToast('Falta permiso del micrófono — actívalo en los ajustes del navegador');
 else mostrarToast('No se pudo usar el micrófono — revisa tu conexión e inténtalo de nuevo');
+reconocimientoVozActivo = null;
 };
-rec.onend = () => { reconocimientoVozActivo = null; };
+rec.onend = () => {
+reconocimientoVozActivo = null;
+// Esto se dispara tanto si la persona soltó el botón como si el navegador
+// cerró solo — en los dos casos se procesa lo que se alcanzó a juntar.
+const textoFinal = vozAcumuladaContinua.trim();
+vozAcumuladaContinua = '';
+if (textoFinal){
+estadoVisualVoz('procesando');
+procesarComandoVoz(textoFinal);
+} else {
+estadoVisualVoz('inactivo');
+}
+};
 try { rec.start(); } catch(e){ estadoVisualVoz('error'); reconocimientoVozActivo = null; }
+}
+function detenerEscuchaContinua(){
+if (reconocimientoVozActivo){ try { reconocimientoVozActivo.stop(); } catch(e){} }
 }
 
 // ---- Diccionario fonético Plautdietsch → palabras clave internas ----
@@ -17865,9 +17924,13 @@ try { rec.start(); } catch(e){ estadoVisualVoz('error'); reconocimientoVozActivo
 const DICCIONARIO_PLAUTDIETSCH = {
 // acciones
 'wajcht': 'peso', 'gewicht': 'peso', 'wieren': 'peso',
-'kult': 'vacuna', 'sprute': 'vacuna', 'medizin': 'tratamiento',
-'schluv': 'potrero', 'weid': 'potrero', 'wees': 'potrero',
+'kult': 'vacuna', 'sprute': 'vacuna', 'medizin': 'tratamiento', 'spratse': 'vacuna', 'impfe': 'vacuna',
+'schluv': 'potrero', 'weid': 'potrero', 'wees': 'potrero', 'kroal': 'corral',
 'foul': 'parto', 'jeborne': 'nacimiento', 'geburt': 'nacimiento',
+// crías y ganado
+'kalf': 'becerro', 'kjalw': 'becerro', 'kalfkje': 'becerro', 'koo': 'vaca',
+// diagnósticos
+'tbc': 'tuberculosis',
 // sexo de la cría
 'faarsch': 'hembra', 'kuh': 'hembra', 'wajefe': 'hembra',
 'boll': 'macho', 'oss': 'macho', 'stea': 'macho',
@@ -17991,23 +18054,24 @@ ejemplo: 'Peso arete 402 450 kilos / El toro 205 pesó 480 kilos',
 },
 {
 tipo: 'sanidad',
-patron: /\b(?:vacun\w*|trat\w*|desparasit\w*|cur[oó]\w*|cura\w*|inyect\w*|medic[oó]\w*|medica\w*|desinfect\w*|purg[oó]\w*|purga\w*|ba[ñn][oó]\w*|ba[ñn]a\w*|fumig\w*|castr\w*|coje[oó]\w*|cojea\w*|enferm[oó](?![a-záéíóúñ])|enferma\w*|atend\w*)/i,
+patron: /\b(?:vacun\w*|trat\w*|desparasit\w*|cur[oó]\w*|cura\w*|inyect\w*|medic[oó]\w*|medica\w*|desinfect\w*|purg[oó]\w*|purga\w*|ba[ñn][oó]\w*|ba[ñn]a\w*|fumig\w*|castr\w*|coje[oó]\w*|cojea\w*|enferm[oó](?![a-záéíóúñ])|enferma\w*|atend\w*|mastitis|abort[oó]\w*|muela)/i,
 extraer: m => {
 const texto = m.input;
 const numeros = texto.match(/\d+/g) || [];
 const prodMatch = texto.match(/\bcon\s+([a-zA-Zñáéíóú0-9 ]+)/i);
-return { arete: numeros[0] || null, producto: prodMatch ? prodMatch[1].trim() : 'sin especificar' };
+return { arete: numeros[0] || null, producto: prodMatch ? prodMatch[1].trim() : null };
 },
 ejemplo: 'Vacuna arete 205 con Ivermectina / La 55 está cojeando',
 },
 {
 tipo: 'potrero',
-patron: /^(?!.*\b(?:env[ií]a(le)?|manda(le)?|dile|ind[ií]ca(le)?|av[ií]sa(le)?|comun[ií]ca(le)?|encarg\w*|p[ií]de(le)?|record\w*|recu[eé]rd\w*)\b).*\b(?:mov\w*|pasa\w*|p[aá]sale|cambi\w*|llev\w*|traslad\w*|sac[oó]|saca\w*|met[eió]|mete\w*|encerr\w*|arre[oó]|arrea\w*|jal[oó]|jala\w*|suelt[oa]|suelta\w*|junt[oó]|junta\w*|re[uú]n[eió]|reune\w*|reúne\w*|regres[oó]|regresa\w*|anda en|se fue|est[aá] en|potrero|corral)\b/is,
+patron: /^(?!.*\b(?:env[ií]a(le)?|manda(le)?|dile|ind[ií]ca(le)?|av[ií]sa(le)?|comun[ií]ca(le)?|encarg\w*|p[ií]de(le)?|record\w*|recu[eé]rd\w*)\b).*\b(?:mov\w*|pasa\w*|p[aá]sale|cambi\w*|llev\w*|traslad\w*|sac[oó]|saca\w*|met[eió]|mete\w*|encerr\w*|arre[oó]|arrea\w*|jal[oó]|jala\w*|suelt[oa]|suelta\w*|junt[oó]|junta\w*|re[uú]n[eió]|reune\w*|reúne\w*|regres[oó]|regresa\w*|separ\w*|anda en|se fue|est[aá] en|potrero|corral|cuarentena|b[aá]scula|bodega|parideras|embarcadero)\b/is,
 extraer: m => {
 const texto = m.input;
 const numeros = texto.match(/\d+/g) || [];
 const destMatch = texto.match(/(?:potrero|corral)\s*([a-zA-Zñáéíóú0-9 ]+)/i);
-const destino = destMatch ? destMatch[1].trim() : (numeros[1] || '');
+const destinoFijo = texto.match(/\b(cuarentena|b[aá]scula|bodega|parideras|embarcadero)\b/i);
+const destino = destMatch ? destMatch[1].trim() : (destinoFijo ? destinoFijo[1] : (numeros[1] || ''));
 return { arete: numeros[0] || null, potrero: destino };
 },
 ejemplo: 'Pasa la 88 al potrero Norte / La vaca 12 se fue al corral 3',
@@ -18022,6 +18086,21 @@ const sexoMatch = texto.match(/\b(macho|hembra)\b/i);
 return { areteMadre: numeros[0] || null, sexo: sexoMatch ? sexoMatch[1].toLowerCase() : null };
 },
 ejemplo: 'Parto arete madre 88 hembra / La 45 parió una hembra',
+},
+{
+tipo: 'leche',
+patron: /\b(orde[ñn]\w*|litro|litros)\b/i,
+extraer: m => {
+const texto = m.input;
+const litrosMatch = texto.match(/(\d+(?:[.,]\d+)?)\s*litro/i);
+const litros = litrosMatch ? parseFloat(litrosMatch[1].replace(',', '.')) : null;
+const numeros = texto.match(/\d+/g) || [];
+const arete = numeros.find(n => n !== (litrosMatch ? litrosMatch[1] : null)) || null;
+const esTarde = /\btarde\b/i.test(texto);
+const esManana = /\bma[ñn]ana\b/i.test(texto);
+return { arete, litros, turno: esTarde ? 'PM' : (esManana ? 'AM' : null) };
+},
+ejemplo: 'La vaca 12 dio 8 litros en la mañana / Ordeñé 6 litros a la 45',
 },
 ];
 // ============================================================
@@ -18204,6 +18283,62 @@ if (typeof renderResumenProductor === 'function') renderResumenProductor();
 mostrarBannerNotificacion(`Arete ${datos.arete} dado de baja (${datos.motivo})`, 4000, 'fa-microphone');
 decirEnVoz(`Listo, se dio de baja el arete ${datos.arete}.`);
 }
+// "Busca el arete 205" / "¿De quién es el arete 90?" — antes no existía como
+// acción reconocida, y era justo el error reportado en capturista ("esa
+// información no la podía procesar"). Es de solo lectura: si es un
+// productor, busca en su propio hato; si es veterinario/capturista/comité,
+// busca dentro de las pruebas de campo que YA puede ver normalmente en su
+// pantalla — nunca abre ni consulta la cuenta privada de un productor.
+function interpretarComandoBuscarArete(texto){
+if (!/\b(busca|buscar|encuentra|encontrar|d[oó]nde est[aá]|de qui[eé]n es|informaci[oó]n del|datos del|qu[eé] sabes del)\b/i.test(texto)) return null;
+const numeroMatch = texto.match(/\d+/);
+if (!numeroMatch) return null;
+return { tipo: 'buscar_arete', datos: { arete: numeroMatch[0] }, textoOriginal: texto };
+}
+function ejecutarComandoBuscarArete(datos){
+if (estado.cuentaActivaId){
+const animal = estado.animales.find(a => a.arete === datos.arete);
+if (!animal){
+mostrarBannerNotificacion(`No encontré el arete ${datos.arete} en tu hato`, 4500, 'fa-microphone');
+decirEnVoz(`No encontré el arete ${datos.arete} en tu hato.`);
+return;
+}
+const resumen = `Arete ${datos.arete}: ${animal.sexo || 'sin sexo registrado'}, ${animal.raza || 'sin raza registrada'}, estatus ${animal.estatus || 'Activo'}${animal.potrero ? ', en el potrero ' + animal.potrero : ''}`;
+mostrarBannerNotificacion(resumen, 6000, 'fa-microphone');
+decirEnVoz(resumen);
+return;
+}
+let encontrado = null, pruebaEncontrada = null;
+for (const p of (estado.pruebasCampoVet || [])){
+const a = (p.animales || []).find(x => x.arete === datos.arete);
+if (a){ encontrado = a; pruebaEncontrada = p; break; }
+}
+if (!encontrado){
+mostrarBannerNotificacion(`No encontré el arete ${datos.arete} en ninguna prueba de campo`, 4500, 'fa-microphone');
+decirEnVoz(`No encontré el arete ${datos.arete} en ninguna prueba de campo registrada.`);
+return;
+}
+const resumen = `Arete ${datos.arete}: ${encontrado.especie || 'sin especie'}, ${encontrado.sexo === 'H' ? 'hembra' : 'macho'}, de la prueba de ${pruebaEncontrada.productorNombre || 'productor sin nombre'} del ${pruebaEncontrada.fecha || 'sin fecha'}`;
+mostrarBannerNotificacion(resumen, 6000, 'fa-microphone');
+decirEnVoz(resumen);
+}
+// "Gasté 500 pesos en alimento" / "500 pesos pagué de medicina" — se revisa
+// como función aparte (no como regla simple) porque necesita confirmar DOS
+// cosas a la vez (el verbo Y el monto) sin importar cuál se diga primero.
+function interpretarComandoGasto(texto){
+if (!/\b(gast[eé]\w*|pagu[eé]\w*|pag[oó]\w*|cost[oó]\w*|compr[eé]\w*|ingres[eé]\w*|cobr[eé]\w*|recib[ií]\w*)/i.test(texto)) return null;
+const montoMatch = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:pesos|mxn|mx\b)/i) || texto.match(/\$\s*(\d+(?:[.,]\d+)?)/) || texto.match(/(\d+(?:[.,]\d+)?)/);
+if (!montoMatch) return null; // sin un monto claro, no se arriesga a adivinar
+const monto = parseFloat(montoMatch[1].replace(',', '.'));
+const esIngreso = /\b(ingres[eé]\w*|cobr[eé]\w*|recib[ií]\w*)/i.test(texto);
+let categoria = 'otro';
+if (/\balimento|comida|forraje|concentrado\b/i.test(texto)) categoria = 'alimento';
+else if (/\bmedicin\w*|medicamento|veterinari\w*|vacuna\b/i.test(texto)) categoria = 'medicina';
+else if (/\bmantenimiento|reparaci[oó]n|arregl\w*\b/i.test(texto)) categoria = 'mantenimiento';
+else if (/\bmano de obra|jornal|pago a\b/i.test(texto)) categoria = 'mano_obra';
+else if (/\bventa de animal|animal vendido\b/i.test(texto)) categoria = 'venta_animal';
+return { tipo: 'gasto', datos: { tipoMovimiento: esIngreso ? 'ingreso' : 'gasto', categoria, monto, descripcion: texto }, textoOriginal: texto };
+}
 // ============================================================
 // ===== EXTRACTOR DE REPORTES POR VOZ (sin IA de pago) =====
 // ============================================================
@@ -18226,7 +18361,7 @@ const DISPARADORES_REPORTE = [
 'existen'
 ];
 const ENTIDADES_REPORTE = [
-{ id:'pcc', sinonimos:['pcc','pruebas cervicales','pruebas de tuberculina','tuberculinas'],
+{ id:'pcc', sinonimos:['pcc','pruebas cervicales','pruebas de tuberculina','tuberculinas','tuberculosis'],
 datos:(e)=>(e.pruebasCampoVet||[]).filter(p=>p.tipoPrueba==='TB'), etiquetaHablada:'pruebas de tuberculina (PCC)', soportaFiltroProductor:true },
 { id:'brucelosis', sinonimos:['brucelosis','pruebas de brucelosis'],
 datos:(e)=>(e.pruebasCampoVet||[]).filter(p=>p.tipoPrueba==='Brucelosis'), etiquetaHablada:'pruebas de brucelosis', soportaFiltroProductor:true },
@@ -18303,6 +18438,10 @@ const alta = interpretarComandoAltaAnimal(texto);
 if (alta) return alta;
 const baja = interpretarComandoBajaAnimal(texto);
 if (baja) return baja;
+const busqueda = interpretarComandoBuscarArete(texto);
+if (busqueda) return busqueda;
+const gasto = interpretarComandoGasto(texto);
+if (gasto) return gasto;
 const reporte = interpretarComandoReporte(texto);
 if (reporte) return reporte;
 for (const regla of REGLAS_COMANDO_VOZ){
@@ -18384,6 +18523,47 @@ return palabras
 .join(' ');
 }
 // ============================================================
+// ===== PREGUNTAR EL DATO QUE FALTA (formulario por voz) =====
+// ============================================================
+// Si el comando ya se reconoció pero le falta un dato importante (ej. "vacuna
+// a la 405" sin decir con qué), en vez de adivinar o guardar algo a medias,
+// se pregunta por voz y se espera la SIGUIENTE grabación como respuesta a
+// esa pregunta específica — no como un comando nuevo.
+let comandoVozEsperandoDato = null; // { tipo, datos, textoOriginal, campo }
+function preguntarDatoFaltante(tipo, datos, textoOriginal){
+if (tipo === 'sanidad' && !datos.producto){
+comandoVozEsperandoDato = { tipo, datos, textoOriginal, campo: 'producto' };
+const pregunta = '¿Con qué producto la trataste o vacunaste?';
+mostrarBannerNotificacion(pregunta, 6000, 'fa-microphone');
+decirEnVoz(pregunta);
+estadoVisualVoz('inactivo');
+return true;
+}
+if (tipo === 'gasto' && datos.categoria === 'otro'){
+comandoVozEsperandoDato = { tipo, datos, textoOriginal, campo: 'categoria' };
+const pregunta = '¿En qué categoría entra? Por ejemplo alimento, medicina, mantenimiento o mano de obra.';
+mostrarBannerNotificacion(pregunta, 6000, 'fa-microphone');
+decirEnVoz(pregunta);
+estadoVisualVoz('inactivo');
+return true;
+}
+return false;
+}
+function completarConRespuestaDeVoz(textoRespuesta){
+const pendiente = comandoVozEsperandoDato;
+comandoVozEsperandoDato = null;
+if (!pendiente) return false;
+const respuesta = textoRespuesta.trim();
+if (pendiente.campo === 'producto') pendiente.datos.producto = respuesta || 'sin especificar';
+if (pendiente.campo === 'categoria'){
+const CATS = { alimento:'alimento', medicina:'medicina', medicamento:'medicina', mantenimiento:'mantenimiento', 'mano de obra':'mano_obra', jornal:'mano_obra' };
+const encontrada = Object.keys(CATS).find(k => respuesta.toLowerCase().includes(k));
+pendiente.datos.categoria = encontrada ? CATS[encontrada] : 'otro';
+}
+pedirConfirmacionComandoVoz(pendiente.tipo, pendiente.datos, pendiente.textoOriginal);
+return true;
+}
+// ============================================================
 // ===== DICCIONARIO MASIVO DE COMBINACIONES (>10,000) =====
 // ============================================================
 const MULETILLAS_MASIVAS = ["eh","este","oye","a ver","por favor","anótame","ponme ahí","fíjate que","favor de","quiero","hazme el registro de","checa","revisa","anota","registra","pon","agregame","guárdame","porfa","oye claude"];
@@ -18456,6 +18636,11 @@ textoLimpio,
 };
 }
 function procesarComandoVoz(textoOriginal){
+if (comandoVozEsperandoDato){
+estadoVisualVoz('procesando');
+completarConRespuestaDeVoz(textoOriginal);
+return;
+}
 const textoCorregido = limpiarYCorregirDictado(textoOriginal);
 const interpretado = interpretarComandoVoz(textoCorregido);
 if (interpretado) interpretado.textoOriginal = textoOriginal; // se guarda/muestra lo que realmente se dijo, no la versión corregida
@@ -18493,6 +18678,12 @@ estadoVisualVoz('exito');
 ejecutarComandoReporte(datos);
 return;
 }
+// 0.8) Buscar arete — también de solo lectura, responde de inmediato.
+if (tipo === 'buscar_arete'){
+estadoVisualVoz('exito');
+ejecutarComandoBuscarArete(datos);
+return;
+}
 // 1) Si hay un formulario de ese tipo abierto en pantalla, se rellena ahí
 // (la persona confirma y guarda ella misma, con oportunidad de corregir).
 const formularioActivo = hayFormularioActivoParaVoz(tipo);
@@ -18515,6 +18706,7 @@ return;
 // segundo plano — si el reconocedor de voz entendió mal (ruido, señal,
 // acento), esto evita que se guarde un dato equivocado sin que nadie se dé
 // cuenta hasta después.
+if (preguntarDatoFaltante(tipo, datos, textoOriginal)) return;
 pedirConfirmacionComandoVoz(tipo, datos, textoOriginal);
 }
 // ---- Confirmación antes de guardar (banner + botones + escucha "sí/no") ----
@@ -18523,6 +18715,8 @@ if (tipo === 'pesaje') return `Peso de ${datos.peso} kilos para el arete ${datos
 if (tipo === 'sanidad') return `${datos.producto} para el arete ${datos.arete}`;
 if (tipo === 'potrero') return `Mover el arete ${datos.arete} al potrero ${datos.potrero}`;
 if (tipo === 'parto') return `Registrar cría ${datos.sexo} de la madre con arete ${datos.areteMadre}`;
+if (tipo === 'gasto') return `Registrar ${datos.tipoMovimiento === 'ingreso' ? 'un ingreso' : 'un gasto'} de $${datos.monto} (${datos.categoria})`;
+if (tipo === 'leche') return `Registrar ordeña de ${datos.litros} litros del arete ${datos.arete}${datos.turno ? ' (' + datos.turno + ')' : ''}`;
 if (tipo === 'alta_animal') return `Dar de alta el arete ${datos.arete}${datos.sexo ? ' (' + datos.sexo + ')' : ''}`;
 if (tipo === 'baja_animal') return `Dar de baja el arete ${datos.arete} (${datos.motivo})`;
 if (tipo === 'tarea_trabajador') return `Indicación para ${datos.trabajador.nombre}: ${datos.instruccion}`;
@@ -18680,6 +18874,17 @@ fecha: hoyISO(), estatus:'Activo', madre: madre.arete, padre:'', potrero:'', mot
 proposito:'', engordaDiasObjetivo:null, engordaPesoMeta:null, engordaInicio:null, engordaFinalizado:false, engordaDiasFinal:null,
 origen: 'comando_voz', textoOriginal,
 });
+} else if (tipo === 'leche'){
+if (!datos.arete) throw new Error('No se identificó a qué animal pertenece la ordeña — di el número de arete');
+const animalLeche = animalEncontrado(datos.arete);
+if (!animalLeche) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
+const am = datos.turno === 'AM' ? (datos.litros || 0) : 0;
+const pm = datos.turno === 'PM' ? (datos.litros || 0) : 0;
+const total = datos.turno ? (am + pm) : (datos.litros || 0);
+estado.produccionLeche.push({ animal: animalLeche.arete, fecha: hoyISO(), ordenador: '', litrosAM: am, litrosPM: pm, total, grasa:'', proteina:'', celulas:'', notas: 'Registrado por comando de voz', origen: 'comando_voz', textoOriginal });
+} else if (tipo === 'gasto'){
+if (!datos.monto) throw new Error('No se identificó el monto — di la cantidad seguida de "pesos"');
+estado.costos.push({ tipo: datos.tipoMovimiento, categoria: datos.categoria, monto: datos.monto, fecha: hoyISO(), imputar: '', descripcion: datos.descripcion, origen: 'comando_voz', textoOriginal });
 }
 guardarEstadoLocal();
 if (typeof renderHato === 'function') renderHato();
