@@ -7912,7 +7912,6 @@ estado.usuarios.push({ nombre: 'Veterinario de Prueba 2 (Médico de campo TB)', 
 guardarEstadoLocal();
 try { localStorage.setItem('miRanchAppCuentasPruebaCreadas', 'v1'); } catch(e){}
 }
-crearCuentasDePruebaSiHaceFalta();
 // Antes, si el navegador recargaba la página a medio uso (algo común en celulares
 // cuando la cámara nativa toma el control para tomar una foto — el sistema puede
 // descargar la pestaña de memoria y al volver la recarga desde cero), la persona
@@ -8239,6 +8238,17 @@ usuario:'marcos', clave:'12345', fechaAlta: hoyISO(),
 suscripcion:{ diasVigencia:365, fechaVencimiento: sumarDiasISO(hoyISO(), 365) },
 hato:[], salud:[], pesajes:[], reproduccion:[] },
 ];
+// Se llama HASTA AQUÍ (no antes) porque esta función revisa duplicados contra
+// estado.usuarios/estado.cuentasProductores/estado.trabajadores/etc., y varias
+// de esas listas (usuarios y cuentasProductores en particular) no existían
+// todavía en las líneas de arriba — llamarla antes tronaba con un error de
+// JavaScript ("Cannot read properties of undefined") ANTES de crear una sola
+// cuenta, y ese error detenía toda la inicialización que venía después en esta
+// misma parte del código. Confirmado ejecutando la app real en un navegador:
+// en un dispositivo/perfil nuevo (sin nada guardado todavía), esto pasaba
+// SIEMPRE, no solo a veces — por eso ningún usuario de prueba ni las cuentas
+// semilla (pedro/marcos/rueda/luis) llegaban a abrir.
+crearCuentasDePruebaSiHaceFalta();
 function mostrarPantallaTipoGanado(){
 document.getElementById('screen-login').classList.remove('active');
 document.getElementById('screen-tipo-ganado').classList.add('active');
@@ -17882,7 +17892,7 @@ return palabras.join(' ');
 // siempre — sobre todo con números compuestos dichos rápido o con acento
 // marcado. Este conversor cubre 0-999, que es más que suficiente para arete y
 // kilos en un rancho.
-const UNIDADES_ES = {'cero':0,'uno':1,'un':1,'una':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,'siete':7,'ocho':8,'nueve':9,
+const UNIDADES_ES = {'cero':0,'uno':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,'seis':6,'siete':7,'ocho':8,'nueve':9,
 'diez':10,'once':11,'doce':12,'trece':13,'catorce':14,'quince':15,
 'dieciseis':16,'dieciséis':16,'diecisiete':17,'dieciocho':18,'diecinueve':19,'veinte':20,
 'veintiuno':21,'veintiún':21,'veintidos':22,'veintidós':22,'veintitres':23,'veintitrés':23,'veinticuatro':24,'veinticinco':25,
@@ -17969,27 +17979,49 @@ return { persona: mejor.item, posicion: posicion === -1 ? 0 : posicion, largo: m
 const REGLAS_COMANDO_VOZ = [
 {
 tipo: 'pesaje',
-patron: /\b(?:peso|pesaje|pes[oó])\b.*?(?:arete\s*)?(\d+)\D+(\d+(?:[.,]\d+)?)\s*(?:kilo|kilos|kg)/i,
-extraer: m => ({ arete: m[1], peso: parseFloat(m[2].replace(',', '.')) }),
-ejemplo: 'Peso arete 402 450 kilos',
+patron: /\d+.*?(?:kilo|kilos|kg)|(?:kilo|kilos|kg).*?\d+/i,
+extraer: m => {
+const texto = m.input;
+const pesoMatch = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:kilo|kilos|kg)/i);
+const peso = pesoMatch ? parseFloat(pesoMatch[1].replace(',', '.')) : null;
+const numeros = (texto.match(/\d+/g) || []).filter(n => !pesoMatch || n !== pesoMatch[1]);
+return { arete: numeros[0] || null, peso };
+},
+ejemplo: 'Peso arete 402 450 kilos / El toro 205 pesó 480 kilos',
 },
 {
 tipo: 'sanidad',
-patron: /\b(?:vacuna|vacunar|tratamiento|desparasit\w*)\b.*?(?:arete\s*)?(\d+)\s*(?:con|producto)?\s*(.+)/i,
-extraer: m => ({ arete: m[1], producto: m[2].trim() }),
-ejemplo: 'Vacuna arete 205 con Ivermectina',
+patron: /\b(?:vacun\w*|trat\w*|desparasit\w*|cur[oó]\w*|cura\w*|inyect\w*|medic[oó]\w*|medica\w*|desinfect\w*|purg[oó]\w*|purga\w*|ba[ñn][oó]\w*|ba[ñn]a\w*|fumig\w*|castr\w*|coje[oó]\w*|cojea\w*|enferm[oó](?![a-záéíóúñ])|enferma\w*|atend\w*)/i,
+extraer: m => {
+const texto = m.input;
+const numeros = texto.match(/\d+/g) || [];
+const prodMatch = texto.match(/\bcon\s+([a-zA-Zñáéíóú0-9 ]+)/i);
+return { arete: numeros[0] || null, producto: prodMatch ? prodMatch[1].trim() : 'sin especificar' };
+},
+ejemplo: 'Vacuna arete 205 con Ivermectina / La 55 está cojeando',
 },
 {
 tipo: 'potrero',
-patron: /\b(?:mover|mueve|cambia|potrero)\b.*?(?:arete\s*)?(\d+)\D+(.+)/i,
-extraer: m => ({ arete: m[1], potrero: m[2].replace(/\b(al|a la|para el|para|potrero)\b/gi, '').trim() }),
-ejemplo: 'Mover arete 118 al potrero Norte',
+patron: /^(?!.*\b(?:env[ií]a(le)?|manda(le)?|dile|ind[ií]ca(le)?|av[ií]sa(le)?|comun[ií]ca(le)?|encarg\w*|p[ií]de(le)?|record\w*|recu[eé]rd\w*)\b).*\b(?:mov\w*|pasa\w*|p[aá]sale|cambi\w*|llev\w*|traslad\w*|sac[oó]|saca\w*|met[eió]|mete\w*|encerr\w*|arre[oó]|arrea\w*|jal[oó]|jala\w*|suelt[oa]|suelta\w*|junt[oó]|junta\w*|re[uú]n[eió]|reune\w*|reúne\w*|regres[oó]|regresa\w*|anda en|se fue|est[aá] en|potrero|corral)\b/is,
+extraer: m => {
+const texto = m.input;
+const numeros = texto.match(/\d+/g) || [];
+const destMatch = texto.match(/(?:potrero|corral)\s*([a-zA-Zñáéíóú0-9 ]+)/i);
+const destino = destMatch ? destMatch[1].trim() : (numeros[1] || '');
+return { arete: numeros[0] || null, potrero: destino };
+},
+ejemplo: 'Pasa la 88 al potrero Norte / La vaca 12 se fue al corral 3',
 },
 {
 tipo: 'parto',
-patron: /\b(?:parto|nacimiento|pari[oó])\b.*?(?:arete\s*)?(\d+).*?\b(macho|hembra)\b/i,
-extraer: m => ({ areteMadre: m[1], sexo: m[2].toLowerCase() }),
-ejemplo: 'Parto arete madre 88 hembra',
+patron: /\b(?:parto|nacimiento)\b|\bnaci[oó](?![a-záéíóúñ])|\bpari[oó](?![a-záéíóúñ])|\balumbr\w*|dio a luz|tuvo (?:un|una|su) (?:cr[ií]a|becerr[oa]|terner[oa])/i,
+extraer: m => {
+const texto = m.input;
+const numeros = texto.match(/\d+/g) || [];
+const sexoMatch = texto.match(/\b(macho|hembra)\b/i);
+return { areteMadre: numeros[0] || null, sexo: sexoMatch ? sexoMatch[1].toLowerCase() : null };
+},
+ejemplo: 'Parto arete madre 88 hembra / La 45 parió una hembra',
 },
 ];
 // ============================================================
@@ -18053,7 +18085,7 @@ if (!encontrado) return null;
 return { trabajador: encontrado.persona, posicion: encontrado.posicion, largoNombre: encontrado.largo };
 }
 function interpretarComandoTareaTrabajador(texto){
-if (!/\b(env[ií]a(le)?|manda(le)?|dile|ind[ií]ca(le)?|av[ií]sa(le)?)\b/i.test(texto)) return null;
+if (!/\b(env[ií]a(le)?|manda(le)?|dile|ind[ií]ca(le)?|av[ií]sa(le)?|comun[ií]ca(le)?|encarg\w*|p[ií]de(le)?|que se encargue|hazle saber|record\w*|recu[eé]rd\w*)\b/i.test(texto)) return null;
 const encontrado = buscarTrabajadorEnFrase(texto);
 if (!encontrado) return null; // sin identificar a un trabajador real, no se arriesga a adivinar
 let instruccion = texto.slice(encontrado.posicion + encontrado.largoNombre);
@@ -18109,7 +18141,10 @@ decirEnVoz(`Prueba de ${datos.tipoPrueba === 'TB' ? 'tuberculina' : 'brucelosis'
 // usuario y contraseña, de manera formal. Esto aplica igual para admin,
 // comité y veterinario: nadie puede usar la voz para saltarse ese control.
 function interpretarComandoAltaAnimal(texto){
-if (!/\b(dar de alta|alta de|registrar|registra)\b/i.test(texto)) return null;
+const disparadorAccion = /\b(dar de alta|alta de|registr\w*|agreg\w*|añad\w*|anad\w*|inscrib\w*|captur\w*|dar entrada|nuevo ingreso)\b/i.test(texto);
+const disparadorAdquisicion = /\b(lleg\w*|compr\w*)\b.*?\b(animal|arete|becerro|ternero|ternera|vaquilla|novillo|novilla|res)\b|\b(animal|arete|becerro|ternero|ternera|vaquilla|novillo|novilla|res)\b.*?\b(lleg\w*|compr\w*)\b/i.test(texto);
+const disparadorNuevo = /\b(animal|arete|becerro|ternero|ternera|vaquilla|novillo|novilla|res)\s+nuevo[a]?\b|\bnuevo[a]?\s+(animal|arete|becerro|ternero|ternera|vaquilla|novillo|novilla|res)\b/i.test(texto);
+if (!disparadorAccion && !disparadorAdquisicion && !disparadorNuevo) return null;
 const numeroMatch = texto.match(/\d+/);
 if (!numeroMatch) return null; // sin un número de arete, no se arriesga a adivinar
 const arete = numeroMatch[0];
@@ -18152,15 +18187,17 @@ decirEnVoz(`Listo, se dio de alta el arete ${datos.arete}.`);
 // se hubieran escrito a mano, y crece agregando una palabra a un arreglo,
 // nunca una regla nueva por frase.
 const DISPARADORES_REPORTE = [
-'cuántos', 'cuántas', 'cuánto',
+'cuántos', 'cuántas', 'cuánto', 'cuanto', 'cuantos', 'cuantas',
 'dame un informe', 'dame el informe', 'dame un reporte', 'dame el reporte',
 'quiero un informe', 'quiero un reporte', 'quiero saber',
-'dime cuántos', 'dime cuántas',
-'muéstrame', 'muestrame',
-'necesito saber', 'necesito el número de',
+'dime cuántos', 'dime cuántas', 'dime cuantos', 'dime cuantas',
+'muéstrame', 'muestrame', 'enséñame', 'ensename',
+'necesito saber', 'necesito el número de', 'necesito saber cuántos',
 'resumen de', 'dame un resumen', 'un resumen de',
-'cuál es el total de', 'cuál es el número de',
-'hay reporte de', 'reporte de'
+'cuál es el total de', 'cuál es el número de', 'cual es el total de',
+'hay reporte de', 'reporte de', 'checa cuántos', 'checa cuántas',
+'dame la estadística', 'estadística de', 'estadisticas de',
+'existen'
 ];
 const ENTIDADES_REPORTE = [
 { id:'pcc', sinonimos:['pcc','pruebas cervicales','pruebas de tuberculina','tuberculinas'],
@@ -18169,17 +18206,17 @@ datos:(e)=>(e.pruebasCampoVet||[]).filter(p=>p.tipoPrueba==='TB'), etiquetaHabla
 datos:(e)=>(e.pruebasCampoVet||[]).filter(p=>p.tipoPrueba==='Brucelosis'), etiquetaHablada:'pruebas de brucelosis', soportaFiltroProductor:true },
 { id:'reactores', sinonimos:['reactores','reactores pendientes','avisos de reactores'],
 datos:(e)=>(e.avisosReactoresTB||[]), etiquetaHablada:'avisos de reactores', soportaFiltroProductor:true },
-{ id:'becerros', sinonimos:['becerros nacidos','nacimientos','partos','crías nacidas'],
+{ id:'becerros', sinonimos:['becerros nacidos','nacimientos','partos','crías nacidas','terneros nacidos','alumbramientos','becerros','terneros'],
 datos:(e)=>(e.animales||[]).filter(a=>a.madre), etiquetaHablada:'nacimientos', soportaFiltroProductor:false },
-{ id:'pesajes', sinonimos:['pesajes','pesadas','registros de peso'],
+{ id:'pesajes', sinonimos:['pesajes','pesadas','registros de peso','pesos registrados'],
 datos:(e)=>(e.pesajes||[]), etiquetaHablada:'pesajes', soportaFiltroProductor:false },
-{ id:'vacunas', sinonimos:['vacunas','vacunas aplicadas','registros de sanidad','aplicaciones'],
+{ id:'vacunas', sinonimos:['vacunas','vacunas aplicadas','registros de sanidad','aplicaciones','tratamientos','curaciones','medicamentos aplicados'],
 datos:(e)=>(e.salud||[]), etiquetaHablada:'registros de sanidad', soportaFiltroProductor:false },
-{ id:'movimientos', sinonimos:['movimientos','cambios de potrero','traslados'],
+{ id:'movimientos', sinonimos:['movimientos','cambios de potrero','traslados','cambios de corral'],
 datos:(e)=>(e.movimientosAnimal||[]), etiquetaHablada:'movimientos de potrero', soportaFiltroProductor:false },
 { id:'tareas', sinonimos:['tareas','pendientes','indicaciones'],
 datos:(e)=>(e.tareas||[]), etiquetaHablada:'tareas', soportaFiltroProductor:false },
-{ id:'animales', sinonimos:['animales','cabezas de ganado','ganado','vacas','reses'],
+{ id:'animales', sinonimos:['animales','cabezas de ganado','ganado','vacas','reses','vaquillas','novillos','novillas','toros','sementales','hato'],
 datos:(e)=>(e.animales||[]), etiquetaHablada:'animales', soportaFiltroProductor:false },
 ];
 const MESES_REPORTE_VOZ = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
