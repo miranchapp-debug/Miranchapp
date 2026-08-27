@@ -21,6 +21,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
 <script>
   // Clave de Google Maps (opcional). Solo se usa si el productor pulsa "Usar Google Maps"
   // en el módulo de potreros — no se carga nada de Google Maps por defecto.
@@ -1069,6 +1070,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <div class="grid grid-cols-2 gap-y-4 gap-x-3 text-sm" id="resumen-productor"></div>
 </div>
+<div class="bg-white rounded-3xl p-5" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold mb-3">Resumen de mi inventario</h3>
+<div class="grid grid-cols-4 gap-2 text-center" id="resumen-conteos-inventario-productor"></div>
+</div>
 </div>
 <!-- ---------- EDITAR DATOS DEL PRODUCTOR ---------- -->
 <div class="screen px-5 py-6 space-y-5" id="screen-editar-productor">
@@ -1076,6 +1081,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <h2 class="font-display text-2xl font-bold" data-i18n="editar_datos_productor__editar_datos_del_productor">Editar datos del productor</h2>
 <button class="w-full text-sm font-bold py-3 rounded-full" onclick="abrirEscaneoDocumentos()" style="background:var(--purple); color:#fff;">
 <i class="fa-solid fa-camera mr-1"></i> Alta rápida escaneando mis documentos
+</button>
+<input accept="image/*" capture="environment" class="hidden" id="input-escaneo-inventario-productor" onchange="procesarFotoInventarioCompletoProductor(this)" type="file"/>
+<button class="w-full text-sm font-bold py-3 rounded-full" onclick="document.getElementById('input-escaneo-inventario-productor').click()" style="background:var(--teal); color:#fff;">
+<i class="fa-solid fa-camera mr-1"></i> Escanear mi Concentrado SINIIGA (todo mi inventario)
 </button>
 <div class="bg-white rounded-3xl p-5 space-y-4" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold">1. Propietario</h3>
@@ -1565,17 +1574,20 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="space-y-3" id="lista-usuarios"></div>
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <p class="font-display font-bold text-lg mb-1" data-i18n="admin_usuarios_contrasenas__agregar_nuevo_usuario">Agregar nuevo usuario</p>
-<input data-i18n-placeholder="admin_usuarios_contrasenas__nombre_completo" id="nu-nombre" placeholder="Nombre completo" type="text"/>
 <div class="grid grid-cols-2 gap-3">
-<input data-i18n-placeholder="admin_usuarios_contrasenas__usuario" id="nu-usuario" placeholder="Usuario" type="text"/>
-<input data-i18n-placeholder="admin_usuarios_contrasenas__contrasena" id="nu-clave" placeholder="Contraseña" type="text"/>
-</div>
+<input data-i18n-placeholder="admin_usuarios_contrasenas__nombre_completo" id="nu-nombre" placeholder="Nombre completo" type="text"/>
 <select id="nu-rol">
 <option data-i18n="admin_usuarios_contrasenas__productor" value="productor">Productor</option>
 <option data-i18n="admin_usuarios_contrasenas__administrador" value="admin">Administrador</option>
 <option data-i18n="admin_usuarios_contrasenas__veterinario_solo_salud" value="veterinario">Veterinario (solo salud)</option>
 <option value="capturista">Capturista (oficina)</option>
+<option value="capturista_tb">Capturista TB (departamento de Tuberculosis)</option>
 </select>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<input data-i18n-placeholder="admin_usuarios_contrasenas__usuario" id="nu-usuario" placeholder="Usuario" type="text"/>
+<input data-i18n-placeholder="admin_usuarios_contrasenas__contrasena" id="nu-clave" placeholder="Contraseña" type="text"/>
+</div>
 <button class="w-full btn-primario-plano" onclick="agregarUsuario()" style="background:var(--blue);">
 <i class="fa-solid fa-user-plus"></i><span data-i18n="admin_usuarios_contrasenas__crear_usuario">Crear usuario</span>
 </button>
@@ -1847,6 +1859,36 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </div>
 <!-- ---------- ASIGNAR MÉDICO A UN AVISO DE REACTORES ---------- -->
+<!-- ---- CONFIRMAR INVENTARIO SINIIGA COMPLETO (productor) ---- -->
+<div class="hidden" id="modal-confirmar-inventario-productor" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:96; align-items:flex-end;">
+<div class="w-full bg-white rounded-t-3xl p-5 space-y-3" style="max-height:88vh; overflow-y:auto;">
+<div class="flex items-center justify-between">
+<h3 class="font-display text-lg font-bold">Tu inventario leído</h3>
+<button onclick="document.getElementById('modal-confirmar-inventario-productor').classList.add('hidden')" style="color:var(--sage);"><i class="fa-solid fa-xmark text-xl"></i></button>
+</div>
+<p class="text-xs" style="color:var(--sage);">Se agrega TODO lo que aparece en la hoja — vigentes, de baja/venta, y cualquier otro estatus. Revisa antes de confirmar; los repetidos (mismo arete que ya tienes) no se duplican.</p>
+<div class="grid grid-cols-4 gap-2 text-center" id="resumen-inventario-escaneado"></div>
+<div class="space-y-2" id="inventario-productor-preview" style="max-height:40vh; overflow-y:auto;"></div>
+<button class="w-full btn-primario-plano" onclick="confirmarInventarioCompletoProductor()" style="background:var(--pine);">
+<i class="fa-solid fa-check"></i> Agregar todo a mi inventario
+</button>
+</div>
+</div>
+<!-- ---- CONFIRMAR LISTA DE ANIMALES ESCANEADA (OCR + reglas, sin IA externa) ---- -->
+<div class="hidden" id="modal-confirmar-lista-animales" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:96; align-items:flex-end;">
+<div class="w-full bg-white rounded-t-3xl p-5 space-y-3" style="max-height:88vh; overflow-y:auto;">
+<div class="flex items-center justify-between">
+<h3 class="font-display text-lg font-bold">Revisa lo que se leyó</h3>
+<button onclick="document.getElementById('modal-confirmar-lista-animales').classList.add('hidden')" style="color:var(--sage);"><i class="fa-solid fa-xmark text-xl"></i></button>
+</div>
+<p class="text-xs" style="color:var(--sage);">La lectura automática puede equivocarse — revisa cada renglón antes de agregarlo. Los marcados en amarillo traen algo dudoso o incompleto.</p>
+<p class="text-xs font-bold" id="lista-animales-estado-lectura" style="color:var(--sage);"></p>
+<div class="space-y-2" id="lista-animales-preview"></div>
+<button class="w-full btn-primario-plano" onclick="confirmarAltaListaAnimalesEscaneada()" style="background:var(--pine);">
+<i class="fa-solid fa-check"></i> Agregar los marcados a la prueba
+</button>
+</div>
+</div>
 <div class="hidden" id="modal-asignar-medico-tb" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:95; align-items:flex-end;">
 <div class="w-full bg-white rounded-t-3xl p-5 space-y-3" style="max-height:88vh; overflow-y:auto;">
 <h3 class="font-display text-lg font-bold">Asignar médico de campo</h3>
@@ -1873,19 +1915,26 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold">Mis pruebas cervicales comparativas</h2>
 <p class="text-sm" style="color:var(--sage);">Casos de reactores que el comité te asignó. Solo ves los que te corresponden a ti.</p>
+<button class="w-full btn-primario-plano" onclick="abrirPCCDirecta()" style="background:var(--orange);">
+<i class="fa-solid fa-bolt"></i> Realizar prueba PCC directa (sin pasar por asignación)
+</button>
+<p class="text-xs" style="color:var(--sage);">Para cuando ya estás en el predio o te avisan por teléfono — llena los datos a mano y regístrala. Le llega al comité y a TB sin folio ni hoja de campo; ellos los agregan después.</p>
 <div class="space-y-3" id="lista-casos-medico-campo-tb"></div>
 </div>
 <!-- ---------- CAPTURA DE PRUEBA CERVICAL COMPARATIVA (médico de campo) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-admin-capturapcc">
 <button class="btn-volver" onclick="volverAtrasAdmin('medicocampotb')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
-<h2 class="font-display text-2xl font-bold">Prueba cervical comparativa</h2>
+<h2 class="font-display text-2xl font-bold" id="titulo-capturapcc">Prueba cervical comparativa</h2>
 <div class="bg-white rounded-3xl p-5 space-y-1" style="border:2px solid var(--line);" id="pcc-datos-productor"></div>
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
-<h3 class="font-display font-bold mb-1">Mediciones por animal reactor</h3>
+<div class="flex items-center justify-between">
+<h3 class="font-display font-bold mb-1">Mediciones por animal</h3>
+<button class="hidden text-xs font-bold px-3 py-1.5 rounded-full" id="btn-agregar-animal-pcc" onclick="agregarFilaVaciaPCC()" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-plus"></i> Animal</button>
+</div>
 <p class="text-xs" style="color:var(--sage);">Para cada animal: mide el pliegue A (aviar) y B (bovina) antes de aplicar (medida inicial) y a las 72 h. La diferencia y el resultado N/S/R se calculan solos.</p>
 <div class="space-y-3" id="lista-animales-pcc"></div>
 </div>
-<button class="w-full btn-primario-plano" onclick="guardarPCC()" style="background:var(--red);">
+<button class="w-full btn-primario-plano" onclick="guardarPCC()" id="btn-guardar-pcc" style="background:var(--red);">
 <i class="fa-solid fa-paper-plane"></i> Guardar y reportar al comité
 </button>
 </div>
@@ -1904,22 +1953,24 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="hidden bg-white rounded-2xl p-3" id="vet-seleccionado-sc" style="border:2px solid var(--green);"></div>
 <label class="campo-label">Número de productores a trabajar</label>
 <input id="sc-num-productores" min="1" oninput="actualizarCamposSolicitudCEFPP()" type="number" value="1"/>
+<div class="grid grid-cols-2 gap-3">
 <div>
 <div class="flex items-center justify-between">
-<label class="campo-label mb-0">Folio(s) de hoja de campo</label>
-<button class="text-xs font-bold" id="sc-btn-editar-folios" onclick="toggleEdicionManualFolios()" style="color:var(--pine);" type="button">Editar manualmente</button>
+<label class="campo-label mb-0">Folio(s) de campo</label>
+<button class="text-xs font-bold" id="sc-btn-editar-folios" onclick="toggleEdicionManualFolios()" style="color:var(--pine);" type="button">Editar</button>
 </div>
-<input id="sc-folio-inicial" placeholder="Folio inicial (los demás se generan solos)" type="text"/>
-<textarea class="hidden mt-1" id="sc-folios-manual" placeholder="Folios separados por coma, ej: 1001,1003,1010" rows="2"></textarea>
+<input id="sc-folio-inicial" placeholder="Folio inicial" type="text"/>
+<textarea class="hidden mt-1" id="sc-folios-manual" placeholder="Folios separados por coma" rows="2"></textarea>
 <p class="text-xs mt-1" id="sc-folios-preview" style="color:var(--sage);"></p>
 </div>
 <div>
 <div class="flex items-center justify-between">
 <label class="campo-label mb-0">UPP(s)</label>
-<button class="text-xs font-bold" id="sc-btn-editar-upps" onclick="toggleEdicionManualUpps()" style="color:var(--pine);" type="button">Editar manualmente</button>
+<button class="text-xs font-bold" id="sc-btn-editar-upps" onclick="toggleEdicionManualUpps()" style="color:var(--pine);" type="button">Editar</button>
 </div>
 <input id="sc-upp-unica" placeholder="UPP" type="text"/>
 <textarea class="hidden mt-1" id="sc-upps-manual" placeholder="UPPs separadas por coma" rows="2"></textarea>
+</div>
 </div>
 <div><label class="campo-label">Motivo de la prueba</label><textarea id="sc-motivo" rows="2"></textarea></div>
 </div>
@@ -2099,8 +2150,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <div class="flex items-center justify-between gap-2">
 <h3 class="font-display font-bold">Animales trabajados</h3>
-<div class="flex gap-2">
+<div class="flex gap-2 flex-wrap justify-end">
 <button onclick="abrirSelectorInventarioProductor()" class="text-xs font-bold px-3 py-1.5 rounded-full" style="background:var(--teal); color:#fff;"><i class="fa-solid fa-list-check"></i> Del inventario</button>
+<input accept="image/*" capture="environment" class="hidden" id="input-escaneo-lista-animales" onchange="procesarFotoListaAnimales(this)" type="file"/>
+<button onclick="document.getElementById('input-escaneo-lista-animales').click()" class="text-xs font-bold px-3 py-1.5 rounded-full" style="background:var(--purple); color:#fff;"><i class="fa-solid fa-camera"></i> Escanear lista</button>
 <button onclick="agregarFilaAnimalPruebaCampo()" class="text-xs font-bold px-3 py-1.5 rounded-full" style="background:var(--pine); color:#fff;"><i class="fa-solid fa-plus"></i> Agregar</button>
 </div>
 </div>
@@ -7852,7 +7905,7 @@ function crearCuentasDePruebaSiHaceFalta(){
 // que volver a correr esta función cuando falten es seguro.
 try {
 if (localStorage.getItem('miRanchAppCuentasPruebaCreadas') === 'v1'){
-const siguenTodas = ['capturista1','capturista2','lechero1','carne1','veterinario1','veterinario2']
+const siguenTodas = ['capturista1','capturista2','capturista3','lechero1','carne1','veterinario1','veterinario2']
 .every(u => existeUsuarioDuplicado(u));
 if (siguenTodas) return;
 }
@@ -7905,6 +7958,7 @@ estado.usuarios.push({ nombre: 'Veterinario de Prueba 1 (MVZ)', usuario: 'veteri
 if (usuarioLibre('veterinario2')){
 estado.medicosComiteTB.push({ id: 'tbm_prueba_1', nombre: 'Veterinario de Prueba 2 (Médico TB)', cedula: '00000002', claveMvz: '', vigencia: '', telefono: '5550000004', usuario: 'veterinario2', clave: CLAVE_PRUEBA });
 estado.usuarios.push({ nombre: 'Veterinario de Prueba 2 (Médico de campo TB)', usuario: 'veterinario2', clave: CLAVE_PRUEBA, rol: 'medico_campo_tb' });
+estado.usuarios.push({ nombre: 'Capturista TB de prueba', usuario: 'capturista3', clave: CLAVE_PRUEBA, rol: 'capturista_tb' });
 }
 guardarEstadoLocal();
 try { localStorage.setItem('miRanchAppCuentasPruebaCreadas', 'v1'); } catch(e){}
@@ -7925,6 +7979,14 @@ try { datos = JSON.parse(localStorage.getItem('miRanchAppBorradorEscaneoDocument
 if (!datos) return false;
 return !!((datos.imagenes && Object.keys(datos.imagenes).length > 0) || (datos.filasSINIIGATemp && datos.filasSINIIGATemp.length > 0) || (datos.campos && Object.values(datos.campos).some(v => v)));
 }
+// Se declara aquí (antes de reanudarSesionSiAplica) porque esa función llama a
+// activarEscuchaCuentaActiva(), que necesita esta variable — antes estaba
+// declarada más abajo, así que cada vez que la página se recargaba con una
+// sesión activa (típicamente al volver de la cámara nativa tras tomar una
+// foto), truena con "no se puede usar antes de inicializarse", eso se atrapaba
+// en silencio, y la persona terminaba de vuelta en la pantalla de login aunque
+// su sesión siguiera guardada. Confirmado con el error real del navegador.
+let cancelarEscuchaCuenta = () => {};
 function reanudarSesionSiAplica(){
 if (estado.modoTrabajador && estado.trabajadorActualId){
 activarEscuchaCuentaActiva();
@@ -7955,6 +8017,17 @@ return false;
 // corruptos/incompletos de una versión vieja de la app, etc.), NUNCA debe dejar
 // la app a medio arrancar — se registra el error y se cae de vuelta a la
 // pantalla de login normal, que siempre debe quedar disponible.
+// Se aplaza un instante (hasta que el archivo completo termine de cargar) antes
+// de arrancar — reanudarSesionSiAplica() termina usando, indirectamente, TODA
+// la app (pantallas, módulos, etc.), y algunas de esas piezas se declaran más
+// abajo en este mismo archivo. Arrancar de inmediato podía tronar con "no se
+// puede usar antes de inicializarse" en cualquiera de ellas — eso se atrapaba
+// en silencio y la persona terminaba de vuelta en el login (o a medio
+// cargar) aunque su sesión siguiera guardada. Confirmado con el error real del
+// navegador en dos variables distintas. setTimeout(...,0) espera a que el
+// archivo completo termine de ejecutarse una vez, así ya no importa en qué
+// orden esté declarado nada.
+setTimeout(() => {
 let huboSesionReanudada = false;
 try { huboSesionReanudada = reanudarSesionSiAplica(); }
 catch(e){ console.error('No se pudo reanudar la sesión guardada — se muestra el login normal:', e); }
@@ -7964,7 +8037,7 @@ detectarAccesoPorQR();
 const el = document.getElementById(id);
 if (el) el.classList.add('hidden');
 });
-let cancelarEscuchaCuenta = () => {};
+}, 0);
 function activarEscuchaCuentaActiva(){
 cancelarEscuchaCuenta();
 cancelarEscuchaCuenta = () => {};
@@ -8114,6 +8187,331 @@ cuenta[clave] = estado[MAPA_CLAVE_ESTADO[clave] || clave];
 });
 }
 function hoyISO(){ return formatearFechaISO(fechaHoy()); }
+// Calcula la edad en meses completos a partir de una fecha de nacimiento —
+// las pruebas de campo piden la edad en meses, pero los documentos oficiales
+// (como la lista de animales del productor) suelen traer la fecha de
+// nacimiento, no la edad ya calculada. Acepta 'YYYY-MM-DD' u otro formato que
+// Date() entienda; regresa null si la fecha no es válida o es futura.
+// ---- Formato oficial "Concentrado de Identificadores SINIIGA" ----
+// Documento más estructurado que una lista libre: trae estatus (VIGENTE/VENTA),
+// folio REEMO (solo aparece si el animal ya no está vigente para movilización),
+// y la fecha de nacimiento viene como mes-año (ej. "06-2016"), no día completo.
+function normalizarAreteOficial(numeroCrudo){
+// Misma convención ya usada en el resto de la app: se descartan el "MX" y los
+// dígitos de relleno iniciales, quedándose solo con los últimos 10 dígitos.
+// A propósito NO se antepone "MX" al valor que se guarda aquí — el resto de
+// la app (buscarAnimalPorArete, etc.) compara aretes por texto exacto contra
+// lo que ya está guardado en el inventario, que tampoco trae "MX".
+const soloDigitos = (numeroCrudo || '').replace(/\D/g, '');
+if (soloDigitos.length < 6) return null;
+return soloDigitos.slice(-10);
+}
+function extraerEstatusDeTexto(linea){
+if (/\bVIGENTE\b/i.test(linea)) return 'VIGENTE';
+if (/\bVENTA\b/i.test(linea)) return 'VENTA';
+if (/\b(BAJA|MUERTE|MUERTO|SACRIFICIO)\b/i.test(linea)) return 'BAJA';
+return null;
+}
+function extraerFolioRemoDeTexto(linea, areteCrudo){
+// "Folio Reemo 12345" con la etiqueta junto al número (algunos documentos sí
+// la repiten por renglón).
+const conEtiqueta = linea.match(/\breemo[:\s]*([0-9]{3,})\b/i);
+if (conEtiqueta) return conEtiqueta[1];
+// Respaldo por posición: en una tabla, cada renglón trae los valores en el
+// mismo orden que el encabezado, sin repetir la etiqueta — el folio REEMO
+// suele ser la última columna. Si el renglón termina en un guion, no hay
+// folio; si termina en un número que no es el arete, se toma como folio.
+const tokens = linea.trim().split(/\s+/);
+const ultimo = tokens[tokens.length - 1];
+if (ultimo === '-') return null;
+if (/^\d{3,}$/.test(ultimo) && ultimo !== areteCrudo) return ultimo;
+return null;
+}
+function extraerFechaMesAnioDeTexto(linea){
+// Formato "MM-YYYY" o "MM/YYYY" (fecha de nacimiento en este documento no
+// trae día, solo mes y año).
+const m = linea.match(/\b(0?[1-9]|1[0-2])[-\/](20\d{2}|19\d{2})\b/);
+return m ? { mes: parseInt(m[1], 10), anio: parseInt(m[2], 10) } : null;
+}
+function calcularEdadMesesDesdeMesAnio(mesAnio){
+if (!mesAnio) return null;
+const hoy = fechaHoy();
+let meses = (hoy.getFullYear() - mesAnio.anio) * 12 + (hoy.getMonth() + 1 - mesAnio.mes);
+return Math.max(0, meses);
+}
+function parsearConcentradoSINIIGA(textoCompleto){
+const lineasCrudas = textoCompleto.split('\n').map(l => l.trim()).filter(Boolean);
+// Metadatos del encabezado del documento (UPP y nombre del productor), si
+// aparecen en las primeras líneas.
+const primerasLineas = lineasCrudas.slice(0, 8);
+const lineaUpp = primerasLineas.find(l => /\bUPP\b/i.test(l));
+const uppMatch = lineaUpp ? (lineaUpp.match(/\bUPP[:\s]*([0-9]{6,15})\b/i) || lineaUpp.match(/\b([0-9]{2}[-\s]?[0-9]{3}[-\s]?[0-9]{3,7})\b/)) : null;
+const lineaProductor = primerasLineas.find(l => /(?:PRODUCTOR|PROPIETARIO)[:\s]/i.test(l));
+const nombreMatch = lineaProductor ? lineaProductor.match(/(?:PRODUCTOR|PROPIETARIO)[:\s]+([A-ZÁÉÍÓÚÑ ]{6,60})/i) : null;
+const idxEncabezado = detectarRenglonEncabezado(lineasCrudas);
+const lineas = idxEncabezado >= 0 ? lineasCrudas.slice(idxEncabezado + 1) : lineasCrudas;
+const inventarioCompleto = [];
+lineas.forEach(linea => {
+const areteCrudo = extraerAreteDeTexto(linea);
+if (!areteCrudo) return;
+const arete = normalizarAreteOficial(areteCrudo);
+const estatus = extraerEstatusDeTexto(linea);
+const folioRemo = extraerFolioRemoDeTexto(linea, areteCrudo);
+const mesAnioNac = extraerFechaMesAnioDeTexto(linea);
+const edadMeses = calcularEdadMesesDesdeMesAnio(mesAnioNac);
+const raza = extraerRazaDeTexto(linea);
+const sexo = extraerSexoDeTexto(linea);
+const vigenteYSinFolio = (estatus === 'VIGENTE' || !estatus) && !folioRemo;
+const dudoso = !estatus || edadMeses == null || !raza || !sexo;
+inventarioCompleto.push({ arete, estatus: estatus || 'DESCONOCIDO', folioRemo, edadMeses, raza, sexo, vigenteYSinFolio, dudoso, incluir: vigenteYSinFolio });
+});
+return {
+metadatos: { upp: uppMatch ? uppMatch[1].replace(/[\s-]/g,'') : null, productor: nombreMatch ? nombreMatch[1].trim() : null },
+inventarioCompleto,
+filtradoPruebaCampo: inventarioCompleto.filter(f => f.vigenteYSinFolio),
+};
+}
+function calcularEdadMesesDesdeFechaNacimiento(fechaNacimiento){
+if (!fechaNacimiento) return null;
+const nac = new Date(fechaNacimiento.includes('T') ? fechaNacimiento : fechaNacimiento + 'T00:00:00');
+if (isNaN(nac)) return null;
+const hoy = fechaHoy();
+if (nac > hoy) return null;
+let meses = (hoy.getFullYear() - nac.getFullYear()) * 12 + (hoy.getMonth() - nac.getMonth());
+if (hoy.getDate() < nac.getDate()) meses -= 1;
+return Math.max(0, meses);
+}
+// ============================================================
+// ===== ESCANEO DE LISTA DE ANIMALES (OCR + reglas de texto) =====
+// ============================================================
+// A diferencia del escaneo de la credencial (un solo documento con campos
+// fijos), aquí el documento es una TABLA con un renglón por animal, y el
+// diseño de esa tabla varía de un productor a otro. Sin mandar la imagen a
+// una IA externa (que tendría costo por foto y necesitaría un servidor para
+// guardar la clave a salvo), esto se resuelve con reglas de texto: busca los
+// encabezados de columna más comunes para saber qué significa cada una, y
+// dentro de cada renglón busca los patrones típicos de cada dato (número de
+// arete, fecha, edad en texto, raza conocida, sexo). No "entiende" la hoja
+// como lo haría una IA — funciona bien si el documento es razonablemente
+// parecido a una tabla, pero por eso SIEMPRE se muestra para confirmar antes
+// de agregar nada (ver modal-confirmar-lista-animales).
+let inventarioEscaneadoTemp = [];
+let listaAnimalesEscaneadaTemp = [];
+async function procesarFotoInventarioCompletoProductor(inputEl){
+const archivo = inputEl.files && inputEl.files[0];
+if (!archivo) return;
+mostrarToast('Leyendo tu Concentrado SINIIGA, un momento...');
+try {
+const dataUrl = await comprimirParaOCR(archivo, 1800);
+const texto = await extraerTextoDeImagen(dataUrl);
+const resultado = parsearConcentradoSINIIGA(texto);
+if (resultado.inventarioCompleto.length === 0){
+mostrarToast('No se logró leer ningún renglón con número de arete — intenta con mejor luz o más de cerca');
+inputEl.value = '';
+return;
+}
+// A diferencia de la prueba de campo, aquí se incluye TODO — vigentes, de
+// baja/venta, cualquier estatus — porque esto alimenta el inventario
+// completo del productor, no solo lo que un veterinario va a trabajar hoy.
+inventarioEscaneadoTemp = resultado.inventarioCompleto.map(f => ({ ...f, incluir: true }));
+renderVistaPreviaInventarioProductor();
+document.getElementById('modal-confirmar-inventario-productor').classList.remove('hidden');
+} catch(e){
+console.warn('No se pudo leer el inventario del productor', e);
+mostrarToast('No se pudo leer la foto — revisa tu conexión a internet e inténtalo de nuevo');
+} finally {
+inputEl.value = '';
+}
+}
+function renderVistaPreviaInventarioProductor(){
+const cont = document.getElementById('inventario-productor-preview');
+const resumenCont = document.getElementById('resumen-inventario-escaneado');
+if (!cont || !resumenCont) return;
+const vigentes = inventarioEscaneadoTemp.filter(f => f.estatus === 'VIGENTE').length;
+const bajas = inventarioEscaneadoTemp.filter(f => f.estatus !== 'VIGENTE').length;
+const machos = inventarioEscaneadoTemp.filter(f => f.sexo === 'Macho').length;
+const hembras = inventarioEscaneadoTemp.filter(f => f.sexo === 'Hembra').length;
+resumenCont.innerHTML = `
+<div class="rounded-xl p-2" style="background:rgba(76,153,89,0.12);"><p class="text-lg font-bold" style="color:var(--green);">${vigentes}</p><p class="text-xs" style="color:var(--sage);">Vigentes</p></div>
+<div class="rounded-xl p-2" style="background:rgba(211,71,71,0.1);"><p class="text-lg font-bold" style="color:var(--red);">${bajas}</p><p class="text-xs" style="color:var(--sage);">Bajas/venta</p></div>
+<div class="rounded-xl p-2" style="background:var(--parchment);"><p class="text-lg font-bold">${machos}</p><p class="text-xs" style="color:var(--sage);">Machos</p></div>
+<div class="rounded-xl p-2" style="background:var(--parchment);"><p class="text-lg font-bold">${hembras}</p><p class="text-xs" style="color:var(--sage);">Hembras</p></div>`;
+cont.innerHTML = inventarioEscaneadoTemp.map((f, i) => {
+const yaExiste = estado.animales.some(a => a.arete === f.arete);
+return `
+<div class="rounded-2xl p-3 flex items-start gap-2" style="border:2px solid ${f.dudoso ? 'var(--yellow-d)' : 'var(--line)'};">
+<input type="checkbox" ${f.incluir ? 'checked' : ''} onchange="inventarioEscaneadoTemp[${i}].incluir = this.checked" style="margin-top:4px;"/>
+<div class="flex-1 min-w-0 text-sm">
+<p class="font-bold">${f.arete} ${yaExiste ? '<span class="text-xs font-normal" style="color:var(--sage);">(ya lo tienes — no se duplica)</span>' : ''}</p>
+<p class="text-xs" style="color:var(--sage);">${f.estatus}${f.folioRemo ? ' · folio ' + f.folioRemo : ''} · ${f.edadMeses != null ? f.edadMeses + ' meses' : 'edad: ?'} · ${f.raza || 'raza: ?'} · ${f.sexo || 'sexo: ?'}</p>
+</div>
+</div>`;
+}).join('');
+}
+function confirmarInventarioCompletoProductor(){
+const seleccionados = inventarioEscaneadoTemp.filter(f => f.incluir && !estado.animales.some(a => a.arete === f.arete));
+if (seleccionados.length === 0){ mostrarToast('No hay animales nuevos para agregar (o no marcaste ninguno)'); return; }
+seleccionados.forEach(f => {
+estado.animales.push({
+arete: f.arete, chip: '', nombre: '', raza: f.raza || '',
+sexo: f.sexo === 'Macho' ? 'macho' : 'hembra',
+fecha: '', estatus: f.estatus === 'VIGENTE' ? 'activo' : (f.estatus === 'VENTA' ? 'vendido' : (f.estatus === 'BAJA' ? 'finado' : 'activo')),
+madre: '', padre: '', potrero: '', motivoBaja: f.folioRemo ? ('Folio REEMO ' + f.folioRemo) : '', foto: null,
+proposito: '', engordaDiasObjetivo: null, engordaPesoMeta: null, engordaInicio: null,
+engordaFinalizado: false, engordaDiasFinal: null,
+edadMesesAlAlta: f.edadMeses,
+});
+});
+document.getElementById('modal-confirmar-inventario-productor').classList.add('hidden');
+inventarioEscaneadoTemp = [];
+renderResumenProductor(); renderHato(); renderResumenVientresToros();
+mostrarToast(`Se agregaron ${seleccionados.length} animal(es) a tu inventario`);
+}
+const ENCABEZADOS_COLUMNA_ANIMAL = {
+arete: ['no.', 'no', 'num', 'número', 'numero', 'identificaci', 'arete', 'siniiga', 'sinniga', 'id'],
+fecha: ['fecha de nac', 'f. nac', 'nacimiento', 'f.nac'],
+raza: ['raza'],
+sexo: ['sexo', 'genero', 'género'],
+edad: ['edad'],
+};
+function detectarRenglonEncabezado(lineas){
+// Busca la primera línea que mencione al menos 2 encabezados de columna
+// conocidos — esa es la fila de encabezado; ayuda a no tratarla como si
+// fuera un animal más.
+for (let i = 0; i < Math.min(lineas.length, 6); i++){
+const linea = lineas[i].toLowerCase();
+let coincidencias = 0;
+Object.values(ENCABEZADOS_COLUMNA_ANIMAL).forEach(palabras => { if (palabras.some(p => linea.includes(p))) coincidencias++; });
+if (coincidencias >= 2) return i;
+}
+return -1;
+}
+function extraerFechaDeTexto(linea){
+// YYYY-MM-DD o YYYY/MM/DD
+let m = linea.match(/\b(20\d{2}|19\d{2})[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])\b/);
+if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+// DD-MM-YYYY o DD/MM/YYYY
+m = linea.match(/\b(0?[1-9]|[12]\d|3[01])[-\/](0?[1-9]|1[0-2])[-\/](20\d{2}|19\d{2})\b/);
+if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+return null;
+}
+function extraerEdadMesesDeTexto(linea){
+// "18 meses", "18m", "18 m"
+let m = linea.match(/\b(\d{1,3})\s*m(?:eses)?\b/i);
+if (m) return parseInt(m[1], 10);
+// "1.5 años", "2 años", "1,5 anos"
+m = linea.match(/\b(\d{1,2}(?:[.,]\d)?)\s*a(?:ñ|n)os?\b/i);
+if (m) return Math.round(parseFloat(m[1].replace(',', '.')) * 12);
+return null;
+}
+function extraerAreteDeTexto(linea){
+// Se separa por palabras (no por franjas de caracteres) para no juntar por
+// error el número de arete con la fecha o con otro número que esté al lado
+// separado solo por espacio — cada palabra se evalúa por separado y se toma
+// la más larga que, al quitarle separadores, sea puramente numérica.
+const palabras = linea.split(/\s+/);
+let mejor = '';
+palabras.forEach(palabra => {
+const soloDigitos = palabra.replace(/[^\d]/g, '');
+if (soloDigitos.length >= 6 && soloDigitos.length <= 15 && soloDigitos.length > mejor.length) mejor = soloDigitos;
+});
+return mejor || null;
+}
+function extraerRazaDeTexto(linea){
+const m = linea.match(/\b(holstein|angus|charolais|charoláis|brahman|brahm[aá]n|simmental|hereford|jersey|pardo suizo|suizo|cebú|cebu|criollo|gyr|sardo negro|limousin|cruza|cruzado)\b/i);
+return m ? m[1].toUpperCase() : null;
+}
+function extraerSexoDeTexto(linea){
+if (/\b(hembra|h|f)\b/i.test(linea) && !/\b(macho|m)\b/i.test(linea)) return 'Hembra';
+if (/\b(macho|m)\b/i.test(linea) && !/\b(hembra|h|f)\b/i.test(linea)) return 'Macho';
+return null;
+}
+function parsearListaAnimalesDesdeTexto(textoCompleto){
+const lineasCrudas = textoCompleto.split('\n').map(l => l.trim()).filter(Boolean);
+const idxEncabezado = detectarRenglonEncabezado(lineasCrudas);
+const lineas = idxEncabezado >= 0 ? lineasCrudas.slice(idxEncabezado + 1) : lineasCrudas;
+const filas = [];
+lineas.forEach(linea => {
+const arete = extraerAreteDeTexto(linea);
+if (!arete) return; // sin un número de arete legible, no se puede tratar como un renglón de animal
+const fechaNacimiento = extraerFechaDeTexto(linea);
+let edadMeses = fechaNacimiento ? calcularEdadMesesDesdeFechaNacimiento(fechaNacimiento) : extraerEdadMesesDeTexto(linea);
+const raza = extraerRazaDeTexto(linea);
+const sexo = extraerSexoDeTexto(linea);
+const dudoso = !fechaNacimiento && edadMeses == null || !raza || !sexo;
+filas.push({ arete, fechaNacimiento, edadMeses, raza, sexo, dudoso, incluir: true });
+});
+return filas;
+}
+async function procesarFotoListaAnimales(inputEl){
+const archivo = inputEl.files && inputEl.files[0];
+if (!archivo) return;
+mostrarToast('Leyendo la lista, un momento...');
+try {
+const dataUrl = await comprimirParaOCR(archivo, 1800);
+const texto = await extraerTextoDeImagen(dataUrl);
+const esConcentradoOficial = /\breemo\b/i.test(texto) || (/\bvigente\b/i.test(texto) && /\bventa\b/i.test(texto));
+let filas;
+if (esConcentradoOficial){
+const resultado = parsearConcentradoSINIIGA(texto);
+filas = resultado.inventarioCompleto.map(f => ({
+arete: f.arete, fechaNacimiento: null, edadMeses: f.edadMeses, raza: f.raza, sexo: f.sexo,
+dudoso: f.dudoso, incluir: f.vigenteYSinFolio, estatus: f.estatus, folioRemo: f.folioRemo,
+}));
+if (filas.length > 0) mostrarToast('Se detectó un Concentrado de Identificadores SINIIGA — solo se marcaron los vigentes sin folio de baja/venta');
+} else {
+filas = parsearListaAnimalesDesdeTexto(texto);
+}
+if (filas.length === 0){
+mostrarToast('No se logró leer ningún renglón con número de arete — intenta con mejor luz o más de cerca');
+inputEl.value = '';
+return;
+}
+listaAnimalesEscaneadaTemp = filas;
+renderVistaPreviaListaAnimales();
+document.getElementById('modal-confirmar-lista-animales').classList.remove('hidden');
+} catch(e){
+console.warn('No se pudo leer la lista de animales', e);
+mostrarToast('No se pudo leer la foto — revisa tu conexión a internet e inténtalo de nuevo');
+} finally {
+inputEl.value = '';
+}
+}
+function renderVistaPreviaListaAnimales(){
+const cont = document.getElementById('lista-animales-preview');
+const estadoTxt = document.getElementById('lista-animales-estado-lectura');
+if (!cont) return;
+const dudosos = listaAnimalesEscaneadaTemp.filter(f => f.dudoso).length;
+if (estadoTxt) estadoTxt.textContent = `${listaAnimalesEscaneadaTemp.length} renglón(es) encontrados — ${dudosos} con algo dudoso`;
+cont.innerHTML = listaAnimalesEscaneadaTemp.map((f, i) => {
+const etiquetaEstatus = f.estatus ? `<span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:${f.estatus === 'VIGENTE' ? 'rgba(76,153,89,0.15)' : 'rgba(211,71,71,0.12)'}; color:${f.estatus === 'VIGENTE' ? 'var(--green)' : 'var(--red)'};">${f.estatus}${f.folioRemo ? ' · folio ' + f.folioRemo : ''}</span>` : '';
+return `
+<div class="rounded-2xl p-3 flex items-start gap-2" style="border:2px solid ${f.dudoso ? 'var(--yellow-d)' : 'var(--line)'}; background:${f.dudoso ? 'rgba(217,164,6,0.06)' : '#fff'};">
+<input type="checkbox" ${f.incluir ? 'checked' : ''} onchange="listaAnimalesEscaneadaTemp[${i}].incluir = this.checked" style="margin-top:4px;"/>
+<div class="flex-1 min-w-0 text-sm">
+<p class="font-bold flex items-center gap-2 flex-wrap">${f.arete} ${etiquetaEstatus}</p>
+<p class="text-xs" style="color:var(--sage);">${f.edadMeses != null ? f.edadMeses + ' meses' : 'edad: ?'} · ${f.raza || 'raza: ?'} · ${f.sexo || 'sexo: ?'}${f.fechaNacimiento ? ' · nació ' + f.fechaNacimiento : ''}</p>
+</div>
+</div>`;
+}).join('');
+}
+function confirmarAltaListaAnimalesEscaneada(){
+const seleccionados = listaAnimalesEscaneadaTemp.filter(f => f.incluir);
+if (seleccionados.length === 0){ mostrarToast('No marcaste ningún renglón para agregar'); return; }
+seleccionados.forEach(f => {
+const nuevoId = 'fila_' + Date.now() + Math.random().toString(36).slice(2,6);
+filasAnimalesPruebaCampo.push({
+id: nuevoId, arete: f.arete, especie: 'Bovino',
+edad: f.edadMeses != null ? String(f.edadMeses) : '',
+sexo: f.sexo === 'Macho' ? 'M' : (f.sexo === 'Hembra' ? 'H' : 'H'),
+raza: f.raza || '', fierro: '', resultado: 'N',
+});
+});
+document.getElementById('modal-confirmar-lista-animales').classList.add('hidden');
+listaAnimalesEscaneadaTemp = [];
+renderFilasAnimalesPruebaCampo();
+mostrarToast(`Se agregaron ${seleccionados.length} animal(es) — revisa que cada uno quede completo`);
+}
 // ================= REGISTRO DE EVENTOS DE USO (para Métricas de Interacción) =================
 function registrarEvento(tipo, subtipo){
 const ahora = new Date();
@@ -9707,6 +10105,19 @@ letraActual = letra;
 subtabActual = 'registrar';
 renderModulo();
 }
+function renderResumenConteosInventarioProductor(){
+const cont = document.getElementById('resumen-conteos-inventario-productor');
+if (!cont) return;
+const vigentes = estado.animales.filter(a => a.estatus !== 'vendido' && a.estatus !== 'finado').length;
+const bajas = estado.animales.filter(a => a.estatus === 'vendido' || a.estatus === 'finado').length;
+const machos = estado.animales.filter(a => a.sexo === 'macho').length;
+const hembras = estado.animales.filter(a => a.sexo === 'hembra').length;
+cont.innerHTML = `
+<div class="rounded-xl p-2" style="background:rgba(76,153,89,0.12);"><p class="text-lg font-bold" style="color:var(--green);">${vigentes}</p><p class="text-xs" style="color:var(--sage);">Vigentes</p></div>
+<div class="rounded-xl p-2" style="background:rgba(211,71,71,0.1);"><p class="text-lg font-bold" style="color:var(--red);">${bajas}</p><p class="text-xs" style="color:var(--sage);">Bajas</p></div>
+<div class="rounded-xl p-2" style="background:var(--parchment);"><p class="text-lg font-bold">${machos}</p><p class="text-xs" style="color:var(--sage);">Machos</p></div>
+<div class="rounded-xl p-2" style="background:var(--parchment);"><p class="text-lg font-bold">${hembras}</p><p class="text-xs" style="color:var(--sage);">Hembras</p></div>`;
+}
 function renderResumenProductor(){
 const cont = document.getElementById('resumen-productor');
 const p = estado.productor;
@@ -9732,6 +10143,7 @@ cont.innerHTML = campos
 <p style="color:var(--sage);">${etiqueta}</p>
 <p class="font-bold text-base">${valor && valor !== '0 cabezas' ? valor : (clave==='animales' ? valor : '<span style="color:var(--line);">Sin datos</span>')}</p>
 </div>`).join('');
+renderResumenConteosInventarioProductor();
 }
 function saludoSegunHora(){
 const hora = new Date().getHours();
@@ -12019,10 +12431,13 @@ function renderGridAdminHome(){
 const cont = document.getElementById('grid-admin-home');
 if (!cont) return;
 if (estado.modoComite){
+const pendTB = (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length;
+const pendCEFPP = estado.salud.filter(r => r.estadoCEFPP && r.estadoCEFPP !== 'enviado').length;
 cont.innerHTML = `
 <button onclick="irAdmin('ventanageneraltb')" class="tile bg-red col-span-2" style="position:relative;">
 <span class="icono"><i class="fa-solid fa-user-doctor"></i></span>
 <span>Admin TB — avisos de reactores y médicos de campo</span>
+${pendTB > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:#fff; color:var(--red); top:8px; right:8px;"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${pendTB} reactor(es) pendiente(s)</span>` : ''}
 </button>
 <button onclick="irAdmin('reportestb')" class="tile bg-purple col-span-2">
 <span class="icono"><i class="fa-solid fa-chart-column"></i></span>
@@ -12032,45 +12447,64 @@ cont.innerHTML = `
 <span class="icono"><i class="fa-solid fa-file-lines"></i></span>
 <span>Generar informe general</span>
 </button>
-<button onclick="irAdmin('cefpp')" class="tile bg-teal col-span-2">
+<button onclick="irAdmin('cefpp')" class="tile bg-teal col-span-2" style="position:relative;">
 <span class="icono"><i class="fa-solid fa-shield-virus"></i></span>
 <span>Reportes a CEFPP (casos urgentes)</span>
+${pendCEFPP > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:#fff; color:var(--red); top:8px; right:8px;">${pendCEFPP}</span>` : ''}
 </button>`;
 return;
 }
 if (estado.modoMedicoCampoTB){
+const misCasos = (estado.avisosReactoresTB || []).filter(a => a.medicoAsignadoId === estado.medicoComiteActivoId);
+const nuevosSinVer = misCasos.filter(a => a.estatus === 'asignado').length;
+const cuarentenaLista = misCasos.filter(a => a.fechaFinCuarentena && !a.reProbado && hoyISO() >= a.fechaFinCuarentena).length;
+const totalAvisoMedicoTB = nuevosSinVer + cuarentenaLista;
 cont.innerHTML = `
-<button onclick="irAdmin('medicocampotb')" class="tile bg-red col-span-2">
+<button onclick="irAdmin('medicocampotb')" class="tile bg-red col-span-2" style="position:relative;">
 <span class="icono"><i class="fa-solid fa-notes-medical"></i></span>
 <span>Mis pruebas cervicales comparativas</span>
+${totalAvisoMedicoTB > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:#fff; color:var(--red); top:8px; right:8px;">${nuevosSinVer > 0 ? nuevosSinVer + ' nueva(s)' : ''}${nuevosSinVer > 0 && cuarentenaLista > 0 ? ' · ' : ''}${cuarentenaLista > 0 ? cuarentenaLista + ' lista(s) para re-prueba' : ''}</span>` : ''}
 </button>`;
 return;
 }
 if (estado.modoCapturistaTB){
+const pendientesTB = (estado.pruebasCampoVet || []).filter(p => (p.categoria === 'areteo' || p.leida) && p.tipoPrueba === 'TB' && !p.capturada).length;
 cont.innerHTML = `
-<button onclick="irAdmin('capturistatb')" class="tile bg-teal col-span-2">
+<button onclick="irAdmin('capturistatb')" class="tile bg-teal col-span-2" style="position:relative;">
 <span class="icono"><i class="fa-solid fa-keyboard"></i></span>
 <span>Capturista TB — pruebas listas para capturar</span>
+${pendientesTB > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${pendientesTB}</span>` : ''}
 </button>`;
 return;
 }
 if (estado.modoCapturista){
+const pendientes = (estado.pruebasCampoVet || []).filter(p => (p.categoria === 'areteo' || p.leida) && !p.capturada);
+const conReactor = pendientes.filter(p => (p.animales || []).some(a => a.resultado === 'R')).length;
 cont.innerHTML = `
-<button onclick="irAdmin('pruebascapturista')" class="tile bg-teal col-span-2">
+<button onclick="irAdmin('pruebascapturista')" class="tile bg-teal col-span-2" style="position:relative;">
 <span class="icono"><i class="fa-solid fa-keyboard"></i></span>
 <span>Pruebas listas para capturar</span>
+${pendientes.length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:${conReactor > 0 ? 'var(--red)' : 'var(--pine)'}; color:#fff; top:8px; right:8px;">${pendientes.length}${conReactor > 0 ? ' (' + conReactor + ' con reactor)' : ''}</span>` : ''}
 </button>`;
 return;
 }
 if (estado.modoAlmita){
+const sinRevisar = (estado.enviosAlmita || []).filter(e => !e.revisado);
+const conReactor = sinRevisar.filter(e => e.reactores > 0).length;
 cont.innerHTML = `
-<button onclick="irAdmin('almita')" class="tile bg-red col-span-2">
+<button onclick="irAdmin('almita')" class="tile bg-red col-span-2" style="position:relative;">
 <span class="icono"><i class="fa-solid fa-envelope-open-text"></i></span>
 <span>Centro de solicitudes CEFPP</span>
+${sinRevisar.length > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:#fff; color:var(--red); top:8px; right:8px;">${sinRevisar.length}${conReactor > 0 ? ' (' + conReactor + ' con reactor)' : ''}</span>` : ''}
 </button>`;
 return;
 }
 if (estado.vistaVeterinario){
+const vetActivo = veterinarioActivo();
+const idVet = vetActivo ? vetActivo.id : null;
+const pendPruebas = (estado.solicitudesPrueba || []).filter(s => s.veterinarioId === idVet && s.estatus === 'pendiente').length;
+const pendAretes = (estado.solicitudesAretes || []).filter(s => s.veterinarioId === idVet && s.estatus === 'pendiente').length;
+const totalSolicitudesVet = pendPruebas + pendAretes;
 cont.innerHTML = `
 <button onclick="irAdmin('boletines')" class="tile bg-pink col-span-2">
 ${iconoChicoHTML('vet_boletines', 'fa-bullhorn')}
@@ -12084,9 +12518,10 @@ ${iconoChicoHTML('vet_pacientes', 'fa-users')}
 ${iconoChicoHTML('vet_notas', 'fa-note-sticky')}
 <span>${tr('vet_notas__mis_notas')}</span>
 </button>
-<button onclick="irAdmin('pruebascampo')" class="tile bg-purple col-span-2">
+<button onclick="irAdmin('pruebascampo')" class="tile bg-purple col-span-2" style="position:relative;">
 ${iconoChicoHTML('vet_pruebascampo', 'fa-vial-circle-check')}
 <span>Pruebas de campo</span>
+${totalSolicitudesVet > 0 ? `<span class="absolute text-xs font-bold px-2 py-0.5 rounded-full" style="background:var(--red); color:#fff; top:8px; right:8px;">${totalSolicitudesVet} solicitud(es)</span>` : ''}
 </button>`;
 return;
 }
@@ -13084,6 +13519,25 @@ if (sexo === 'M') btnEl.classList.add('es-macho');
 actualizarTarjetaAnimalUI(id);
 }
 function renderFilasAnimalesPruebaCampo(){
+// Salto automático de campo, para capturar rápido sin tocar la pantalla entre
+// cada dato: el arete SINIIGA siempre trae 10 dígitos — al llegar a 10, salta
+// solo al campo de Raza. La raza se anota con 2 letras (código de raza) — al
+// llegar a 2, salta solo al campo de Edad. La edad es el último dato que se
+// captura a mano en la fila, así que de ahí no salta a ningún lado — se sigue
+// normal hacia el botón de Guardar.
+window.avanzarSiCompletoArete = function(input, filaId){
+const soloDigitos = (input.value || '').replace(/\D/g, '');
+if (soloDigitos.length >= 10){
+const siguiente = document.getElementById('raza-input-' + filaId);
+if (siguiente) siguiente.focus();
+}
+};
+window.avanzarSiCompletoRaza = function(input, filaId){
+if ((input.value || '').trim().length >= 2){
+const siguiente = document.getElementById('edad-input-' + filaId);
+if (siguiente) siguiente.focus();
+}
+};
 const cont = document.getElementById('lista-animales-prueba-campo');
 if (!cont) return;
 // Si el productor tiene guardada la figura de su fierro de herrar y la casilla
@@ -13164,7 +13618,7 @@ return `
 <span class="campo-check"><i class="fa-solid fa-check"></i></span>
 <label class="campo-label">Arete / SINIIGA</label>
 <div class="flex gap-2 items-stretch">
-<div class="flex-1 min-w-0"><input class="campo-mayusculas" oninput="forzarMayusculas(this); actualizarFilaAnimalPC('${f.id}','arete',this.value); marcarCampoLleno(this,true); actualizarTarjetaAnimalUI('${f.id}');" onchange="verificarAreteFila('${f.id}',this.value)" placeholder="Arete / SINIIGA" type="text" value="${f.arete}"/></div>
+<div class="flex-1 min-w-0"><input class="campo-mayusculas" id="arete-input-${f.id}" oninput="forzarMayusculas(this); actualizarFilaAnimalPC('${f.id}','arete',this.value); marcarCampoLleno(this,true); actualizarTarjetaAnimalUI('${f.id}'); avanzarSiCompletoArete(this,'${f.id}');" onchange="verificarAreteFila('${f.id}',this.value)" placeholder="Arete / SINIIGA" type="text" value="${f.arete}"/></div>
 <button type="button" onclick="abrirSelectorAreteNuevo('${f.id}')" class="text-xs font-bold px-3 rounded-xl flex-shrink-0" style="background:var(--teal); color:#fff; white-space:nowrap;" title="Vincular este arete a una solicitud de arete pendiente del productor"><i class="fa-solid fa-tag"></i> Arete nuevo</button>
 </div>
 </div>
@@ -13183,7 +13637,7 @@ return `
 <div class="grupo-campo ${f.edad ? 'campo-lleno' : 'campo-vacio-requerido'}">
 <span class="campo-check"><i class="fa-solid fa-check"></i></span>
 <label class="campo-label">Edad (meses)</label>
-<input oninput="actualizarFilaAnimalPC('${f.id}','edad',this.value); marcarCampoLleno(this,true); actualizarTarjetaAnimalUI('${f.id}');" placeholder="Edad (meses)" type="text" value="${f.edad}"/>
+<input id="edad-input-${f.id}" oninput="actualizarFilaAnimalPC('${f.id}','edad',this.value); marcarCampoLleno(this,true); actualizarTarjetaAnimalUI('${f.id}');" placeholder="Edad (meses)" type="text" value="${f.edad}" maxlength="3"/>
 </div>
 </div>
 <div>
@@ -13196,7 +13650,7 @@ return `
 <div class="grupo-campo ${f.raza ? 'campo-lleno' : 'campo-vacio-requerido'}">
 <span class="campo-check"><i class="fa-solid fa-check"></i></span>
 <label class="campo-label">Raza</label>
-<input class="campo-mayusculas" oninput="forzarMayusculas(this); actualizarFilaAnimalPC('${f.id}','raza',this.value); marcarCampoLleno(this,true); actualizarTarjetaAnimalUI('${f.id}');" placeholder="Raza" type="text" value="${f.raza}"/>
+<input class="campo-mayusculas" id="raza-input-${f.id}" oninput="forzarMayusculas(this); actualizarFilaAnimalPC('${f.id}','raza',this.value); marcarCampoLleno(this,true); actualizarTarjetaAnimalUI('${f.id}'); avanzarSiCompletoRaza(this,'${f.id}');" placeholder="Raza" type="text" value="${f.raza}"/>
 </div>
 <div class="grupo-campo ${(f.fierro || f.fierroImagenUrl) ? 'campo-lleno' : ''}">
 <span class="campo-check"><i class="fa-solid fa-check"></i></span>
@@ -14053,6 +14507,9 @@ ${(a.folioTB || a.folioHojaCampo || a.consecutivo) ? `<p class="text-xs mt-1" st
 ${a.estatus === 'pendiente' ? `<button onclick="abrirModalAsignarMedicoTB('${a.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--red); color:#fff;"><i class="fa-solid fa-user-doctor"></i> Asignar médico</button>` : ''}
 ${(a.estatus === 'asignado' || a.estatus === 'en_proceso') ? `<button onclick="abrirModalAsignarMedicoTB('${a.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-arrows-rotate"></i> Reasignar</button>` : ''}
 ${a.estatus === 'finalizado' ? `<button onclick="abrirVistaPreviaDictamenPCC('${a.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--purple); color:#fff;"><i class="fa-solid fa-print"></i> Imprimir dictamen PCC</button>` : ''}
+${a.fechaFinCuarentena && !a.reProbado ? (hoyISO() < a.fechaFinCuarentena
+? `<span class="text-xs px-2 py-0.5 rounded-full inline-flex items-center" style="background:var(--yellow); color:#fff;"><i class="fa-solid fa-clock mr-1"></i>${a.animalesEnCuarentena.length} en cuarentena hasta ${a.fechaFinCuarentena}</span>`
+: `<button onclick="iniciarRePruebaCuarentena('${a.id}')" class="text-xs font-bold px-3 py-2 rounded-full" style="background:var(--red); color:#fff;"><i class="fa-solid fa-rotate"></i> Cuarentena cumplida — registrar re-prueba</button>`) : ''}
 </div>
 </div>`).join('');
 }
@@ -14257,9 +14714,46 @@ cont.innerHTML = items.slice(0, 200).map(p => `
 }
 // ---- Captura de la Prueba Cervical Comparativa (PCC) ----
 let avisoTBEnCaptura = null;
+// Modo directo: el médico de TB registra una PCC sin que exista un aviso de
+// reactor previo ni una asignación del comité — para cuando ya está en el
+// predio o le avisan por teléfono. Se guarda igual en avisosReactoresTB, pero
+// sin folio/hoja de campo/consecutivo (eso lo agrega el comité después) y
+// marcado con origenDirecto para diferenciarlo del flujo normal.
+let pccModoDirecto = false;
+function abrirPCCDirecta(){
+pccModoDirecto = true;
+avisoTBEnCaptura = null;
+document.getElementById('titulo-capturapcc').textContent = 'Prueba PCC directa';
+document.getElementById('pcc-datos-productor').innerHTML = `
+<h3 class="font-display font-bold mb-2">Datos del productor (a mano)</h3>
+<div class="space-y-2">
+<div><label class="campo-label">Nombre del productor</label><input class="campo-mayusculas" id="pccd-productor-nombre" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="grid grid-cols-2 gap-2">
+<div><label class="campo-label">Predio</label><input class="campo-mayusculas" id="pccd-predio" oninput="forzarMayusculas(this)" type="text"/></div>
+<div><label class="campo-label">UPP</label><input class="campo-mayusculas" id="pccd-upp" oninput="forzarMayusculas(this)" type="text"/></div>
+</div>
+</div>`;
+const btnAgregar = document.getElementById('btn-agregar-animal-pcc');
+if (btnAgregar) btnAgregar.classList.remove('hidden');
+const btnGuardar = document.getElementById('btn-guardar-pcc');
+if (btnGuardar) btnGuardar.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Registrar y enviar al comité';
+renderFilasPCC([]);
+irAdmin('capturapcc');
+}
+function agregarFilaVaciaPCC(){
+const filas = window._filasPCCActuales || [];
+filas.push({ arete:'', especie:'Bovino', edad:'', raza:'', sexo:'M', fierro:'', iniA:'', iniB:'', h72A:'', h72B:'', resultado:'', observaciones:'' });
+renderFilasPCC(filas);
+}
 function abrirCapturaPCC(avisoId){
 const a = (estado.avisosReactoresTB || []).find(x => x.id === avisoId);
 if (!a) return;
+pccModoDirecto = false;
+document.getElementById('titulo-capturapcc').textContent = 'Prueba cervical comparativa';
+const btnAgregar = document.getElementById('btn-agregar-animal-pcc');
+if (btnAgregar) btnAgregar.classList.add('hidden');
+const btnGuardar = document.getElementById('btn-guardar-pcc');
+if (btnGuardar) btnGuardar.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Guardar y reportar al comité';
 avisoTBEnCaptura = avisoId;
 if (a.estatus === 'asignado'){ a.estatus = 'en_proceso'; guardarEstadoLocal(); }
 document.getElementById('pcc-datos-productor').innerHTML = `
@@ -14291,7 +14785,16 @@ const n = v => { const x = parseFloat(v); return isNaN(x) ? null : x; };
 const diferencia = (n(f.h72B) !== null && n(f.iniB) !== null && n(f.h72A) !== null && n(f.iniA) !== null) ? ((n(f.h72B) - n(f.iniB)) - (n(f.h72A) - n(f.iniA))).toFixed(1) : '';
 return `
 <div class="bg-white rounded-2xl p-3" style="border:2px solid var(--line);">
-<p class="text-sm font-bold">${f.arete || 'Sin arete'} <span class="text-xs font-normal" style="color:var(--sage);">${f.sexo === 'M' ? 'Macho' : 'Hembra'} · ${f.raza || 'sin raza'} · ${f.edad || '—'} meses</span></p>
+<div class="flex items-center justify-between gap-2 mb-1">
+<label class="campo-label mb-0">Arete / identificador</label>
+<button onclick="eliminarFilaPCC(${i})" style="color:var(--red);" type="button"><i class="fa-solid fa-trash"></i></button>
+</div>
+<input class="campo-mayusculas" oninput="forzarMayusculas(this); actualizarCampoPCC(${i},'arete',this.value)" placeholder="Arete / identificador" type="text" value="${f.arete || ''}"/>
+<div class="grid grid-cols-3 gap-2 mt-2">
+<div><label class="campo-label">Raza</label><input class="campo-mayusculas" oninput="forzarMayusculas(this); actualizarCampoPCC(${i},'raza',this.value)" placeholder="Raza" type="text" value="${f.raza || ''}"/></div>
+<div><label class="campo-label">Edad (meses)</label><input oninput="actualizarCampoPCC(${i},'edad',this.value)" placeholder="Meses" type="text" value="${f.edad || ''}"/></div>
+<div><label class="campo-label">Sexo</label><select onchange="actualizarCampoPCC(${i},'sexo',this.value)"><option ${f.sexo==='H'?'selected':''} value="H">H</option><option ${f.sexo==='M'?'selected':''} value="M">M</option></select></div>
+</div>
 <div class="grid grid-cols-2 gap-2 mt-2">
 <div><label class="campo-label">Medida inicial A (aviar)</label><input oninput="actualizarCampoPCC(${i},'iniA',this.value)" placeholder="mm" type="number" value="${f.iniA}"/></div>
 <div><label class="campo-label">Medida inicial B (bovina)</label><input oninput="actualizarCampoPCC(${i},'iniB',this.value)" placeholder="mm" type="number" value="${f.iniB}"/></div>
@@ -14312,24 +14815,88 @@ return `
 </div>`;
 }).join('');
 }
+function eliminarFilaPCC(indice){
+if (!window._filasPCCActuales) return;
+window._filasPCCActuales.splice(indice, 1);
+renderFilasPCC(window._filasPCCActuales);
+}
 function actualizarCampoPCC(indice, campo, val){
 if (!window._filasPCCActuales || !window._filasPCCActuales[indice]) return;
 window._filasPCCActuales[indice][campo] = val;
 if (['iniA','iniB','h72A','h72B'].includes(campo)) renderFilasPCC(window._filasPCCActuales);
 }
 function guardarPCC(){
-const a = (estado.avisosReactoresTB || []).find(x => x.id === avisoTBEnCaptura);
-if (!a || !window._filasPCCActuales) return;
+if (!window._filasPCCActuales || window._filasPCCActuales.length === 0){ mostrarToast('Agrega al menos un animal'); return; }
+let a;
+if (pccModoDirecto){
+const nombreProductor = valor('pccd-productor-nombre').trim();
+if (!nombreProductor){ mostrarToast('Escribe el nombre del productor'); return; }
+const sinArete = window._filasPCCActuales.filter(f => !f.arete || !f.arete.trim());
+if (sinArete.length > 0){ mostrarToast('Falta el arete/identificador en ' + sinArete.length + ' animal(es)'); return; }
+a = {
+id: 'avtb_' + Date.now(), pruebaId: null, productorId: '', productorNombre: nombreProductor,
+predio: valor('pccd-predio').trim(), upp: valor('pccd-upp').trim(), curp: '',
+totalHato: window._filasPCCActuales.length, aretesReactores: window._filasPCCActuales.map(f => ({ arete:f.arete, especie:'Bovino', edad:f.edad, raza:f.raza, sexo:f.sexo, fierro:f.fierro })),
+fecha: hoyISO(), estatus: 'en_proceso',
+medicoAsignadoId: estado.medicoComiteActivoId, medicoAsignadoNombre: (estado.medicosComiteTB.find(m => m.id === estado.medicoComiteActivoId) || {}).nombre || '',
+fechaAsignacion: hoyISO(), animalesPCC: null, fechaFinalizado: null,
+folioTB: '', folioHojaCampo: '', consecutivo: '',
+origenDirecto: true,
+};
+estado.avisosReactoresTB.push(a);
+} else {
+a = (estado.avisosReactoresTB || []).find(x => x.id === avisoTBEnCaptura);
+if (!a) return;
+}
 const sinMedir = window._filasPCCActuales.filter(f => !f.iniA || !f.iniB || !f.h72A || !f.h72B || !f.resultado);
 if (sinMedir.length > 0){ mostrarToast(`Faltan mediciones o resultado en ${sinMedir.length} animal(es) — igual puedes guardar y completarlo después`); }
 a.animalesPCC = window._filasPCCActuales;
 a.estatus = 'finalizado';
 a.fechaFinalizado = hoyISO();
+// Si algún animal sigue como reactor después de la prueba confirmatoria, no
+// se cierra el caso del todo: entra en cuarentena 2 meses (protocolo oficial
+// de TB) antes de poder volver a probarlo. Se guarda la lista de esos
+// animales y la fecha en que ya se puede reprogramar la re-prueba.
+const siguenReactores = a.animalesPCC.filter(f => f.resultado === 'R');
+if (siguenReactores.length > 0){
+const fechaFin = new Date(fechaHoy());
+fechaFin.setDate(fechaFin.getDate() + 60);
+a.animalesEnCuarentena = siguenReactores.map(f => ({ arete: f.arete, especie: f.especie, edad: f.edad, raza: f.raza, sexo: f.sexo, fierro: f.fierro }));
+a.fechaFinCuarentena = formatearFechaISO(fechaFin);
+a.reProbado = false;
+} else {
+a.animalesEnCuarentena = null; a.fechaFinCuarentena = null;
+}
 guardarEstadoLocal();
-mostrarToast('Prueba cervical comparativa reportada al comité');
+mostrarToast(siguenReactores.length > 0 ? `Reportado — ${siguenReactores.length} animal(es) sigue(n) como reactor, entra(n) en cuarentena hasta el ${a.fechaFinCuarentena}` : (pccModoDirecto ? 'Prueba PCC directa registrada y enviada al comité' : 'Prueba cervical comparativa reportada al comité'));
 avisoTBEnCaptura = null;
 window._filasPCCActuales = null;
+pccModoDirecto = false;
+const btnAgregarReset = document.getElementById('btn-agregar-animal-pcc');
+if (btnAgregarReset) btnAgregarReset.classList.add('hidden');
+const btnGuardarReset = document.getElementById('btn-guardar-pcc');
+if (btnGuardarReset) btnGuardarReset.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Guardar y reportar al comité';
+document.getElementById('titulo-capturapcc').textContent = 'Prueba cervical comparativa';
 volverAtrasAdmin('medicocampotb');
+}
+// Reabre la captura de PCC para los animales que siguen en cuarentena, una vez
+// que ya pasaron los 2 meses — genera una nueva ronda de mediciones solo para
+// esos animales, sin perder el expediente original del caso.
+function iniciarRePruebaCuarentena(avisoId){
+const a = (estado.avisosReactoresTB || []).find(x => x.id === avisoId);
+if (!a || !a.animalesEnCuarentena || a.animalesEnCuarentena.length === 0) return;
+if (hoyISO() < a.fechaFinCuarentena){ mostrarToast('Todavía no se cumplen los 2 meses de cuarentena — no se puede volver a probar antes de ' + a.fechaFinCuarentena); return; }
+avisoTBEnCaptura = avisoId;
+a.estatus = 'en_proceso';
+a.reProbado = true;
+document.getElementById('pcc-datos-productor').innerHTML = `
+<p class="font-display font-bold">${a.productorNombre}</p>
+<p class="text-sm" style="color:var(--sage);">${a.predio || ''} ${a.upp ? '· UPP ' + a.upp : ''}</p>
+<p class="text-sm font-bold" style="color:var(--red);"><i class="fa-solid fa-rotate"></i> Re-prueba tras cuarentena — ${a.animalesEnCuarentena.length} animal(es)</p>`;
+const filas = a.animalesEnCuarentena.map(ar => ({ arete: ar.arete, especie: ar.especie, edad: ar.edad, raza: ar.raza, sexo: ar.sexo, fierro: ar.fierro, iniA:'', iniB:'', h72A:'', h72B:'', resultado:'', observaciones:'' }));
+renderFilasPCC(filas);
+guardarEstadoLocal();
+irAdmin('capturapcc');
 }
 // ---- Impresión del dictamen de la Prueba Cervical Comparativa (para la capturista) ----
 function filaPCCImpresionHTML(f, i){
@@ -16543,6 +17110,59 @@ try { return await comprimirArchivoImagen(archivo, maxAncho || 1800, 0.88); }
 catch(e){ console.warn('No se pudo comprimir la imagen para recorte, se intenta con el archivo original', e); return archivoADataUrl(archivo); }
 }
 const RECORTE_FIERRO_ESTADO = {};
+// OpenCV.js es pesada (varios MB) y se carga en segundo plano desde el CDN —
+// esto espera a que esté lista, sin bloquear el resto de la app mientras
+// tanto. Si no llega a cargar (sin internet, CDN caído), simplemente no se
+// ofrece la sugerencia automática y el recorte a mano sigue funcionando igual
+// que siempre — nunca se queda la pantalla esperando para siempre.
+let opencvListoPromise = null;
+function esperarOpenCV(){
+if (opencvListoPromise) return opencvListoPromise;
+opencvListoPromise = new Promise((resolve) => {
+const checar = () => {
+if (window.cv && cv.Mat){ resolve(true); return; }
+if (window.cv && typeof cv === 'object'){ cv['onRuntimeInitialized'] = () => resolve(true); return; }
+setTimeout(checar, 300);
+};
+checar();
+setTimeout(() => resolve(false), 8000);
+});
+return opencvListoPromise;
+}
+// Detección automática del recuadro del fierro de herrar: busca en la foto la
+// figura cuadrada/rectangular más grande con proporciones parecidas a una
+// casilla de fierro (ni una línea delgada, ni la credencial completa), y
+// dibuja un recuadro sugerido — la persona lo puede ajustar arrastrando antes
+// de confirmar, igual que si lo hubiera dibujado ella desde el principio.
+async function sugerirRecorteFierroAutomatico(prefijo){
+const est = RECORTE_FIERRO_ESTADO[prefijo];
+if (!est) return;
+const listo = await esperarOpenCV();
+if (!listo || est.arrastrando || (est.rect && est.rect.w > 8)) return; // no pisar un recorte que la persona ya empezó a dibujar a mano
+try {
+const canvas = document.getElementById(prefijo + '-fierro-canvas');
+let src = cv.imread(canvas);
+let gray = new cv.Mat(), thresh = new cv.Mat(), contours = new cv.MatVector(), hierarchy = new cv.Mat();
+cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+cv.threshold(gray, thresh, 120, 255, cv.THRESH_BINARY_INV);
+cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+let maxArea = 0, bestRect = null;
+for (let i = 0; i < contours.size(); ++i){
+const r = cv.boundingRect(contours.get(i));
+const area = r.width * r.height;
+const aspecto = r.width / (r.height || 1);
+if (area > 2000 && area < (src.rows * src.cols * 0.3) && aspecto >= 0.6 && aspecto <= 1.6 && area > maxArea){
+maxArea = area; bestRect = r;
+}
+}
+if (bestRect && !est.arrastrando){
+est.rect = { x: bestRect.x, y: bestRect.y, w: bestRect.width, h: bestRect.height };
+redibujarCanvasFierro(prefijo);
+mostrarToast('Encontré un posible recuadro del fierro — ajústalo si hace falta y confirma');
+}
+src.delete(); gray.delete(); thresh.delete(); contours.delete(); hierarchy.delete();
+} catch(e){ console.warn('No se pudo sugerir el recorte automático del fierro, se deja el recorte manual', e); }
+}
 function cargarFotoParaRecorteFierro(inputEl, prefijo){
 const archivo = inputEl.files && inputEl.files[0];
 if (!archivo) return;
@@ -16565,6 +17185,7 @@ ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 RECORTE_FIERRO_ESTADO[prefijo] = { imgOriginal: img, escala, rect: null, arrastrando: false, inicioX: 0, inicioY: 0 };
 document.getElementById(prefijo + '-fierro-recorte-cont').classList.remove('hidden');
 activarArrastreRecorteFierro(prefijo);
+sugerirRecorteFierroAutomatico(prefijo);
 };
 img.onerror = () => mostrarToast('No se pudo abrir la foto para recortar — vuelve a tomarla');
 img.src = dataUrlComprimido;
@@ -16855,6 +17476,14 @@ function extraerCURP(texto){
 const m = texto.toUpperCase().replace(/\s+/g, '').match(/[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d/);
 return m ? m[0] : '';
 }
+// Respaldo para cuando el OCR no logra leer bien la palabra "UPP" como
+// etiqueta (letras borrosas, mala luz, etc.) pero el número en sí sí se
+// alcanza a leer — la clave UPP/PSG sigue un patrón reconocible de dígitos
+// (ej. 10-023-0001) aunque la etiqueta de al lado haya salido ilegible.
+function extraerUPPPorPatron(texto){
+const m = texto.replace(/\s+/g, ' ').match(/\b(\d{2}[-\s]?\d{3}[-\s]?\d{3,4})\b/);
+return m ? m[1].replace(/[\s-]/g, '') : '';
+}
 function extraerTrasEtiqueta(texto, etiquetas){
 const lineas = texto.split(/\n+/).map(l => l.trim()).filter(Boolean);
 // Las etiquetas se revisan de la más larga a la más corta: por ejemplo, si se
@@ -16897,7 +17526,8 @@ const textoCompleto = textoFrente + '\n' + textoReverso;
 establecerValor('esc-cred-curp', extraerCURP(textoCompleto));
 establecerValor('esc-cred-nombre', extraerTrasEtiqueta(textoFrente, ['NOMBRE']));
 establecerValor('esc-cred-folio', extraerTrasEtiqueta(textoFrente, ['FOLIO']));
-establecerValor('esc-cred-upp', extraerTrasEtiqueta(textoFrente, ['UPP']));
+const uppExtraida = extraerTrasEtiqueta(textoFrente, ['UPP']) || extraerUPPPorPatron(textoCompleto);
+establecerValor('esc-cred-upp', uppExtraida);
 establecerValor('esc-cred-actividad', extraerTrasEtiqueta(textoFrente, ['ACTIVIDAD', 'TIPO DE ACTIVIDAD']));
 establecerValor('esc-cred-domicilio', extraerTrasEtiqueta(textoReverso, ['DOMICILIO']));
 establecerValor('esc-cred-municipio', extraerTrasEtiqueta(textoReverso, ['MUNICIPIO']));
@@ -16941,6 +17571,7 @@ canvas.width = anchoMax; canvas.height = img.height * escala;
 canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
 RECORTE_FIERRO_ESTADO['esc'] = { imgOriginal: img, escala, rect: null, arrastrando: false, inicioX: 0, inicioY: 0 };
 activarArrastreRecorteFierro('esc');
+sugerirRecorteFierroAutomatico('esc');
 };
 img.onerror = () => mostrarToast('No se pudo abrir la foto para recortar — vuelve a tomarla');
 img.src = dataUrlComprimido;
@@ -16995,18 +17626,36 @@ lineas.forEach(linea => {
 const idMatch = linea.match(/\b(00\d{8,13}|MX\d{8,13}|\d{10,15})\b/);
 if (!idMatch) return;
 const fechas = linea.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/g) || [];
+// El Concentrado SINIIGA oficial trae la fecha de nacimiento como mes-año,
+// sin día (ej. "06-2016") — se busca por separado porque no la detecta el
+// patrón de fecha completa de arriba. Si lo que se encontró en realidad es
+// un pedazo de una fecha completa ya capturada (ej. "11/2021" dentro de
+// "05/11/2021"), no cuenta como una fecha mes-año aparte.
+let mesAnioMatch = linea.match(/\b(0?[1-9]|1[0-2])[-\/](20\d{2}|19\d{2})\b/);
+if (mesAnioMatch && fechas.some(f => f.includes(mesAnioMatch[0]))) mesAnioMatch = null;
 const mayus = linea.toUpperCase();
-const estatusMatch = mayus.match(/VIGENTE|CANCELADO|BAJA|INACTIVO/);
+const estatusMatch = mayus.match(/VIGENTE|CANCELADO|BAJA|INACTIVO|VENTA/);
 const sexoMatch = mayus.match(/\bHEMBRA\b|\bMACHO\b/);
-const movMatch = mayus.match(/REARETADO|INCREMENTO NATURAL|INCREMENTO POR COMPRA|TRASPASO|ALTA|BAJA/);
+const movMatch = mayus.match(/REARETADO|INCREMENTO NATURAL|INCREMENTO POR COMPRA|TRASPASO|ALTA|BAJA|VENTA/);
+// Folio REEMO: con etiqueta si la trae, o por posición (última columna de la
+// fila) si el documento es una tabla sin repetir la etiqueta en cada renglón.
+const folioConEtiqueta = linea.match(/\breemo[:\s]*([0-9]{3,})\b/i);
+let folioRemo = folioConEtiqueta ? folioConEtiqueta[1] : null;
+if (!folioRemo){
+const tokens = linea.trim().split(/\s+/);
+const ultimo = tokens[tokens.length - 1];
+if (ultimo !== '-' && /^\d{3,}$/.test(ultimo) && ultimo !== idMatch[0]) folioRemo = ultimo;
+}
+const fechaNacimientoTexto = mesAnioMatch ? `01/${mesAnioMatch[1].padStart(2,'0')}/${mesAnioMatch[2]}` : (fechas[0] || '');
 filas.push({
 identificador: convertirAreteMX(idMatch[0]),
 estatus: estatusMatch ? estatusMatch[0] : 'VIGENTE',
 sexo: sexoMatch ? (sexoMatch[0] === 'HEMBRA' ? 'H' : 'M') : 'H',
 raza: 'SIN RAZA REGISTRADA',
-fechaNacimiento: fechas[0] || '',
+fechaNacimiento: fechaNacimientoTexto,
 fechaAretado: fechas[1] || fechas[0] || '',
 tipoMovimiento: movMatch ? movMatch[0] : '',
+folioRemo,
 });
 });
 return filas;
@@ -17063,6 +17712,7 @@ cont.innerHTML = filasSINIIGATemp.map((f, i) => `
 <input class="campo-mayusculas text-xs font-bold" oninput="forzarMayusculas(this); actualizarFilaSINIIGA(${i},'identificador',this.value)" placeholder="Identificador" style="border:none; padding:.2rem;" type="text" value="${f.identificador}"/>
 <button onclick="eliminarFilaSINIIGA(${i})" style="color:var(--red);"><i class="fa-solid fa-trash"></i></button>
 </div>
+${f.folioRemo ? `<p class="text-xs font-bold" style="color:var(--red);"><i class="fa-solid fa-triangle-exclamation"></i> Folio REEMO ${f.folioRemo} — no se importará aunque diga vigente</p>` : ''}
 <div class="grid grid-cols-2 gap-1 mt-1">
 <select onchange="actualizarFilaSINIIGA(${i},'estatus',this.value); renderFilasSINIIGA();" style="font-size:.72rem; padding:.3rem;">
 <option ${f.estatus==='VIGENTE'?'selected':''} value="VIGENTE">VIGENTE</option>
@@ -17094,7 +17744,7 @@ return `${y.padStart(4,'0')}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
 // ---- Paso 4: Confirmar e importar ----
 function actualizarResumenImportarEscaneo(){
 const soloVigentes = document.getElementById('esc-solo-vigentes')?.checked;
-const aImportar = soloVigentes ? filasSINIIGATemp.filter(f => f.estatus === 'VIGENTE') : filasSINIIGATemp;
+const aImportar = soloVigentes ? filasSINIIGATemp.filter(f => f.estatus === 'VIGENTE' && !f.folioRemo) : filasSINIIGATemp;
 document.getElementById('esc-resumen-importar').textContent = `${aImportar.length} de ${filasSINIIGATemp.length} animal(es) se importarán al hato.`;
 }
 async function confirmarImportacionEscaneo(){
@@ -17117,15 +17767,16 @@ if (cuenta) cuenta.fierroImagen = fierroImagenEscaneoTemp;
 // 2) Importa al hato los animales revisados (filtrando por VIGENTE si se pidió),
 // comprimiendo y subiendo a Storage la foto si el animal ya trae una asignada.
 const soloVigentes = document.getElementById('esc-solo-vigentes')?.checked;
-const aImportar = (soloVigentes ? filasSINIIGATemp.filter(f => f.estatus === 'VIGENTE') : filasSINIIGATemp).filter(f => f.identificador);
+const aImportar = (soloVigentes ? filasSINIIGATemp.filter(f => f.estatus === 'VIGENTE' && !f.folioRemo) : filasSINIIGATemp).filter(f => f.identificador);
 let importados = 0, omitidosPorDuplicado = 0;
 aImportar.forEach(f => {
 if (estado.animales.some(a => a.arete === f.identificador)){ omitidosPorDuplicado++; return; }
+const fechaISO = fechaAISOSiPosible(f.fechaNacimiento);
 estado.animales.push({
 arete: f.identificador, chip:'', nombre:'',
 raza: f.raza || 'SIN RAZA REGISTRADA', sexo: f.sexo === 'M' ? 'Macho' : 'Hembra',
-fecha: f.fechaNacimiento || hoyISO(), estatus:'Activo',
-madre:'', padre:'', potrero:'', motivoBaja:'', foto:null,
+fecha: fechaISO || hoyISO(), estatus:'Activo',
+madre:'', padre:'', potrero:'', motivoBaja: f.folioRemo ? ('Folio REEMO ' + f.folioRemo) : '', foto:null,
 proposito:'', engordaDiasObjetivo:null, engordaPesoMeta:null, engordaInicio:null,
 engordaFinalizado:false, engordaDiasFinal:null,
 fechaAretado: f.fechaAretado || '', tipoMovimientoSiniiga: f.tipoMovimiento || '',
