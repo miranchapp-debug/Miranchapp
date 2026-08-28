@@ -1106,17 +1106,13 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div><label class="campo-label">Cd. o Población</label><input class="campo-mayusculas" id="ed-poblacion" oninput="forzarMayusculas(this)" type="text"/></div>
 <div><label class="campo-label">Colonia</label><input class="campo-mayusculas" id="ed-colonia" oninput="forzarMayusculas(this)" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Calle y número</label><input id="ed-domicilio" type="text" value="Conocido"/></div>
-<div><label class="campo-label">Correo-E (opcional)</label><input id="ed-correo" type="email"/></div>
+<div><label class="campo-label">C.P.</label><input id="ed-cp" maxlength="5" type="text"/></div>
 <div><label class="campo-label">Teléfono</label><input id="ed-telefono" maxlength="10" placeholder="10 dígitos" type="tel"/></div>
-<div class="col-span-2"><label class="campo-label">C.P. (opcional)</label><input id="ed-cp" maxlength="5" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Correo-E (opcional)</label><input id="ed-correo" type="email"/></div>
 </div>
 </div>
 <div class="bg-white rounded-3xl p-4 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold text-sm" style="color:var(--sage);">2. Información de la UPP</h3>
-<input accept="image/*" capture="environment" class="hidden" id="ed-upp-directo-input" onchange="escanearUppDirecto(this, 'ed')" type="file"/>
-<button class="w-full text-xs font-bold py-2.5 rounded-full" onclick="document.getElementById('ed-upp-directo-input').click()" style="background:var(--purple); color:#fff;" type="button">
-<i class="fa-solid fa-camera mr-1"></i> Escanear documento de UPP
-</button>
 <div class="grid grid-cols-2 gap-2">
 <div class="col-span-2"><label class="campo-label">UPP</label><input id="ed-upp" maxlength="12" oninput="validarLongitudCampo(this,12,'UPP')" placeholder="Obligatorio" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Nombre del rancho (tu Predio)</label><input class="campo-mayusculas" id="ed-predio" oninput="forzarMayusculas(this)" placeholder="Obligatorio" type="text"/></div>
@@ -1130,15 +1126,16 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="w-full text-sm font-bold py-2 rounded-full" onclick="registrarUbicacionUPP('ed')" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);">
 <i class="fa-solid fa-location-crosshairs mr-1"></i><span id="ed-gps-texto">Registrar ubicación GPS</span>
 </button>
-<div style="border-top:2px solid var(--line); padding-top:.75rem;">
-<h3 class="font-display font-bold text-sm" style="color:var(--sage);">Figura del fierro de herrar</h3>
-<p class="text-xs mt-1" style="color:var(--sage);">Toma una foto del reverso de tu credencial de fierro y recorta solo la figura — se guardará como imagen y se usará automáticamente cada vez que una prueba de campo pida el fierro.</p>
+</div>
+<div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
+<h3 class="font-display font-bold">3. Figura del fierro de herrar</h3>
+<p class="text-xs" style="color:var(--sage);">Toma una foto de tu credencial de fierro y recorta solo la figura — se guardará como imagen y se usará automáticamente cada vez que una prueba de campo pida el fierro, en vez de tener que describirlo con palabras.</p>
 <div id="ed-fierro-vista-guardada"></div>
-<button class="w-full text-sm font-bold py-2 rounded-full mt-2" onclick="abrirCamaraFierroConGuia('ed')" style="background:var(--orange); color:#fff;" type="button">
+<button class="w-full text-sm font-bold py-2 rounded-full" onclick="abrirCamaraFierroConGuia('ed')" style="background:var(--orange); color:#fff;" type="button">
 <i class="fa-solid fa-crosshairs mr-1"></i>Escanear con recuadro guía (recomendado)
 </button>
 <input accept="image/*" capture="environment" class="hidden" id="ed-fierro-foto-input" onchange="cargarFotoParaRecorteFierro(this, 'ed')" type="file"/>
-<button class="w-full text-sm font-bold py-2 rounded-full mt-2" onclick="document.getElementById('ed-fierro-foto-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button">
+<button class="w-full text-sm font-bold py-2 rounded-full" onclick="document.getElementById('ed-fierro-foto-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button">
 <i class="fa-solid fa-camera mr-1"></i>O tomar/subir foto sin guía
 </button>
 <div class="hidden" id="ed-fierro-recorte-cont">
@@ -1149,7 +1146,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="grid grid-cols-2 gap-2 mt-2">
 <button class="text-xs font-bold py-2 rounded-full" onclick="cancelarRecorteFierro('ed')" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button">Cancelar</button>
 <button class="text-xs font-bold py-2 rounded-full" onclick="confirmarRecorteFierro('ed')" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-crop-simple"></i> Recortar y guardar</button>
-</div>
 </div>
 </div>
 </div>
@@ -1390,64 +1386,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <i class="fa-solid fa-camera mr-1"></i> Capturar
 </button>
 </div>
-<!-- ---------- MODAL CÁMARA CREDENCIALES DIGITALES (genérico: frente/reverso/selfie) ---------- -->
-<div class="hidden fixed inset-0 z-50 flex flex-col" id="modal-camara-cred" style="background:rgba(20,20,20,0.95);">
-<div class="flex items-center justify-between p-4">
-<p class="text-white font-display font-bold" id="modal-camara-cred-titulo">Centra la credencial en el recuadro</p>
-<button class="w-10 h-10 rounded-full flex items-center justify-center" onclick="cerrarCamaraCred()" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<div class="flex-1 flex items-center justify-center relative overflow-hidden">
-<video autoplay="" id="video-camara-cred" muted="" playsinline="" style="width:100%; max-height:70vh; object-fit:cover;"></video>
-<div id="modal-camara-cred-guia" class="guia-rect"></div>
-</div>
-<p class="text-center text-sm py-2 px-6" style="color:#fff;" id="modal-camara-cred-instruccion">Centra la credencial dentro del recuadro, con buena luz</p>
-<div class="flex gap-3 mx-6 mb-6">
-<button class="flex-1 py-3 rounded-full font-bold text-sm" onclick="document.getElementById('input-galeria-cred').click()" style="background:rgba(255,255,255,0.15); color:#fff;">
-<i class="fa-solid fa-image mr-1"></i> Galería
-</button>
-<button class="flex-1 py-4 rounded-full font-bold" onclick="capturarFotoCred()" style="background:var(--orange); color:#fff;">
-<i class="fa-solid fa-camera mr-1"></i> Capturar
-</button>
-</div>
-<input accept="image/*" class="hidden" id="input-galeria-cred" onchange="cargarFotoCredDeGaleria(this)" type="file"/>
-</div>
-<!-- ---------- MODAL PREVIEW DIRECTO (recorte automático desde el recuadro guía de la cámara) ---------- -->
-<div class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center p-5" id="modal-preview-cred" style="background:rgba(20,20,20,0.92);">
-<div class="bg-white rounded-3xl p-4 w-full max-w-sm space-y-3">
-<p class="font-display font-bold text-center">¿Se ve bien?</p>
-<img alt="Foto capturada" class="w-full rounded-2xl" id="preview-cred-img" style="max-height:260px; object-fit:contain; background:var(--parchment);"/>
-<div class="flex gap-2">
-<button class="flex-1 text-sm font-bold py-3 rounded-full" onclick="repetirFotoPreviewCred()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-rotate-left mr-1"></i>Repetir foto</button>
-<button class="flex-1 text-sm font-bold py-3 rounded-full" onclick="confirmarPreviewCred()" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check mr-1"></i>Guardar</button>
-</div>
-<button class="w-full text-xs font-bold py-2" onclick="ajustarManualmenteCred()" style="color:var(--sage); text-decoration:underline;">¿No quedó bien encuadrada? Ajustar manualmente</button>
-</div>
-</div>
-<!-- ---------- MODAL RECORTE CREDENCIALES DIGITALES ---------- -->
-<div class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center p-5" id="modal-recorte-cred" style="background:rgba(20,20,20,0.92);">
-<div class="bg-white rounded-3xl p-4 w-full max-w-sm space-y-3">
-<p class="font-display font-bold text-center">Ajusta el recuadro y confirma</p>
-<div class="w-full" id="cred-lienzo-wrap" style="touch-action:none;">
-<canvas id="cred-canvas" style="width:100%; border-radius:12px; touch-action:none;"></canvas>
-</div>
-<p class="text-xs text-center" style="color:var(--sage);">Dibuja o ajusta el recuadro con el dedo sobre la foto</p>
-<div class="flex gap-2">
-<button class="flex-1 text-sm font-bold py-3 rounded-full" onclick="repetirFotoCred()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);"><i class="fa-solid fa-rotate-left mr-1"></i>Repetir foto</button>
-<button class="flex-1 text-sm font-bold py-3 rounded-full" onclick="confirmarRecorteCred()" style="background:var(--green); color:#fff;"><i class="fa-solid fa-check mr-1"></i>Guardar</button>
-</div>
-</div>
-</div>
-<!-- ---------- MODAL EDITAR DATOS DE CREDENCIAL (por rol) ---------- -->
-<div class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" id="modal-editar-credencial" style="background:rgba(20,20,20,0.6);">
-<div class="bg-white rounded-3xl p-5 w-full max-w-sm space-y-3">
-<div class="flex items-center justify-between">
-<p class="font-display font-bold" id="editar-credencial-titulo">Editar datos</p>
-<button onclick="cerrarEditarCredencial()" style="color:var(--sage);"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<div class="space-y-2" id="editar-credencial-campos"></div>
-<button class="w-full btn-primario-plano" onclick="guardarEditarCredencial()" style="background:var(--pine);"><i class="fa-solid fa-check"></i> Guardar</button>
-</div>
-</div>
 <div class="hidden fixed inset-0 z-50 flex flex-col" id="modal-scanner-camara" style="background:rgba(20,20,20,0.95);">
 <div class="flex items-center justify-between p-4">
 <p class="text-white font-display font-bold" data-i18n="modal_escaner_camara__escanear_arete">Escanear arete</p>
@@ -1610,7 +1548,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <main class="flex-1 overflow-y-auto pb-28">
 <!-- ---------- HOME ADMIN ---------- -->
 <div class="screen active px-5 py-6 space-y-6" id="screen-admin-home">
-<div id="banner-credencial-rol-admin"></div>
 <div class="grid grid-cols-2 gap-4" id="grid-admin-home"></div>
 <button class="w-full btn-primario-plano" id="btn-metricas-admin" onclick="irAdmin('metricas')" style="background:var(--purple);">
 <i class="fa-solid fa-chart-pie"></i><span data-i18n="metricas_admin__metricas_de_interaccion">Métricas de Interacción</span>
@@ -2149,37 +2086,8 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="grupo-campo"><span class="campo-check"><i class="fa-solid fa-check"></i></span><label class="campo-label">RFC</label><input class="campo-mayusculas" data-marcar-lleno="1" id="ejido-manual-rfc" maxlength="13" oninput="forzarMayusculas(this)" placeholder="RFC (opcional)" type="text"/></div>
 <p class="text-xs font-bold mt-2" style="color:var(--pine);">2. Unidad de producción</p>
 <div class="grid grid-cols-2 gap-2">
-<div class="grid grid-cols-2 gap-2">
-<div class="grupo-campo"><span class="campo-check"><i class="fa-solid fa-check"></i></span><label class="campo-label">Colonia</label><input class="campo-mayusculas" data-marcar-lleno="1" id="ejido-manual-colonia" oninput="forzarMayusculas(this)" placeholder="Colonia" type="text"/></div>
-<div class="grupo-campo"><span class="campo-check"><i class="fa-solid fa-check"></i></span><label class="campo-label">C.P. (opcional)</label><input data-marcar-lleno="1" id="ejido-manual-cp" maxlength="5" oninput="marcarCampoLleno(this)" placeholder="C.P." type="text"/></div>
-</div>
-<div class="grupo-campo"><span class="campo-check"><i class="fa-solid fa-check"></i></span><label class="campo-label">Correo-E (opcional)</label><input data-marcar-lleno="1" id="ejido-manual-correo" oninput="marcarCampoLleno(this)" placeholder="Correo-E" type="email"/></div>
-<p class="text-xs font-bold mt-2" style="color:var(--pine);">2. Unidad de producción</p>
-<input accept="image/*" capture="environment" class="hidden" id="ejido-manual-upp-directo-input" onchange="escanearUppDirecto(this, 'ejido-manual')" type="file"/>
-<button class="w-full text-xs font-bold py-2.5 rounded-full" onclick="document.getElementById('ejido-manual-upp-directo-input').click()" style="background:var(--purple); color:#fff;" type="button">
-<i class="fa-solid fa-camera mr-1"></i> Escanear documento de UPP
-</button>
-<div class="grid grid-cols-2 gap-2">
 <div class="grupo-campo"><span class="campo-check"><i class="fa-solid fa-check"></i></span><label class="campo-label">UPP</label><input class="campo-mayusculas" data-marcar-lleno="1" id="ejido-manual-upp" maxlength="12" oninput="forzarMayusculas(this); validarLongitudCampo(this,12,'UPP')" placeholder="UPP" type="text"/></div>
 <div class="grupo-campo"><span class="campo-check"><i class="fa-solid fa-check"></i></span><label class="campo-label">Nombre del predio</label><input class="campo-mayusculas" data-marcar-lleno="1" id="ejido-manual-predio" oninput="forzarMayusculas(this)" placeholder="Nombre del predio" type="text"/></div>
-</div>
-<div class="grupo-campo"><span class="campo-check"><i class="fa-solid fa-check"></i></span><label class="campo-label">Número de fierro de herrar</label><input data-marcar-lleno="1" id="ejido-manual-folio" oninput="marcarCampoLleno(this)" placeholder="Número de fierro de herrar" type="text"/></div>
-<div style="border-top:2px solid var(--line); padding-top:.6rem;">
-<p class="text-xs font-bold" style="color:var(--sage);">Figura del fierro de herrar (opcional)</p>
-<div id="ejido-manual-fierro-vista-guardada"></div>
-<button class="w-full text-xs font-bold py-2 rounded-full mt-1" onclick="abrirCamaraFierroConGuia('ejido-manual')" style="background:var(--orange); color:#fff;" type="button">
-<i class="fa-solid fa-crosshairs mr-1"></i>Escanear reverso con recuadro guía
-</button>
-<div class="hidden" id="ejido-manual-fierro-recorte-cont">
-<p class="text-xs font-bold mt-2" style="color:var(--pine);">Arrastra un recuadro sobre la figura del fierro:</p>
-<div id="ejido-manual-fierro-lienzo-wrap" style="position:relative; touch-action:none; margin-top:.5rem; border:2px solid var(--line); border-radius:12px; overflow:hidden; max-width:100%;">
-<canvas id="ejido-manual-fierro-canvas" style="display:block; max-width:100%; touch-action:none;"></canvas>
-</div>
-<div class="grid grid-cols-2 gap-2 mt-2">
-<button class="text-xs font-bold py-2 rounded-full" onclick="cancelarRecorteFierro('ejido-manual')" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button">Cancelar</button>
-<button class="text-xs font-bold py-2 rounded-full" onclick="confirmarRecorteFierro('ejido-manual')" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-crop-simple"></i> Recortar y guardar</button>
-</div>
-</div>
 </div>
 <button class="w-full text-xs font-bold py-3 rounded-full mt-2" onclick="agregarProductorManualEjido()" style="background:var(--pine); color:#fff;" type="button">Agregar a la sesión</button>
 </div>
@@ -2440,8 +2348,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div><label class="campo-label">Apellido paterno</label><input id="adm-apellidopaterno" oninput="previsualizarNombreCompleto('adm'); guardarProductor();" type="text"/></div>
 <div><label class="campo-label">Apellido materno</label><input id="adm-apellidomaterno" oninput="previsualizarNombreCompleto('adm'); guardarProductor();" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Nombre(s)</label><input id="adm-nombres" oninput="previsualizarNombreCompleto('adm'); guardarProductor();" type="text"/></div>
-<div><label class="campo-label">CURP</label><input id="adm-curp" maxlength="18" oninput="guardarProductor()" style="text-transform:uppercase;" type="text"/></div>
-<div><label class="campo-label">RFC</label><input id="adm-rfc" maxlength="13" oninput="guardarProductor()" style="text-transform:uppercase;" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Domicilio</label><input id="adm-domicilio" oninput="guardarProductor()" type="text" value="Conocido"/></div>
 <div>
 <label class="campo-label">Estado</label>
 <select id="adm-estado" onchange="cargarMunicipiosSelector('adm'); guardarProductor();"><option value="">Selecciona...</option></select>
@@ -2451,26 +2358,16 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <select id="adm-municipio" onchange="mostrarMunicipioManual('adm'); guardarProductor();"><option value="">Selecciona el estado primero</option></select>
 <input class="hidden mt-1" id="adm-municipio-manual" oninput="guardarProductor()" placeholder="Escribe el municipio" type="text"/>
 </div>
-<div><label class="campo-label">Localidad / Población</label><input id="adm-localidad" oninput="guardarProductor()" placeholder="Obligatorio" type="text"/></div>
-<div><label class="campo-label">Colonia</label><input id="adm-colonia" oninput="guardarProductor()" type="text"/></div>
-<div class="col-span-2"><label class="campo-label">Domicilio (calle y número)</label><input id="adm-domicilio" oninput="guardarProductor()" type="text" value="Conocido"/></div>
-<div><label class="campo-label">Correo electrónico (opcional)</label><input id="adm-correo" oninput="guardarProductor()" type="email"/></div>
-<div><label class="campo-label">Teléfono</label><input id="adm-telefono" maxlength="10" oninput="guardarProductor()" placeholder="10 dígitos" type="tel"/></div>
-<div class="col-span-2"><label class="campo-label">C.P. (opcional)</label><input id="adm-cp" maxlength="5" oninput="guardarProductor()" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Localidad / Población</label><input id="adm-localidad" oninput="guardarProductor()" placeholder="Obligatorio" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Correo electrónico (opcional)</label><input id="adm-correo" oninput="guardarProductor()" type="email"/></div>
+<div><label class="campo-label">CURP</label><input id="adm-curp" maxlength="18" oninput="guardarProductor()" style="text-transform:uppercase;" type="text"/></div>
 </div>
 </div>
 <div class="bg-white rounded-3xl p-5 space-y-4" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold">2. Unidad de producción</h3>
-<input accept="image/*" capture="environment" class="hidden" id="adm-upp-directo-input" onchange="escanearUppDirecto(this, 'adm')" type="file"/>
-<button class="w-full text-xs font-bold py-2.5 rounded-full" onclick="document.getElementById('adm-upp-directo-input').click()" style="background:var(--purple); color:#fff;" type="button">
-<i class="fa-solid fa-camera mr-1"></i> Escanear documento de UPP
-</button>
 <div class="grid grid-cols-2 gap-3">
 <div><label class="campo-label">UPP</label><input id="adm-upp" oninput="guardarProductor()" placeholder="Obligatorio" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__nombre_del_predio">Nombre del predio</label><input id="adm-predio" oninput="guardarProductor()" placeholder="Obligatorio" type="text"/></div>
-<div><label class="campo-label">Municipio del predio</label><input id="adm-municipiopredio" oninput="guardarProductor()" placeholder="Si es distinto" type="text"/></div>
-<div><label class="campo-label">Estado del predio</label><input id="adm-estadopredio" oninput="guardarProductor()" placeholder="Si es distinto" type="text"/></div>
-<div class="col-span-2"><label class="campo-label">Cómo llegar al predio</label><input id="adm-comollegar" oninput="guardarProductor()" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__ultima_actualizacion_upp">Última actualización UPP</label><input id="adm-actualizacionupp" oninput="guardarProductor()" type="date"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__folio_fierro_de_herrar">Folio fierro de herrar</label><input id="adm-folio" oninput="guardarProductor()" type="text"/></div>
 <div><label class="campo-label" data-i18n="editar_datos_productor__vencimiento_credencial_fierro">Vencimiento credencial fierro</label><input id="adm-vencimientofierro" oninput="guardarProductor()" type="date"/></div>
@@ -2480,27 +2377,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="w-full text-sm font-bold py-2 rounded-full" onclick="registrarUbicacionUPP('adm')" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);">
 <i class="fa-solid fa-location-crosshairs mr-1"></i><span id="adm-gps-texto">Registrar ubicación GPS</span>
 </button>
-<div style="border-top:2px solid var(--line); padding-top:.75rem;">
-<h3 class="font-display font-bold text-sm" style="color:var(--sage);">Figura del fierro de herrar</h3>
-<div id="adm-fierro-vista-guardada"></div>
-<button class="w-full text-sm font-bold py-2 rounded-full mt-2" onclick="abrirCamaraFierroConGuia('adm')" style="background:var(--orange); color:#fff;" type="button">
-<i class="fa-solid fa-crosshairs mr-1"></i>Escanear con recuadro guía (recomendado)
-</button>
-<input accept="image/*" capture="environment" class="hidden" id="adm-fierro-foto-input" onchange="cargarFotoParaRecorteFierro(this, 'adm')" type="file"/>
-<button class="w-full text-sm font-bold py-2 rounded-full mt-2" onclick="document.getElementById('adm-fierro-foto-input').click()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button">
-<i class="fa-solid fa-camera mr-1"></i>O tomar/subir foto sin guía
-</button>
-<div class="hidden" id="adm-fierro-recorte-cont">
-<p class="text-xs font-bold mt-2" style="color:var(--pine);">Arrastra un recuadro sobre la figura del fierro:</p>
-<div id="adm-fierro-lienzo-wrap" style="position:relative; touch-action:none; margin-top:.5rem; border:2px solid var(--line); border-radius:12px; overflow:hidden; max-width:100%;">
-<canvas id="adm-fierro-canvas" style="display:block; max-width:100%; touch-action:none;"></canvas>
-</div>
-<div class="grid grid-cols-2 gap-2 mt-2">
-<button class="text-xs font-bold py-2 rounded-full" onclick="cancelarRecorteFierro('adm')" style="background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button">Cancelar</button>
-<button class="text-xs font-bold py-2 rounded-full" onclick="confirmarRecorteFierro('adm')" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-crop-simple"></i> Recortar y guardar</button>
-</div>
-</div>
-</div>
 </div>
 </div>
 <!-- ---------- CONFIGURACION DE VENTANAS ---------- -->
@@ -3066,8 +2942,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="screen min-h-screen flex flex-col" id="screen-quesera-menu">
 <div id="header-quesera-menu"></div>
 <div class="flex-1 px-5 py-6 space-y-5">
-<p class="font-display text-lg font-bold hidden" id="saludo-operador-queseria"></p>
-<div id="banner-credencial-rol-queseria"></div>
+<p class="font-display text-lg font-bold" id="saludo-operador-queseria"></p>
 <div class="grid grid-cols-2 gap-4" id="grid-menu-queseria"></div>
 </div>
 </div>
@@ -3197,25 +3072,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 #fab-comando-voz.voz-exito{ background:var(--green); }
 #fab-comando-voz.voz-error{ background:var(--slate); }
 #fab-comando-voz:active{ transform:scale(0.93); }
-/* ================= CREDENCIALES DIGITALES POR ROL (carrusel) ================= */
-.credcarrusel-viewport{ overflow:hidden; border-radius:20px; }
-.credcarrusel-track{ display:flex; transition:transform .35s ease; touch-action:pan-y; }
-.credcarrusel-slide{ flex:0 0 100%; min-width:100%; }
-.credcarrusel-dots{ display:flex; justify-content:center; gap:6px; margin-top:8px; }
-.credcarrusel-dot{ width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,0.35); transition:background .2s, width .2s; }
-.credcarrusel-dot.activo{ background:#fff; width:18px; border-radius:5px; }
-.credcarnet{ border-radius:20px; padding:16px; position:relative; color:#fff; background:linear-gradient(135deg, var(--pine), #142A20); min-height:150px; box-shadow:0 10px 24px -8px rgba(0,0,0,0.35); }
-.credcarnet-tira{ position:absolute; top:0; left:0; right:0; height:8px; border-radius:20px 20px 0 0; background:var(--orange); }
-.badge-verificacion{ display:inline-flex; align-items:center; gap:5px; font-size:.65rem; font-weight:800; padding:3px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:.02em; }
-.badge-verificacion.v-pendiente{ background:rgba(245,158,11,0.18); color:#FDE68A; }
-.badge-verificacion.v-verificado{ background:rgba(22,163,74,0.22); color:#86EFAC; }
-.badge-verificacion.v-rechazada{ background:rgba(239,68,68,0.22); color:#FCA5A5; }
-.cred-skeleton{ background:linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 37%, rgba(255,255,255,0.08) 63%); background-size:400% 100%; animation:cred-shimmer 1.4s ease infinite; border-radius:14px; }
-@keyframes cred-shimmer{ 0%{ background-position:100% 50%; } 100%{ background-position:0% 50%; } }
-.cred-foto-carnet{ width:100%; aspect-ratio:1.586/1; object-fit:cover; border-radius:14px; background:#0f1f17; }
-.cred-selfie-avatar{ width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.5); flex-shrink:0; background:rgba(255,255,255,0.12); }
-#modal-camara-cred .guia-rect{ position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); width:82%; max-width:360px; aspect-ratio:1.586/1; border:3px solid var(--orange); border-radius:14px; box-shadow:0 0 0 999px rgba(0,0,0,0.55); pointer-events:none; }
-#modal-camara-cred .guia-ovalo{ position:absolute; left:50%; top:42%; transform:translate(-50%,-50%); width:56%; max-width:230px; aspect-ratio:0.78/1; border:3px solid var(--orange); border-radius:50%; box-shadow:0 0 0 999px rgba(0,0,0,0.55); pointer-events:none; }
 </style>
 <!-- ============================================================ -->
 <!-- ============ WIDGET: MOO-NITOR (asistente flotante) ============ -->
@@ -8379,32 +8235,25 @@ if (/\b(BAJA|MUERTE|MUERTO|SACRIFICIO)\b/i.test(linea)) return 'BAJA';
 return null;
 }
 function extraerFolioRemoDeTexto(linea, areteCrudo){
-// SOLO se toma el folio REEMO cuando la etiqueta "REEMO" aparece junto al
-// número — se quitó el respaldo anterior que adivinaba por posición (tomaba
-// "el último número del renglón"), porque con frecuencia agarraba otro dato
-// de la fila (folio de otra columna, año, etc.) y anexaba un folio que no
-// existía. Así, si el documento no trae la etiqueta, simplemente no se anexa
-// ningún folio — tal como se pidió.
+// "Folio Reemo 12345" con la etiqueta junto al número (algunos documentos sí
+// la repiten por renglón).
 const conEtiqueta = linea.match(/\breemo[:\s]*([0-9]{3,})\b/i);
-return conEtiqueta ? conEtiqueta[1] : null;
+if (conEtiqueta) return conEtiqueta[1];
+// Respaldo por posición: en una tabla, cada renglón trae los valores en el
+// mismo orden que el encabezado, sin repetir la etiqueta — el folio REEMO
+// suele ser la última columna. Si el renglón termina en un guion, no hay
+// folio; si termina en un número que no es el arete, se toma como folio.
+const tokens = linea.trim().split(/\s+/);
+const ultimo = tokens[tokens.length - 1];
+if (ultimo === '-') return null;
+if (/^\d{3,}$/.test(ultimo) && ultimo !== areteCrudo) return ultimo;
+return null;
 }
 function extraerFechaMesAnioDeTexto(linea){
-// Formato "MM-YYYY" o "MM/YYYY" — es la fecha de NACIMIENTO (este documento
-// no trae día, solo mes y año). Si en el mismo renglón aparece más de una
-// fecha (por ejemplo porque el documento también trae "fecha de aretado"),
-// se descarta cualquier fecha que tenga la palabra "aret" (aretado/arete)
-// escrita cerca, y se usa la primera fecha restante — así no se confunde la
-// fecha de aretado con la de nacimiento, que es la única que interesa.
-const regexFecha = /\b(0?[1-9]|1[0-2])[-\/](20\d{2}|19\d{2})\b/g;
-const candidatos = [];
-let m;
-while ((m = regexFecha.exec(linea)) !== null){
-candidatos.push({ mes: parseInt(m[1], 10), anio: parseInt(m[2], 10), indice: m.index });
-}
-if (candidatos.length === 0) return null;
-if (candidatos.length === 1) return candidatos[0];
-const sinAretado = candidatos.filter(c => !/aret/i.test(linea.slice(Math.max(0, c.indice - 18), c.indice)));
-return sinAretado[0] || candidatos[0];
+// Formato "MM-YYYY" o "MM/YYYY" (fecha de nacimiento en este documento no
+// trae día, solo mes y año).
+const m = linea.match(/\b(0?[1-9]|1[0-2])[-\/](20\d{2}|19\d{2})\b/);
+return m ? { mes: parseInt(m[1], 10), anio: parseInt(m[2], 10) } : null;
 }
 function calcularEdadMesesDesdeMesAnio(mesAnio){
 if (!mesAnio) return null;
@@ -8432,13 +8281,10 @@ const estatus = extraerEstatusDeTexto(linea);
 const folioRemo = extraerFolioRemoDeTexto(linea, areteCrudo);
 const mesAnioNac = extraerFechaMesAnioDeTexto(linea);
 const edadMeses = calcularEdadMesesDesdeMesAnio(mesAnioNac);
-// La raza NO se intenta leer del documento — el Concentrado SINIIGA no la
-// trae identificada de forma confiable por renglón, así que siempre se deja
-// en blanco para que el productor o el veterinario la complete a mano.
-const raza = '';
+const raza = extraerRazaDeTexto(linea);
 const sexo = extraerSexoDeTexto(linea);
 const vigenteYSinFolio = (estatus === 'VIGENTE' || !estatus) && !folioRemo;
-const dudoso = !estatus || edadMeses == null || !sexo;
+const dudoso = !estatus || edadMeses == null || !raza || !sexo;
 inventarioCompleto.push({ arete, estatus: estatus || 'DESCONOCIDO', folioRemo, edadMeses, raza, sexo, vigenteYSinFolio, dudoso, incluir: vigenteYSinFolio });
 });
 return {
@@ -8519,7 +8365,7 @@ return `
 <input type="checkbox" ${f.incluir ? 'checked' : ''} onchange="inventarioEscaneadoTemp[${i}].incluir = this.checked" style="margin-top:4px;"/>
 <div class="flex-1 min-w-0 text-sm">
 <p class="font-bold">${f.arete} ${yaExiste ? '<span class="text-xs font-normal" style="color:var(--sage);">(ya lo tienes — no se duplica)</span>' : ''}</p>
-<p class="text-xs" style="color:var(--sage);">${f.estatus}${f.folioRemo ? ' · folio REEMO ' + f.folioRemo : ''} · ${f.edadMeses != null ? f.edadMeses + ' meses' : 'edad: ?'} · ${f.sexo || 'sexo: ?'} · raza: se agrega en blanco</p>
+<p class="text-xs" style="color:var(--sage);">${f.estatus}${f.folioRemo ? ' · folio ' + f.folioRemo : ''} · ${f.edadMeses != null ? f.edadMeses + ' meses' : 'edad: ?'} · ${f.raza || 'raza: ?'} · ${f.sexo || 'sexo: ?'}</p>
 </div>
 </div>`;
 }).join('');
@@ -8612,11 +8458,9 @@ const arete = extraerAreteDeTexto(linea);
 if (!arete) return; // sin un número de arete legible, no se puede tratar como un renglón de animal
 const fechaNacimiento = extraerFechaDeTexto(linea);
 let edadMeses = fechaNacimiento ? calcularEdadMesesDesdeFechaNacimiento(fechaNacimiento) : extraerEdadMesesDeTexto(linea);
-// Igual que en el Concentrado SINIIGA: la raza no se intenta leer, siempre
-// queda en blanco para completarse a mano.
-const raza = '';
+const raza = extraerRazaDeTexto(linea);
 const sexo = extraerSexoDeTexto(linea);
-const dudoso = (!fechaNacimiento && edadMeses == null) || !sexo;
+const dudoso = !fechaNacimiento && edadMeses == null || !raza || !sexo;
 filas.push({ arete, fechaNacimiento, edadMeses, raza, sexo, dudoso, incluir: true });
 });
 return filas;
@@ -8668,7 +8512,7 @@ return `
 <input type="checkbox" ${f.incluir ? 'checked' : ''} onchange="listaAnimalesEscaneadaTemp[${i}].incluir = this.checked" style="margin-top:4px;"/>
 <div class="flex-1 min-w-0 text-sm">
 <p class="font-bold flex items-center gap-2 flex-wrap">${f.arete} ${etiquetaEstatus}</p>
-<p class="text-xs" style="color:var(--sage);">${f.edadMeses != null ? f.edadMeses + ' meses' : 'edad: ?'} · ${f.sexo || 'sexo: ?'}${f.fechaNacimiento ? ' · nació ' + f.fechaNacimiento : ''} · raza: se agrega en blanco</p>
+<p class="text-xs" style="color:var(--sage);">${f.edadMeses != null ? f.edadMeses + ' meses' : 'edad: ?'} · ${f.raza || 'raza: ?'} · ${f.sexo || 'sexo: ?'}${f.fechaNacimiento ? ' · nació ' + f.fechaNacimiento : ''}</p>
 </div>
 </div>`;
 }).join('');
@@ -9005,7 +8849,7 @@ return true;
 const usr = estado.usuarios.find(u => (u.usuario || '').toLowerCase() === usuario && u.clave === clave);
 if (usr){
 establecerValor('login-usuario', ''); establecerValor('login-clave', '');
-if (usr.rol === 'admin'){ estado.usuarioGenericoActivoUsuario = usr.usuario; mostrarApp('admin'); return true; }
+if (usr.rol === 'admin'){ mostrarApp('admin'); return true; }
 if (usr.rol === 'veterinario'){
 estado.modoVeterinario = true;
 estado.vistaVeterinario = true;
@@ -9017,21 +8861,18 @@ return true;
 }
 if (usr.rol === 'capturista'){
 estado.modoCapturista = true;
-estado.usuarioGenericoActivoUsuario = usr.usuario;
 mostrarApp('admin');
 registrarEvento('login', 'capturista');
 return true;
 }
 if (usr.rol === 'capturista_tb'){
 estado.modoCapturistaTB = true;
-estado.usuarioGenericoActivoUsuario = usr.usuario;
 mostrarApp('admin');
 registrarEvento('login', 'capturista_tb');
 return true;
 }
 if (usr.rol === 'almita'){
 estado.modoAlmita = true;
-estado.usuarioGenericoActivoUsuario = usr.usuario;
 mostrarApp('admin');
 registrarEvento('login', 'almita');
 return true;
@@ -9407,7 +9248,6 @@ ${iconoHTML}
 <span class="text-sm font-bold text-white text-center">${tr(b.labelKey)}</span>
 </button>`;
 }).join('');
-renderBannerCredencialRol();
 }
 let lecheroSeleccionadoRecepcion = null;
 let productorSeleccionadoRecepcion = null;
@@ -10365,7 +10205,6 @@ ${estado.predios.length > 1 ? `
 <option value="">Cambiar predio activo...</option>
 ${estado.predios.map(pr => `<option value="${pr.id}">${pr.nombre}</option>`).join('')}
 </select>` : ''}`;
-renderBannerCredencialRol();
 }
 let climaHomeCache = null;
 // Limita cuánto tiempo espera una petición antes de darla por fallida — sin esto,
@@ -13189,12 +13028,10 @@ function mostrarAltaManualProductorEjido(){
 document.getElementById('ejido-alta-manual').classList.remove('hidden');
 document.getElementById('ejido-buscador-cuenta').classList.add('hidden');
 llenarSelectorEstados('ejido-manual');
-['ejido-manual-apellidopaterno','ejido-manual-apellidomaterno','ejido-manual-nombres','ejido-manual-colonia','ejido-manual-cp','ejido-manual-correo','ejido-manual-localidad','ejido-manual-telefono','ejido-manual-curp','ejido-manual-rfc','ejido-manual-upp','ejido-manual-predio','ejido-manual-folio'].forEach(id => establecerValor(id, ''));
+['ejido-manual-apellidopaterno','ejido-manual-apellidomaterno','ejido-manual-nombres','ejido-manual-localidad','ejido-manual-telefono','ejido-manual-curp','ejido-manual-upp','ejido-manual-predio'].forEach(id => establecerValor(id, ''));
 establecerValor('ejido-manual-domicilio', 'CONOCIDO');
 establecerValor('ejido-manual-estado', '');
 cargarMunicipiosSelector('ejido-manual', '');
-fierroImagenEjidoManualTemp = null;
-renderVistaFierroGuardado('ejido-manual');
 document.querySelectorAll('#ejido-alta-manual .grupo-campo').forEach(g => g.classList.remove('campo-lleno', 'campo-vacio-requerido'));
 document.getElementById('ejido-alta-manual').querySelectorAll('[data-marcar-lleno]').forEach(el => marcarCampoLleno(el));
 }
@@ -13259,19 +13096,13 @@ productoresSesionEjido.push({
 clave: 'ej_' + Date.now(), tipo:'manual', cuentaId: null,
 nombre, apellidoPaterno, apellidoMaterno, nombres,
 domicilio: valor('ejido-manual-domicilio').trim() || 'CONOCIDO',
-colonia: valor('ejido-manual-colonia').trim(), cp: valor('ejido-manual-cp').trim(),
-correoElectronico: valor('ejido-manual-correo').trim(),
 estadoMx: valor('ejido-manual-estado'), municipio: leerMunicipioSeleccionado('ejido-manual'),
 localidad: valor('ejido-manual-localidad').trim(), telefono: valor('ejido-manual-telefono').trim(),
 curp: valor('ejido-manual-curp').trim().toUpperCase(),
 rfc: valor('ejido-manual-rfc').trim().toUpperCase(),
 predio: valor('ejido-manual-predio').trim(), upp: valor('ejido-manual-upp').trim(),
-folio: valor('ejido-manual-folio').trim(), fierroImagen: fierroImagenEjidoManualTemp || null,
 animales: [],
 });
-['ejido-manual-apellidopaterno','ejido-manual-apellidomaterno','ejido-manual-nombres','ejido-manual-domicilio','ejido-manual-colonia','ejido-manual-cp','ejido-manual-correo','ejido-manual-localidad','ejido-manual-telefono','ejido-manual-curp','ejido-manual-rfc','ejido-manual-upp','ejido-manual-predio','ejido-manual-folio'].forEach(id => establecerValor(id, ''));
-fierroImagenEjidoManualTemp = null;
-renderVistaFierroGuardado('ejido-manual');
 document.getElementById('ejido-alta-manual').classList.add('hidden');
 renderProductoresEjido();
 mostrarToast(`${nombre} agregado a la sesión (sin app)`);
@@ -16780,14 +16611,6 @@ cargarMunicipiosSelector('adm', estado.productor.municipio || '');
 establecerValor('adm-ejido', estado.productor.ejido);
 establecerValor('adm-curp', estado.productor.curp || '');
 establecerValor('adm-actividad', estado.productor.actividad);
-establecerValor('adm-rfc', estado.productor.rfc || '');
-establecerValor('adm-colonia', estado.productor.colonia || '');
-establecerValor('adm-telefono', estado.productor.telefono || '');
-establecerValor('adm-cp', estado.productor.codigoPostal || '');
-establecerValor('adm-municipiopredio', estado.productor.municipioPredio || '');
-establecerValor('adm-estadopredio', estado.productor.estadoPredio || '');
-establecerValor('adm-comollegar', estado.productor.comoLlegar || '');
-renderVistaFierroGuardado('adm');
 const spanGpsAdm = document.getElementById('adm-gps-texto');
 if (spanGpsAdm) spanGpsAdm.textContent = (estado.productor.latitudUPP && estado.productor.longitudUPP) ? `Ubicación registrada (${estado.productor.latitudUPP.toFixed(5)}, ${estado.productor.longitudUPP.toFixed(5)})` : 'Registrar ubicación GPS';
 renderTogglesModulos();
@@ -16809,7 +16632,6 @@ renderBoletinesAdmin();
 renderResumenAdmin();
 renderListaUsuarios();
 renderInfoSistema();
-renderBannerCredencialRol();
 }
 function renderResumenAdmin(){
 const cont = document.getElementById('resumen-admin');
@@ -17222,12 +17044,10 @@ estado.productor = {
 apellidoPaterno, apellidoMaterno, nombres, nombre: nombreCompleto || estado.productor.nombre,
 domicilio: valor('adm-domicilio').trim() || 'Conocido',
 localidad: valor('adm-localidad').trim(), correoElectronico: valor('adm-correo').trim(),
-colonia: valor('adm-colonia').trim(), telefono: valor('adm-telefono').trim(), codigoPostal: valor('adm-cp').trim(),
 predio: valor('adm-predio'), upp: valor('adm-upp'), actualizacionUPP: valor('adm-actualizacionupp'),
-municipioPredio: valor('adm-municipiopredio').trim(), estadoPredio: valor('adm-estadopredio').trim(), comoLlegar: valor('adm-comollegar').trim(),
 folio: valor('adm-folio'), vencimientoFierro: valor('adm-vencimientofierro'),
 estado: valor('adm-estado'), municipio: leerMunicipioSeleccionado('adm'),
-ejido: valor('adm-ejido'), actividad: valor('adm-actividad'), curp: valor('adm-curp').toUpperCase(), rfc: valor('adm-rfc').toUpperCase(),
+ejido: valor('adm-ejido'), actividad: valor('adm-actividad'), curp: valor('adm-curp').toUpperCase(),
 };
 guardarEstadoLocal();
 }
@@ -17508,7 +17328,7 @@ const salida = document.createElement('canvas');
 salida.width = 300; salida.height = Math.max(1, Math.round(300 * (sh / sw)));
 salida.getContext('2d').drawImage(est.imgOriginal, sx, sy, sw, sh, 0, 0, salida.width, salida.height);
 const dataUrl = salida.toDataURL('image/png');
-if (prefijo === 'ed' || prefijo === 'adm'){
+if (prefijo === 'ed'){
 estado.productor.fierroImagen = dataUrl;
 if (estado.cuentaActivaId){
 const cuenta = estado.cuentasProductores.find(c => c.id === estado.cuentaActivaId);
@@ -17516,26 +17336,20 @@ if (cuenta) cuenta.fierroImagen = dataUrl;
 }
 guardarEstadoLocal();
 renderVistaFierroGuardado('ed');
-renderVistaFierroGuardado('adm');
 }
 if (prefijo === 'esc'){
 fierroImagenEscaneoTemp = dataUrl;
 renderVistaFierroGuardado('esc');
 if (typeof guardarBorradorEscaneoDoc === 'function') guardarBorradorEscaneoDoc();
 }
-if (prefijo === 'ejido-manual'){
-fierroImagenEjidoManualTemp = dataUrl;
-renderVistaFierroGuardado('ejido-manual');
-}
 cancelarRecorteFierro(prefijo);
 mostrarToast('Figura del fierro guardada — se usará automáticamente en las pruebas de campo');
 }
 let fierroImagenEscaneoTemp = null;
-let fierroImagenEjidoManualTemp = null;
 function renderVistaFierroGuardado(prefijo){
 const cont = document.getElementById(prefijo + '-fierro-vista-guardada');
 if (!cont) return;
-const img = (prefijo === 'ed' || prefijo === 'adm') ? estado.productor.fierroImagen : (prefijo === 'esc' ? fierroImagenEscaneoTemp : (prefijo === 'ejido-manual' ? fierroImagenEjidoManualTemp : null));
+const img = prefijo === 'ed' ? estado.productor.fierroImagen : (prefijo === 'esc' ? fierroImagenEscaneoTemp : null);
 if (!img){ cont.innerHTML = ''; return; }
 cont.innerHTML = `<div class="flex items-center gap-3 bg-white rounded-xl p-2" style="border:2px solid var(--green);">
 <img loading="lazy" decoding="async" src="${img}" style="width:56px; height:56px; object-fit:contain; border-radius:8px; background:#fff; border:1px solid var(--line);"/>
@@ -17544,7 +17358,7 @@ cont.innerHTML = `<div class="flex items-center gap-3 bg-white rounded-xl p-2" s
 </div>`;
 }
 function quitarFierroGuardado(prefijo){
-if (prefijo === 'ed' || prefijo === 'adm'){
+if (prefijo === 'ed'){
 estado.productor.fierroImagen = null;
 if (estado.cuentaActivaId){
 const cuenta = estado.cuentasProductores.find(c => c.id === estado.cuentaActivaId);
@@ -17552,580 +17366,8 @@ if (cuenta) cuenta.fierroImagen = null;
 }
 guardarEstadoLocal();
 renderVistaFierroGuardado('ed');
-renderVistaFierroGuardado('adm');
-}
-if (prefijo === 'ejido-manual'){
-fierroImagenEjidoManualTemp = null;
-renderVistaFierroGuardado('ejido-manual');
 }
 mostrarToast('Figura de fierro eliminada');
-}
-// ================= CREDENCIALES DIGITALES POR ROL: CARRUSEL DEL BANNER DE INICIO =================
-// Sustituye/complementa el saludo simple ("Buen día, Nombre!") por un carrusel de
-// tarjetas tipo carnet oficial, distinto según el rol de la sesión activa. Cada
-// tarjeta muestra su estado de verificación y permite tomar/actualizar sus fotos
-// (credencial física de fierro para productores, selfie de perfil para el resto).
-// Reutiliza la compresión/subida a Storage ya existente (comprimirParaRecorte,
-// subirImagenOGuardarLocal/firebaseSubirImagen) — no se creó una colección nueva
-// de Firestore por rol: las URLs se guardan como campos dentro de los mismos
-// objetos (estado.productor, estado.veterinarios[], estado.queseria,
-// estado.usuarios[], estado.comiteCredencial) que ya viajan en el documento
-// global/por-cuenta que la app sincroniza — así siguen funcionando offline y con
-// el mismo mecanismo de sincronización que el resto de la app, sin duplicar
-// arquitectura.
-function inicializarComiteCredencial(){
-if (!estado.comiteCredencial || typeof estado.comiteCredencial !== 'object'){
-estado.comiteCredencial = { nombreResponsable:'', claveAdministrador:'', fotoSelfie:null, estadoVerificacion:'pendiente' };
-}
-return estado.comiteCredencial;
-}
-function usuarioGenericoActivo(){
-if (!estado.usuarioGenericoActivoUsuario) return null;
-return estado.usuarios.find(u => u.usuario === estado.usuarioGenericoActivoUsuario) || null;
-}
-function veterinarioActivoObjeto(){ return estado.veterinarios.find(v => v.id === estado.veterinarioActivoId) || null; }
-function medicoComiteActivoObjeto(){ return estado.medicosComiteTB.find(m => m.id === estado.medicoComiteActivoId) || null; }
-function badgeVerificacionHtml(valorEstado){
-const v = valorEstado || 'pendiente';
-const cfg = { pendiente:{ icono:'fa-clock', texto:'Pendiente de validación' }, verificado:{ icono:'fa-circle-check', texto:'Verificado / Activo' }, rechazada:{ icono:'fa-triangle-exclamation', texto:'Rechazada / Re-subir' } }[v] || { icono:'fa-clock', texto:'Pendiente' };
-return `<span class="badge-verificacion v-${v}"><i class="fa-solid ${cfg.icono}"></i>${cfg.texto}</span>`;
-}
-// Imagen con "skeleton" mientras carga (útil cuando la foto es una URL remota de
-// Firebase Storage y todavía no llega, sobre todo con señal débil de campo).
-function credImgConSkeleton(src, claseImg, alt){
-if (!src) return `<div class="${claseImg} cred-skeleton"></div>`;
-const idUnico = 'credimg_' + Math.random().toString(36).slice(2, 9);
-setTimeout(() => {
-const wrap = document.getElementById(idUnico);
-if (!wrap) return;
-const img = new Image();
-img.onload = () => { wrap.outerHTML = `<img id="${idUnico}" class="${claseImg}" src="${src}" alt="${alt||''}" loading="lazy" decoding="async"/>`; };
-img.onerror = () => { wrap.classList.remove('cred-skeleton'); wrap.innerHTML = `<div class="w-full h-full flex items-center justify-center" style="color:rgba(255,255,255,0.6);"><i class="fa-solid fa-image-slash"></i></div>`; };
-img.src = src;
-}, 30);
-return `<div id="${idUnico}" class="${claseImg} cred-skeleton"></div>`;
-}
-// ---- Carrusel genérico (swipe + dots), reusado por los roles con 2 slides ----
-const CREDCARRUSEL_ESTADO = {};
-function iniciarCredCarrusel(contId, totalSlides){
-const viewport = document.getElementById(contId + '-viewport');
-if (!viewport || totalSlides <= 1) return;
-const est = CREDCARRUSEL_ESTADO[contId] = { indice:0, total: totalSlides, inicioX:0, arrastrando:false };
-const mover = () => {
-const track = document.getElementById(contId + '-track');
-if (track) track.style.transform = `translateX(-${est.indice*100}%)`;
-document.querySelectorAll(`#${contId}-dots .credcarrusel-dot`).forEach((d,i) => d.classList.toggle('activo', i === est.indice));
-};
-const inicio = evt => { est.arrastrando = true; est.inicioX = (evt.touches ? evt.touches[0] : evt).clientX; };
-const fin = evt => {
-if (!est.arrastrando) return;
-est.arrastrando = false;
-const finX = (evt.changedTouches ? evt.changedTouches[0] : evt).clientX;
-const delta = finX - est.inicioX;
-if (delta > 40 && est.indice > 0) est.indice--;
-else if (delta < -40 && est.indice < totalSlides - 1) est.indice++;
-mover();
-};
-viewport.ontouchstart = inicio; viewport.ontouchend = fin;
-viewport.onmousedown = inicio; viewport.onmouseup = fin;
-mover();
-}
-function credCarruselIrA(contId, indice){
-const est = CREDCARRUSEL_ESTADO[contId];
-if (!est) return;
-est.indice = Math.max(0, Math.min(est.total - 1, indice));
-const track = document.getElementById(contId + '-track');
-if (track) track.style.transform = `translateX(-${est.indice*100}%)`;
-document.querySelectorAll(`#${contId}-dots .credcarrusel-dot`).forEach((d,i) => d.classList.toggle('activo', i === est.indice));
-}
-function credCarruselDots(totalSlides){
-return Array.from({length: totalSlides}).map((_,i) => `<span class="credcarrusel-dot${i===0?' activo':''}"></span>`).join('');
-}
-// ---- Dispatcher principal: decide qué tarjeta mostrar según el rol activo ----
-function renderBannerCredencialRol(){
-if (document.getElementById('tarjeta-datos-generales')) renderCredencialProductor();
-if (document.getElementById('banner-credencial-rol-queseria')) renderCredencialQueseria();
-const contAdmin = document.getElementById('banner-credencial-rol-admin');
-if (contAdmin){
-if (estado.modoComite) renderCredencialAdminTV();
-else if (estado.modoVeterinario) renderCredencialMVZ(veterinarioActivoObjeto(), 'Médico Veterinario Zootecnista', 'MVZ Autorizado');
-else if (estado.modoMedicoCampoTB){
-const m = medicoComiteActivoObjeto();
-renderCredencialMVZ(m ? { nombre:m.nombre, claveMvz:m.claveMvz, vigenciaRegistro:m.vigencia, foto:m.foto, estadoVerificacion:m.estadoVerificacion, usuario:m.usuario } : null, 'Médico de Campo TB (Comité)', 'MVZ Autorizado', 'medico_campo_tb');
-}
-else if (estado.modoCapturista || estado.modoCapturistaTB) renderCredencialCapturista();
-else if (estado.modoAlmita) renderCredencialCapturista('Emisora de Solicitudes', 'Operador Oficial');
-else renderCredencialAdminGeneral();
-}
-}
-// ---- A/B: Productor ----
-function renderCredencialProductor(){
-// Se agrega DENTRO de la misma tarjeta de saludo (#tarjeta-datos-generales) en
-// vez de un recuadro aparte — nombre/predio/UPP/municipio ya los muestra esa
-// tarjeta arriba, así que aquí solo se añade lo que le falta (foto/estado de
-// verificación) para no repetir la misma información dos veces.
-const cont = document.getElementById('tarjeta-datos-generales');
-if (!cont) return;
-const p = estado.productor;
-const tieneFierroCard = !!(p.fotoCredFrenteCard || p.fotoCredReversoCard);
-if (tieneFierroCard){
-cont.insertAdjacentHTML('beforeend', `
-<div class="mt-3 pt-3" style="border-top:1px solid rgba(255,255,255,0.2);">
-<div class="credcarrusel-viewport" id="credprod-viewport">
-<div class="credcarrusel-track" id="credprod-track">
-<div class="credcarrusel-slide"><div class="credcarnet"><div class="credcarnet-tira"></div>
-<p class="text-xs font-bold mb-2" style="color:#CFE0D2;">Credencial de fierro — Frente</p>
-${credImgConSkeleton(p.fotoCredFrenteCard, 'cred-foto-carnet', 'Frente de credencial')}
-</div></div>
-<div class="credcarrusel-slide"><div class="credcarnet"><div class="credcarnet-tira"></div>
-<p class="text-xs font-bold mb-2" style="color:#CFE0D2;">Credencial de fierro — Reverso</p>
-${credImgConSkeleton(p.fotoCredReversoCard, 'cred-foto-carnet', 'Reverso de credencial')}
-</div></div>
-</div>
-</div>
-<div class="credcarrusel-dots" id="credprod-dots">${credCarruselDots(2)}</div>
-<div class="flex items-center justify-between mt-2">
-${badgeVerificacionHtml(p.estadoVerificacion)}
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirCamaraCred({contexto:'credFrente', destino:'productor'})" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-camera-rotate mr-1"></i>Actualizar / re-escanear</button>
-</div>
-</div>`);
-iniciarCredCarrusel('credprod', 2);
-document.querySelectorAll('#credprod-dots .credcarrusel-dot').forEach((d,i) => d.onclick = () => credCarruselIrA('credprod', i));
-} else {
-cont.insertAdjacentHTML('beforeend', `
-<div class="mt-3 pt-3 flex items-center gap-3" style="border-top:1px solid rgba(255,255,255,0.2);">
-${credImgConSkeleton(p.fotoSelfie, 'cred-selfie-avatar', p.nombre)}
-<div class="flex-1 min-w-0">
-${badgeVerificacionHtml(p.estadoVerificacion)}
-<div class="flex gap-2 mt-2">
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirCamaraCred({contexto:'selfie', destino:'productor'})" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-camera mr-1"></i>Selfie</button>
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirCamaraCred({contexto:'credFrente', destino:'productor'})" style="background:var(--orange); color:#fff;"><i class="fa-solid fa-id-card mr-1"></i>Subir credencial de fierro</button>
-</div>
-</div>
-</div>`);
-}
-}
-// ---- C: Veterinario / Médico de campo TB (MVZ) ----
-function renderCredencialMVZ(persona, tituloRol, tituloBadge, destino){
-const cont = document.getElementById('banner-credencial-rol-admin');
-if (!cont) return;
-const p = persona || {};
-cont.innerHTML = `
-<div class="credcarnet">
-<div class="credcarnet-tira" style="background:var(--purple);"></div>
-<div class="flex items-center gap-3">
-${credImgConSkeleton(p.foto, 'cred-selfie-avatar', p.nombre)}
-<div class="flex-1 min-w-0">
-<p class="font-bold text-sm truncate">${p.nombre || 'Sin nombre registrado'}</p>
-<p class="text-xs" style="color:#DDD6FE;">${tituloRol}</p>
-<p class="text-xs truncate" style="color:#CFE0D2;">${p.claveMvz ? 'Clave MR: ' + p.claveMvz : 'Clave MR sin registrar'}${p.vigenciaRegistro ? ' · Vigencia: ' + p.vigenciaRegistro : ''}</p>
-</div>
-</div>
-<div class="flex items-center justify-between mt-3">
-${badgeVerificacionHtml(p.estadoVerificacion)}
-<div class="flex items-center gap-2">
-<span class="text-xs font-bold px-2 py-1 rounded-full" style="background:rgba(124,58,237,0.28); color:#EDE9FE;"><i class="fa-solid fa-shield-check mr-1"></i>${tituloBadge}</span>
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirCamaraCred({contexto:'selfie', destino:'${destino || 'veterinario'}'})" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-camera mr-1"></i>Selfie</button>
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirEditarCredencial('${destino || 'veterinario'}')" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-pen"></i></button>
-</div>
-</div>
-</div>`;
-}
-// ---- D: Quesería / Centro receptor de leche ----
-function renderCredencialQueseria(){
-const cont = document.getElementById('banner-credencial-rol-queseria');
-if (!cont) return;
-const q = estado.queseria || {};
-const op = q.operadorActivo || {};
-const totalProveedores = (typeof productoresLecheDelAmbito === 'function' ? productoresLecheDelAmbito().length : (estado.productoresLeche || []).filter(p => p.puntoId === estado.puntoActivoId).length);
-cont.innerHTML = `
-<div class="credcarrusel-viewport" id="credqueso-viewport">
-<div class="credcarrusel-track" id="credqueso-track">
-<div class="credcarrusel-slide"><div class="credcarnet"><div class="credcarnet-tira" style="background:var(--teal);"></div>
-<div class="flex items-center gap-3">
-${credImgConSkeleton(q.fotoSelfieOperador, 'cred-selfie-avatar', op.nombre)}
-<div class="flex-1 min-w-0">
-<p class="font-bold text-sm truncate">${op.nombre || 'Responsable sin registrar'}</p>
-<p class="text-xs truncate" style="color:#CFE0D2;">${q.nombre || 'Quesería / Centro receptor sin nombre'}</p>
-</div>
-</div>
-<div class="flex items-center justify-between mt-3">
-${badgeVerificacionHtml(q.estadoVerificacion)}
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirCamaraCred({contexto:'selfie', destino:'queseria'})" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-camera mr-1"></i>Selfie</button>
-</div>
-</div></div>
-<div class="credcarrusel-slide"><div class="credcarnet"><div class="credcarnet-tira" style="background:var(--teal);"></div>
-<p class="text-xs font-bold" style="color:#CFE0D2;">Proveedores de leche registrados</p>
-<p class="font-display text-3xl font-bold mt-1">${totalProveedores}</p>
-<button class="w-full text-xs font-bold py-2.5 rounded-full mt-3" onclick="irAQueseraPantalla('productores')" style="background:var(--orange); color:#fff;"><i class="fa-solid fa-user-plus mr-1"></i>Dar de alta nuevo proveedor</button>
-</div></div>
-</div>
-</div>
-<div class="credcarrusel-dots" id="credqueso-dots">${credCarruselDots(2)}</div>`;
-iniciarCredCarrusel('credqueso', 2);
-document.querySelectorAll('#credqueso-dots .credcarrusel-dot').forEach((d,i) => d.onclick = () => credCarruselIrA('credqueso', i));
-}
-// ---- E: Administrador TV (cuenta del comité — comitedgo/tv1) ----
-function renderCredencialAdminTV(){
-const cont = document.getElementById('banner-credencial-rol-admin');
-if (!cont) return;
-const c = inicializarComiteCredencial();
-const pendientes = (estado.solicitudesCEFP || []).filter(s => s.estatus === 'pendiente').length;
-cont.innerHTML = `
-<div class="credcarrusel-viewport" id="credtv-viewport">
-<div class="credcarrusel-track" id="credtv-track">
-<div class="credcarrusel-slide"><div class="credcarnet"><div class="credcarnet-tira" style="background:var(--slate);"></div>
-<div class="flex items-center gap-3">
-${credImgConSkeleton(c.fotoSelfie, 'cred-selfie-avatar', c.nombreResponsable)}
-<div class="flex-1 min-w-0">
-<p class="font-bold text-sm truncate">${c.nombreResponsable || 'Administrador sin registrar'}</p>
-<p class="text-xs" style="color:#CBD5E1;">Administrador TV · Validador de Cuentas</p>
-<p class="text-xs truncate" style="color:#CFE0D2;">${c.claveAdministrador ? 'ID: ' + c.claveAdministrador : 'ID sin registrar'}</p>
-</div>
-</div>
-<div class="flex items-center justify-between mt-3">
-${badgeVerificacionHtml(c.estadoVerificacion)}
-<div class="flex items-center gap-2">
-<span class="text-xs font-bold px-2 py-1 rounded-full" style="background:rgba(51,65,85,0.5); color:#fff;"><i class="fa-solid fa-shield-check mr-1"></i>Administrador Autorizado</span>
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirCamaraCred({contexto:'selfie', destino:'comite'})" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-camera"></i></button>
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirEditarCredencial('comite')" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-pen"></i></button>
-</div>
-</div>
-</div></div>
-<div class="credcarrusel-slide"><div class="credcarnet"><div class="credcarnet-tira" style="background:var(--slate);"></div>
-<p class="text-xs font-bold" style="color:#CBD5E1;">Cuentas pendientes por autorizar</p>
-<p class="font-display text-3xl font-bold mt-1">${pendientes}</p>
-<button class="w-full text-xs font-bold py-2.5 rounded-full mt-3" onclick="irAdmin('comitecefpp')" style="background:var(--orange); color:#fff;"><i class="fa-solid fa-user-clock mr-1"></i>Ver solicitudes de cuenta</button>
-</div></div>
-</div>
-</div>
-<div class="credcarrusel-dots" id="credtv-dots">${credCarruselDots(2)}</div>`;
-iniciarCredCarrusel('credtv', 2);
-document.querySelectorAll('#credtv-dots .credcarrusel-dot').forEach((d,i) => d.onclick = () => credCarruselIrA('credtv', i));
-}
-// ---- F: Capturista / Emisora de solicitudes (operador) ----
-function renderCredencialCapturista(tituloRol, tituloBadge){
-const cont = document.getElementById('banner-credencial-rol-admin');
-if (!cont) return;
-const u = usuarioGenericoActivo() || {};
-cont.innerHTML = `
-<div class="credcarnet">
-<div class="credcarnet-tira" style="background:var(--blue);"></div>
-<div class="flex items-center gap-3">
-${credImgConSkeleton(u.fotoSelfie, 'cred-selfie-avatar', u.nombre)}
-<div class="flex-1 min-w-0">
-<p class="font-bold text-sm truncate">${(u.nombre || 'Operador sin registrar').replace(/\s*\(.*\)\s*$/, '')}</p>
-<p class="text-xs" style="color:#BFDBFE;">${tituloRol || 'Capturista Oficial'}</p>
-<p class="text-xs truncate" style="color:#CFE0D2;">${u.claveOperador ? 'ID: ' + u.claveOperador : 'ID sin registrar'}${u.municipioAsignado ? ' · ' + u.municipioAsignado : ''}</p>
-</div>
-</div>
-<div class="flex items-center justify-between mt-3">
-${badgeVerificacionHtml(u.estadoVerificacion)}
-<div class="flex items-center gap-2">
-<span class="text-xs font-bold px-2 py-1 rounded-full" style="background:rgba(37,99,235,0.28); color:#DBEAFE;">${tituloBadge || 'Operador de Captura'}</span>
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirCamaraCred({contexto:'selfie', destino:'capturista'})" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-camera"></i></button>
-<button class="text-xs font-bold px-3 py-1.5 rounded-full" onclick="abrirEditarCredencial('capturista')" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-pen"></i></button>
-</div>
-</div>
-</div>`;
-}
-// ---- Admin general de Luis (fuera de la lista de roles del pedido, tarjeta simple para no dejar el home vacío) ----
-function renderCredencialAdminGeneral(){
-const cont = document.getElementById('banner-credencial-rol-admin');
-if (!cont) return;
-const u = usuarioGenericoActivo() || {};
-cont.innerHTML = `
-<div class="credcarnet">
-<div class="credcarnet-tira" style="background:var(--pine);"></div>
-<div class="flex items-center gap-3">
-${credImgConSkeleton(u.fotoSelfie, 'cred-selfie-avatar', u.nombre)}
-<div class="flex-1 min-w-0">
-<p class="font-bold text-sm truncate">${(u.nombre || 'Administrador').replace(/\s*\(.*\)\s*$/, '')}</p>
-<p class="text-xs" style="color:#CFE0D2;">Administrador General</p>
-</div>
-</div>
-</div>`;
-}
-// ---- Edición de datos de la credencial (genérica por destino) ----
-let editarCredencialDestino = null;
-const EDITAR_CREDENCIAL_CAMPOS = {
-veterinario:[ {id:'ecc-nombre', label:'Nombre completo', obj:()=>veterinarioActivoObjeto(), campo:'nombre'}, {id:'ecc-clavemvz', label:'Clave MR', obj:()=>veterinarioActivoObjeto(), campo:'claveMvz'}, {id:'ecc-vigencia', label:'Vigencia del registro', obj:()=>veterinarioActivoObjeto(), campo:'vigenciaRegistro'} ],
-medico_campo_tb:[ {id:'ecc-clavemvz', label:'Clave MR', obj:()=>medicoComiteActivoObjeto(), campo:'claveMvz'}, {id:'ecc-vigencia', label:'Vigencia del registro', obj:()=>medicoComiteActivoObjeto(), campo:'vigencia'} ],
-comite:[ {id:'ecc-nombre', label:'Nombre del responsable', obj:()=>inicializarComiteCredencial(), campo:'nombreResponsable'}, {id:'ecc-clave', label:'ID / Clave de administrador', obj:()=>inicializarComiteCredencial(), campo:'claveAdministrador'} ],
-capturista:[ {id:'ecc-clave', label:'Clave / ID de operador', obj:()=>usuarioGenericoActivo(), campo:'claveOperador'}, {id:'ecc-municipio', label:'Municipio / región asignada', obj:()=>usuarioGenericoActivo(), campo:'municipioAsignado'} ],
-};
-function abrirEditarCredencial(destino){
-editarCredencialDestino = destino;
-const campos = EDITAR_CREDENCIAL_CAMPOS[destino] || [];
-document.getElementById('editar-credencial-titulo').textContent = 'Editar datos de credencial';
-document.getElementById('editar-credencial-campos').innerHTML = campos.map(c => {
-const obj = c.obj() || {};
-return `<div><label class="campo-label">${c.label}</label><input id="${c.id}" type="text" value="${(obj[c.campo] || '').toString().replace(/"/g,'&quot;')}"/></div>`;
-}).join('');
-document.getElementById('modal-editar-credencial').classList.remove('hidden');
-}
-function cerrarEditarCredencial(){ document.getElementById('modal-editar-credencial').classList.add('hidden'); editarCredencialDestino = null; }
-function guardarEditarCredencial(){
-const campos = EDITAR_CREDENCIAL_CAMPOS[editarCredencialDestino] || [];
-campos.forEach(c => {
-const obj = c.obj();
-const el = document.getElementById(c.id);
-if (obj && el) obj[c.campo] = el.value.trim();
-});
-guardarEstadoLocal();
-cerrarEditarCredencial();
-renderBannerCredencialRol();
-mostrarToast('Datos actualizados');
-}
-// ================= CAPTURA DE FOTOS PARA CREDENCIALES (cámara + recorte + subida) =================
-// Motor genérico de cámara+recorte, con el mismo patrón ya probado en el recorte
-// del fierro de herrar (detección automática con OpenCV.js si está disponible,
-// recorte manual arrastrando el dedo como respaldo siempre disponible, y opción
-// de galería si no hay permiso de cámara).
-const CONTEXTOS_CAPTURA_CRED = {
-credFrente: { facingMode:'environment', guia:'rect', instruccion:'Centra el FRENTE de la credencial dentro del recuadro', titulo:'Frente de la credencial', anchoSalida:600, altoSalida:380, aspectoMin:1.2, aspectoMax:2.0 },
-credReverso: { facingMode:'environment', guia:'rect', instruccion:'Centra el REVERSO de la credencial dentro del recuadro', titulo:'Reverso de la credencial', anchoSalida:600, altoSalida:380, aspectoMin:1.2, aspectoMax:2.0 },
-selfie: { facingMode:'user', guia:'ovalo', instruccion:'Centra tu rostro dentro del óvalo, con buena luz', titulo:'Foto de perfil', anchoSalida:500, altoSalida:500, aspectoMin:0.6, aspectoMax:1.6 },
-};
-let camaraCredStream = null;
-let capturaCredActiva = null; // { contexto, destino }
-const RECORTE_CRED_ESTADO = { imgOriginal:null, escala:1, rect:null, arrastrando:false, inicioX:0, inicioY:0 };
-async function abrirCamaraCred({ contexto, destino }){
-capturaCredActiva = { contexto, destino };
-const cfg = CONTEXTOS_CAPTURA_CRED[contexto];
-document.getElementById('modal-camara-cred-titulo').textContent = cfg.titulo;
-document.getElementById('modal-camara-cred-instruccion').textContent = cfg.instruccion;
-document.getElementById('modal-camara-cred-guia').className = cfg.guia === 'ovalo' ? 'guia-ovalo' : 'guia-rect';
-const modal = document.getElementById('modal-camara-cred');
-const video = document.getElementById('video-camara-cred');
-modal.classList.remove('hidden');
-try {
-camaraCredStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cfg.facingMode } });
-video.srcObject = camaraCredStream;
-} catch(err){
-mostrarToast('No se pudo acceder a la cámara — revisa los permisos, o usa el botón de Galería');
-}
-}
-function cerrarCamaraCred(){
-if (camaraCredStream){ camaraCredStream.getTracks().forEach(t => t.stop()); camaraCredStream = null; }
-document.getElementById('modal-camara-cred').classList.add('hidden');
-}
-// Captura AUTOMÁTICA: el recuadro/óvalo naranja que se ve sobre la cámara es
-// exactamente la zona que se recorta — no hace falta detectar bordes ni pedir
-// que se seleccione nada después. Se calcula la posición real del recuadro
-// sobre el video (compensando el zoom que hace "object-fit:cover") y se
-// recorta ese pedazo directo del fotograma capturado.
-let dataUrlCropCredListo = null;
-function capturarFotoCred(){
-const video = document.getElementById('video-camara-cred');
-if (!video.videoWidth){ mostrarToast('La cámara todavía no está lista — espera un momento'); return; }
-const cfg = CONTEXTOS_CAPTURA_CRED[capturaCredActiva.contexto];
-const guia = document.getElementById('modal-camara-cred-guia');
-const rectVideo = video.getBoundingClientRect();
-const rectGuia = guia.getBoundingClientRect();
-const vw = video.videoWidth, vh = video.videoHeight;
-const bw = rectVideo.width, bh = rectVideo.height;
-const escalaCover = Math.max(bw / vw, bh / vh);
-const dispW = vw * escalaCover, dispH = vh * escalaCover;
-const cropOffX = (dispW - bw) / 2, cropOffY = (dispH - bh) / 2;
-const sx = (cropOffX + (rectGuia.left - rectVideo.left)) / escalaCover;
-const sy = (cropOffY + (rectGuia.top - rectVideo.top)) / escalaCover;
-const sw = rectGuia.width / escalaCover, sh = rectGuia.height / escalaCover;
-const salida = document.createElement('canvas');
-salida.width = cfg.anchoSalida; salida.height = cfg.altoSalida;
-salida.getContext('2d').drawImage(video, sx, sy, sw, sh, 0, 0, salida.width, salida.height);
-dataUrlCropCredListo = salida.toDataURL('image/jpeg', 0.92);
-cerrarCamaraCred();
-document.getElementById('preview-cred-img').src = dataUrlCropCredListo;
-document.getElementById('modal-preview-cred').classList.remove('hidden');
-}
-function repetirFotoPreviewCred(){
-document.getElementById('modal-preview-cred').classList.add('hidden');
-if (capturaCredActiva) abrirCamaraCred(capturaCredActiva);
-}
-function confirmarPreviewCred(){
-document.getElementById('modal-preview-cred').classList.add('hidden');
-finalizarGuardadoFotoCred(dataUrlCropCredListo);
-}
-// Respaldo manual — solo si la foto capturada automáticamente no quedó bien
-// encuadrada (ej. el usuario movió la credencial al tomar la foto).
-function ajustarManualmenteCred(){
-document.getElementById('modal-preview-cred').classList.add('hidden');
-cargarDataUrlParaRecorteCred(dataUrlCropCredListo);
-}
-function cargarFotoCredDeGaleria(inputEl){
-const archivo = inputEl.files && inputEl.files[0];
-if (!archivo) return;
-inputEl.value = '';
-cerrarCamaraCred();
-// Una foto de galería no tiene el recuadro guía como referencia, así que aquí
-// sí se usa el recorte manual (con sugerencia automática de bordes) como en el
-// resto de la app.
-comprimirParaRecorte(archivo, 1800).then(cargarDataUrlParaRecorteCred).catch(() => mostrarToast('No se pudo abrir la foto — inténtalo de nuevo'));
-}
-function cargarDataUrlParaRecorteCred(dataUrl){
-const img = new Image();
-img.onload = () => {
-document.getElementById('modal-recorte-cred').classList.remove('hidden');
-const canvas = document.getElementById('cred-canvas');
-const wrap = document.getElementById('cred-lienzo-wrap');
-const anchoMax = Math.min(wrap.clientWidth || 340, 480);
-const escala = anchoMax / img.width;
-canvas.width = anchoMax; canvas.height = img.height * escala;
-canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-RECORTE_CRED_ESTADO.imgOriginal = img; RECORTE_CRED_ESTADO.escala = escala; RECORTE_CRED_ESTADO.rect = null; RECORTE_CRED_ESTADO.arrastrando = false;
-activarArrastreRecorteCred();
-sugerirRecorteCredAutomatico();
-};
-img.onerror = () => mostrarToast('No se pudo procesar la foto — inténtalo de nuevo');
-img.src = dataUrl;
-}
-async function sugerirRecorteCredAutomatico(){
-const cfg = CONTEXTOS_CAPTURA_CRED[capturaCredActiva.contexto];
-const listo = await esperarOpenCV();
-if (!listo || RECORTE_CRED_ESTADO.arrastrando || (RECORTE_CRED_ESTADO.rect && RECORTE_CRED_ESTADO.rect.w > 8)) return;
-try {
-const canvas = document.getElementById('cred-canvas');
-let src = cv.imread(canvas);
-let gray = new cv.Mat(), thresh = new cv.Mat(), contours = new cv.MatVector(), hierarchy = new cv.Mat();
-cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-cv.threshold(gray, thresh, 120, 255, cv.THRESH_BINARY_INV);
-cv.findContours(thresh, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-let maxArea = 0, bestRect = null;
-for (let i = 0; i < contours.size(); ++i){
-const r = cv.boundingRect(contours.get(i));
-const area = r.width * r.height;
-const aspecto = r.width / (r.height || 1);
-if (area > 2000 && area < (src.rows * src.cols * 0.92) && aspecto >= cfg.aspectoMin && aspecto <= cfg.aspectoMax && area > maxArea){ maxArea = area; bestRect = r; }
-}
-if (bestRect && !RECORTE_CRED_ESTADO.arrastrando){
-RECORTE_CRED_ESTADO.rect = { x:bestRect.x, y:bestRect.y, w:bestRect.width, h:bestRect.height };
-redibujarCanvasCred();
-}
-src.delete(); gray.delete(); thresh.delete(); contours.delete(); hierarchy.delete();
-} catch(e){ console.warn('No se pudo sugerir el recorte automático de la credencial, se deja el recorte manual', e); }
-}
-function posicionEnCanvasCred(canvas, evt){
-const rect = canvas.getBoundingClientRect();
-const punto = evt.touches ? evt.touches[0] : evt;
-return { x:(punto.clientX - rect.left) * (canvas.width / rect.width), y:(punto.clientY - rect.top) * (canvas.height / rect.height) };
-}
-function redibujarCanvasCred(){
-const canvas = document.getElementById('cred-canvas');
-const ctx = canvas.getContext('2d');
-ctx.clearRect(0,0,canvas.width,canvas.height);
-ctx.drawImage(RECORTE_CRED_ESTADO.imgOriginal, 0, 0, canvas.width, canvas.height);
-if (RECORTE_CRED_ESTADO.rect){
-const r = RECORTE_CRED_ESTADO.rect;
-ctx.strokeStyle = '#E11D48'; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
-ctx.strokeRect(r.x, r.y, r.w, r.h); ctx.setLineDash([]);
-ctx.fillStyle = 'rgba(225,29,72,0.12)'; ctx.fillRect(r.x, r.y, r.w, r.h);
-}
-}
-function activarArrastreRecorteCred(){
-const canvas = document.getElementById('cred-canvas');
-const iniciar = evt => { evt.preventDefault(); const p = posicionEnCanvasCred(canvas, evt); RECORTE_CRED_ESTADO.arrastrando = true; RECORTE_CRED_ESTADO.inicioX = p.x; RECORTE_CRED_ESTADO.inicioY = p.y; RECORTE_CRED_ESTADO.rect = { x:p.x, y:p.y, w:0, h:0 }; };
-const mover = evt => { if (!RECORTE_CRED_ESTADO.arrastrando) return; evt.preventDefault(); const p = posicionEnCanvasCred(canvas, evt); RECORTE_CRED_ESTADO.rect = { x:Math.min(RECORTE_CRED_ESTADO.inicioX,p.x), y:Math.min(RECORTE_CRED_ESTADO.inicioY,p.y), w:Math.abs(p.x-RECORTE_CRED_ESTADO.inicioX), h:Math.abs(p.y-RECORTE_CRED_ESTADO.inicioY) }; redibujarCanvasCred(); };
-const soltar = () => { RECORTE_CRED_ESTADO.arrastrando = false; };
-canvas.onmousedown = iniciar; canvas.onmousemove = mover; canvas.onmouseup = soltar; canvas.onmouseleave = soltar;
-canvas.ontouchstart = iniciar; canvas.ontouchmove = mover; canvas.ontouchend = soltar;
-}
-function repetirFotoCred(){
-document.getElementById('modal-recorte-cred').classList.add('hidden');
-if (capturaCredActiva) abrirCamaraCred(capturaCredActiva);
-}
-// Comprime a WebP (con respaldo a JPEG si el navegador no soporta WebP) a máximo
-// 1024px de ancho y 80% de calidad, tal como se pidió — separado de
-// comprimirParaRecorte (que es a color y sin límite de 1024 para poder recortar
-// bien) porque este paso es el que ya se sube a Storage/Firestore.
-function comprimirParaCredencial(dataUrl, maxAncho){
-return new Promise((resolve, reject) => {
-const img = new Image();
-img.onload = () => {
-const escala = Math.min(1, (maxAncho || 1024) / img.width);
-const w = Math.max(1, Math.round(img.width * escala)), h = Math.max(1, Math.round(img.height * escala));
-const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-const soportaWebp = canvas.toDataURL('image/webp').startsWith('data:image/webp');
-resolve(canvas.toDataURL(soportaWebp ? 'image/webp' : 'image/jpeg', 0.8));
-};
-img.onerror = reject;
-img.src = dataUrl;
-});
-}
-function confirmarRecorteCred(){
-const r = RECORTE_CRED_ESTADO.rect;
-if (!r || r.w < 8 || r.h < 8){ mostrarToast('Dibuja un recuadro sobre la foto antes de guardar'); return; }
-const cfg = CONTEXTOS_CAPTURA_CRED[capturaCredActiva.contexto];
-const escalaOriginal = 1 / RECORTE_CRED_ESTADO.escala;
-const sx = r.x * escalaOriginal, sy = r.y * escalaOriginal, sw = r.w * escalaOriginal, sh = r.h * escalaOriginal;
-const salida = document.createElement('canvas');
-salida.width = cfg.anchoSalida; salida.height = cfg.altoSalida;
-salida.getContext('2d').drawImage(RECORTE_CRED_ESTADO.imgOriginal, sx, sy, sw, sh, 0, 0, salida.width, salida.height);
-const dataUrlRecortado = salida.toDataURL('image/jpeg', 0.92);
-document.getElementById('modal-recorte-cred').classList.add('hidden');
-finalizarGuardadoFotoCred(dataUrlRecortado);
-}
-// Paso final compartido por las 2 rutas (recuadro automático de la cámara y
-// recorte manual de galería): comprime, sube a Storage y guarda la URL en el
-// campo correspondiente al rol activo. Antes este paso vivía duplicado dentro
-// de confirmarRecorteCred() y, si RECORTE_CRED_ESTADO.rect quedaba vacío
-// (pasaba seguido con la foto tomada por cámara, porque el recorte automático
-// por contornos no siempre encontraba el recuadro), el botón "Guardar" no
-// hacía nada — de ahí el bug de "no guarda". Ahora la ruta de cámara ya no
-// depende de ese detector: usa directamente el recuadro guía.
-async function finalizarGuardadoFotoCred(dataUrlFinal){
-if (!dataUrlFinal || !capturaCredActiva){ mostrarToast('No se pudo guardar la foto — inténtalo de nuevo'); return; }
-mostrarToast('Optimizando y guardando foto...');
-try {
-const comprimido = await comprimirParaCredencial(dataUrlFinal, 1024);
-const idUsuario = obtenerIdUsuarioParaRutaCred(capturaCredActiva.destino);
-const nombreArchivo = capturaCredActiva.contexto === 'selfie' ? 'selfie_perfil' : (capturaCredActiva.contexto === 'credFrente' ? 'credencial_frente' : 'credencial_reverso');
-const extension = comprimido.startsWith('data:image/webp') ? 'webp' : 'jpg';
-const ruta = `/usuarios/${idUsuario}/${nombreArchivo}.${extension}`;
-const resultado = await subirImagenOGuardarLocal(ruta, comprimido);
-guardarImagenCredencialSegunDestino(capturaCredActiva.destino, capturaCredActiva.contexto, resultado.url);
-if (!resultado.esRemota) mostrarToast('Foto guardada localmente — se subirá cuando haya conexión');
-} catch(e){
-console.error('No se pudo procesar/subir la foto de la credencial', e);
-mostrarToast('No se pudo guardar la foto — inténtalo de nuevo');
-} finally {
-capturaCredActiva = null;
-}
-}
-function obtenerIdUsuarioParaRutaCred(destino){
-if (destino === 'productor') return estado.cuentaActivaId || 'productor_local';
-if (destino === 'veterinario') return estado.veterinarioActivoId || 'veterinario_local';
-if (destino === 'queseria') return estado.puntoActivoId || 'queseria_local';
-if (destino === 'comite') return 'comite_tv';
-if (destino === 'capturista') return (usuarioGenericoActivo() || {}).usuario || 'operador_local';
-return 'local';
-}
-function guardarImagenCredencialSegunDestino(destino, contexto, url){
-if (destino === 'productor'){
-const campo = contexto === 'selfie' ? 'fotoSelfie' : (contexto === 'credFrente' ? 'fotoCredFrenteCard' : 'fotoCredReversoCard');
-estado.productor[campo] = url;
-estado.productor.estadoVerificacion = 'pendiente';
-if (estado.cuentaActivaId){
-const cuenta = estado.cuentasProductores.find(c => c.id === estado.cuentaActivaId);
-if (cuenta){ cuenta[campo] = url; cuenta.estadoVerificacion = 'pendiente'; }
-}
-} else if (destino === 'veterinario'){
-const vet = veterinarioActivoObjeto();
-if (vet){ vet.foto = url; vet.estadoVerificacion = 'pendiente'; }
-} else if (destino === 'queseria'){
-estado.queseria.fotoSelfieOperador = url;
-estado.queseria.estadoVerificacion = 'pendiente';
-} else if (destino === 'comite'){
-const c = inicializarComiteCredencial();
-c.fotoSelfie = url; c.estadoVerificacion = 'pendiente';
-} else if (destino === 'capturista'){
-const u = usuarioGenericoActivo();
-if (u){ u.fotoSelfie = url; u.estadoVerificacion = 'pendiente'; }
-}
-guardarEstadoLocal();
-renderBannerCredencialRol();
-mostrarToast('Foto actualizada correctamente');
 }
 // ================= ALTA RÁPIDA POR ESCANEO DE DOCUMENTOS (OCR en el navegador) =================
 // Usa Tesseract.js (se carga solo cuando hace falta, desde CDN) para leer el texto
@@ -18320,41 +17562,6 @@ return m ? m[0] : '';
 function extraerUPPPorPatron(texto){
 const m = texto.replace(/\s+/g, ' ').match(/\b(\d{2}[-\s]?\d{3}[-\s]?\d{3,4})\b/);
 return m ? m[1].replace(/[\s-]/g, '') : '';
-}
-// ================= ESCANEO DIRECTO DE LA CONSTANCIA UPP (sin asistente de pasos) =================
-// A diferencia del asistente de "Alta rápida por escaneo" (que tiene su propia
-// pantalla con pestañas y un paso de revisión aparte), este botón vive directo
-// en la pantalla de "Datos de la UPP" — toma la foto, lee el texto y llena los
-// campos de ESTA pantalla de inmediato. Sigue habiendo que revisar los datos
-// (la lectura automática nunca es perfecta), pero ya no hay que navegar a otra
-// pantalla ni "importar" nada después.
-async function escanearUppDirecto(inputEl, prefijo){
-const archivo = inputEl.files && inputEl.files[0];
-if (!archivo) return;
-inputEl.value = '';
-mostrarToast('Leyendo la constancia de UPP, un momento...');
-try {
-const dataUrl = await comprimirParaOCR(archivo, 1800);
-const texto = await extraerTextoDeImagen(dataUrl);
-const upp = extraerTrasEtiqueta(texto, ['NÚMERO DE UPP', 'NUMERO DE UPP', 'CLAVE UPP', 'UPP']);
-const predio = extraerTrasEtiqueta(texto, ['NOMBRE DEL RANCHO', 'NOMBRE DEL PREDIO', 'UNIDAD DE PRODUCCIÓN', 'PREDIO', 'RANCHO']);
-const localidad = extraerTrasEtiqueta(texto, ['LOCALIDAD', 'PARAJE']);
-const municipio = extraerTrasEtiqueta(texto, ['MUNICIPIO']);
-const estadoMx = extraerTrasEtiqueta(texto, ['ESTADO']);
-let algoEncontrado = false;
-if (upp){ establecerValor(prefijo + '-upp', upp.replace(/[^0-9A-Za-z-]/g, '')); algoEncontrado = true; }
-if (predio){ establecerValor(prefijo + '-predio', predio); algoEncontrado = true; }
-if (localidad){ establecerValor(prefijo + '-localidad', localidad); algoEncontrado = true; }
-if (document.getElementById(prefijo + '-municipiopredio') && municipio){ establecerValor(prefijo + '-municipiopredio', municipio); algoEncontrado = true; }
-if (document.getElementById(prefijo + '-estadopredio') && estadoMx){ establecerValor(prefijo + '-estadopredio', estadoMx); algoEncontrado = true; }
-if (typeof marcarCampoLleno === 'function'){
-[prefijo + '-upp', prefijo + '-predio', prefijo + '-localidad'].forEach(id => { const el = document.getElementById(id); if (el) marcarCampoLleno(el); });
-}
-mostrarToast(algoEncontrado ? 'Datos de la UPP leídos — revisa, corrige lo que haga falta y guarda' : 'No se logró leer nada claro — escribe los datos a mano');
-} catch(e){
-console.warn('No se pudo leer la constancia de UPP', e);
-mostrarToast('No se pudo leer la foto — revisa tu conexión e inténtalo de nuevo');
-}
 }
 function extraerTrasEtiqueta(texto, etiquetas){
 const lineas = texto.split(/\n+/).map(l => l.trim()).filter(Boolean);
