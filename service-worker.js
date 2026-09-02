@@ -7,7 +7,7 @@
 // al celular de los productores/veterinarios que hay algo nuevo que bajar —
 // si no lo cambias, algunos celulares podrían seguir viendo la copia vieja
 // guardada por un tiempo.
-const CACHE_NAME = 'ranchapp-v1';
+const CACHE_NAME = 'ranchapp-v2';
 
 const ARCHIVOS_DEL_CASCARON = [
   './',
