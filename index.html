@@ -976,6 +976,9 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="screen px-5 py-6 space-y-2" id="screen-mas">
 <button class="btn-volver" onclick="volverAtras('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold" data-i18n="inicio_productor__mas_funciones">Más funciones</h2>
+<button class="tile-btn" onclick="forzarActualizacionApp()" style="background:var(--slate); --tile-color:var(--slate);">
+<span class="tile-texto"><i class="fa-solid fa-rotate mr-1"></i> Forzar actualización de la app</span>
+</button>
 <button class="tile-btn" onclick="irA('suscripcion')" style="background:var(--green); --tile-color:var(--green);">
 <span class="tile-texto">Mi suscripción</span>
 </button>
@@ -1717,6 +1720,9 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <button class="w-full btn-primario-plano" onclick="imprimirFichaAnimal()" style="background:var(--slate);">
 <i class="fa-solid fa-print"></i><span data-i18n="modal_historial_bitacora__imprimir_descargar_ficha_resumen">Imprimir / descargar ficha resumen</span>
+</button>
+<button class="w-full btn-primario-plano" onclick="editarAnimalDesdeHistorial()" style="background:var(--orange);">
+<i class="fa-solid fa-pen"></i> Editar datos básicos
 </button>
 <button class="w-full btn-primario-plano" onclick="abrirArbolGenealogico(animalHistorialActual)" style="background:var(--teal);">
 <i class="fa-solid fa-sitemap"></i> Ver árbol genealógico
@@ -2747,6 +2753,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold" data-i18n="admin_configuracion__configuracion_de_ventanas">Configuración de ventanas</h2>
 <p class="text-sm mb-2" style="color:var(--sage);">Elige una categoría para configurar solo lo que necesitas.</p>
+<button class="tile-row w-full" onclick="forzarActualizacionApp()" style="background:linear-gradient(155deg, var(--slate), #3a3f47);">
+<span class="icono"><i class="fa-solid fa-rotate"></i></span>
+<span>Forzar actualización de la app</span>
+</button>
 <button class="tile-row w-full" onclick="irAdmin('config-apariencia')" style="background:linear-gradient(155deg, var(--teal), #0d6b63);">
 <span class="icono"><i class="fa-solid fa-palette"></i></span>
 <span>Apariencia de pantallas</span>
@@ -7787,6 +7797,7 @@ const pad = n => String(n).padStart(2,'0');
 return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 async function generarPDFConPie(titulo, encabezados, filas){
+try {
 await cargarJsPDFSiNecesario();
 const { jsPDF } = window.jspdf;
 const doc = new jsPDF({ orientation: filas.length && encabezados.length > 6 ? 'landscape' : 'portrait' });
@@ -7812,10 +7823,15 @@ margin: { bottom: 22 }
 });
 doc.save(titulo.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '.pdf');
 if (typeof mostrarToast === 'function') mostrarToast(tr('exportacion_pie_pagina__pdf_exportado'));
+} catch(e){
+console.warn('No se pudo generar el PDF', e);
+if (typeof mostrarToast === 'function') mostrarToast('No se pudo generar el PDF — revisa tu conexión e inténtalo otra vez');
+}
 }
 async function generarExcelConPie(titulo, encabezados, filas){
 // ExcelJS y FileSaver son pesadas y solo hacen falta aquí — se descargan la
 // primera vez que alguien exporta a Excel, no en cada apertura de la app.
+try {
 if (typeof mostrarToast === 'function') mostrarToast('Preparando Excel...');
 await Promise.all([cargarExcelJSSiNecesario(), cargarFileSaverSiNecesario()]);
 const workbook = new ExcelJS.Workbook();
@@ -7836,6 +7852,10 @@ const buffer = await workbook.xlsx.writeBuffer();
 const blob = new Blob([buffer], { type: 'application/octet-stream' });
 saveAs(blob, titulo.toLowerCase().replace(/[^a-z0-9]+/g,'-') + '.xlsx');
 if (typeof mostrarToast === 'function') mostrarToast(tr('exportacion_pie_pagina__excel_exportado'));
+} catch(e){
+console.warn('No se pudo generar el Excel', e);
+if (typeof mostrarToast === 'function') mostrarToast('No se pudo generar el Excel — revisa tu conexión e inténtalo otra vez');
+}
 }
 function generarCSVConPie(titulo, encabezados, filas){
 const filasTexto = [encabezados, ...filas].map(f => f.map(v => `"${(v ?? '').toString().replace(/"/g,'""')}"`).join(','));
@@ -8376,6 +8396,29 @@ sincronizarConFirebase();
 // escrituras enviadas a Firestore cuando el productor edita varios campos seguidos.
 }, 900);
 }
+// Si hay un guardado esperando su turno (dentro de la ventana de 900ms) y la
+// persona cierra la app o cambia de pestaña/app justo en ese momento, el
+// setTimeout de arriba nunca llega a disparar — el cambio se perdería sin
+// avisar. Esto lo detecta y fuerza el guardado a localStorage AHORA MISMO
+// (de forma síncrona, sin esperar el temporizador). No dispara la
+// sincronización con Firestore aquí a propósito (eso sí puede esperar a la
+// próxima vez que se abra la app) — lo único que no puede esperar es que el
+// dato quede seguro en el celular.
+function guardarEstadoLocalDeInmediatoSiHaceFalta(){
+if (!guardadoLocalPendiente) return;
+clearTimeout(guardadoLocalPendiente);
+guardadoLocalPendiente = null;
+try { localStorage.setItem(CLAVE_ALMACENAMIENTO_LOCAL, JSON.stringify(estado)); }
+catch(e){ console.warn('No se pudo forzar el guardado local antes de cerrar', e); }
+}
+window.addEventListener('beforeunload', guardarEstadoLocalDeInmediatoSiHaceFalta);
+// beforeunload no es confiable en celulares (Android/iOS a veces no lo
+// disparan al cerrar una app o cambiar de aplicación) — visibilitychange sí
+// se dispara de forma consistente en ese caso, así que es el resguardo real
+// para uso en celular.
+document.addEventListener('visibilitychange', () => {
+if (document.hidden) guardarEstadoLocalDeInmediatoSiHaceFalta();
+});
 function actualizarBadgeSincronizacion(){
 const badge = document.getElementById('badge-sync-pendiente');
 if (!badge) return;
@@ -8400,6 +8443,12 @@ exitoColaAdmin = await window.firebaseGuardarColaAdmin(construirPayloadColaAdmin
 }
 let exitoCuenta = true;
 if (estado.cuentaActivaId && typeof window.firebaseGuardarCuenta === 'function'){
+// Se revisa el tamaño ANTES de intentar guardar, no solo después de que ya
+// funcionó — si se revisara solo tras el éxito, una cuenta que YA se pasó de
+// 1 MB nunca podría arreglarse sola: Firestore rechazaría el guardado
+// (exitoCuenta quedaría en falso) y el archivado que la iba a encoger nunca
+// llegaría a correr, dejándola trabada ahí para siempre.
+archivarRegistrosAntiguosSiNecesario();
 exitoCuenta = await window.firebaseGuardarCuenta(estado.cuentaActivaId, construirPayloadCuentaActiva());
 // La revisión de tamaño es local y rápida (no toca Firestore) — solo si de
 // verdad se pasó del margen es que se lee/escribe el archivo histórico, así
@@ -8417,6 +8466,52 @@ sincronizandoConFirebase = false;
 }
 }
 window.addEventListener('online', sincronizarConFirebase);
+// ================= ATRAPADOR GLOBAL DE ERRORES =================
+// Si algo truena en cualquier parte de la app que nadie haya protegido con
+// try/catch (justo el riesgo del punto A6 de la auditoría), esto evita que
+// se vea como una pantalla en blanco o que la app deje de responder — en vez
+// de eso, se guarda el detalle y aparece un aviso chico y claro, sin tapar
+// la pantalla ni interrumpir lo que se estaba haciendo. Cubre tanto errores
+// normales (window.onerror) como promesas rechazadas sin .catch()
+// (unhandledrejection) — los guardados/sincronizaciones usan promesas.
+const ERRORES_CAPTURADOS = [];
+const LIMITE_ERRORES_GUARDADOS = 20;
+function registrarErrorGlobal(mensaje, detalle){
+ERRORES_CAPTURADOS.push({ mensaje, detalle, fecha: new Date().toISOString() });
+if (ERRORES_CAPTURADOS.length > LIMITE_ERRORES_GUARDADOS) ERRORES_CAPTURADOS.shift();
+console.error('Error atrapado por el manejador global:', mensaje, detalle);
+mostrarAvisoErrorGlobal(mensaje);
+}
+function mostrarAvisoErrorGlobal(mensaje){
+let aviso = document.getElementById('aviso-error-global');
+if (!aviso){
+aviso = document.createElement('div');
+aviso.id = 'aviso-error-global';
+aviso.style.cssText = 'position:fixed; left:12px; right:12px; bottom:12px; z-index:9999; background:#211E19; color:#fff; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 8px 20px -6px rgba(0,0,0,0.5); font-size:.8rem;';
+aviso.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#F97316;"></i>
+<span style="flex:1;">Algo no funcionó como debía — el resto de la app sigue funcionando.</span>
+<button onclick="mostrarDetalleErroresGlobal()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; font-weight:700; padding:6px 10px; border-radius:999px; font-size:.72rem;">Ver detalle</button>
+<button onclick="document.getElementById('aviso-error-global').remove()" style="background:none; border:none; color:#fff; opacity:.7;"><i class="fa-solid fa-xmark"></i></button>`;
+document.body.appendChild(aviso);
+setTimeout(() => { document.getElementById('aviso-error-global')?.remove(); }, 12000);
+}
+}
+function mostrarDetalleErroresGlobal(){
+const texto = ERRORES_CAPTURADOS.slice(-5).map(e => `${e.fecha}\n${e.mensaje}\n${e.detalle || ''}`).join('\n\n---\n\n') || 'Sin detalles guardados';
+if (navigator.clipboard && navigator.clipboard.writeText){
+navigator.clipboard.writeText(texto).then(() => alert('Detalle copiado — pégalo para mandarlo a soporte:\n\n' + texto)).catch(() => alert(texto));
+} else {
+alert(texto);
+}
+}
+window.onerror = function(mensaje, origen, linea, columna, error){
+registrarErrorGlobal(String(mensaje), `${origen || ''}:${linea || ''}:${columna || ''}\n${error && error.stack ? error.stack : ''}`);
+return true; // evita que el navegador muestre su propio error y "congele" la interacción
+};
+window.addEventListener('unhandledrejection', function(evento){
+registrarErrorGlobal('Promesa sin atrapar: ' + (evento.reason && evento.reason.message ? evento.reason.message : String(evento.reason)), evento.reason && evento.reason.stack ? evento.reason.stack : '');
+evento.preventDefault();
+});
 // Red de seguridad global: si algo truena en cualquier parte de la app de forma
 // no controlada, se registra el error exacto en consola (para poder diagnosticarlo)
 // y, si el botón de iniciar sesión se quedó girando en ese momento, se libera solo
@@ -9453,6 +9548,29 @@ function mostrarPantallaTipoGanado(){
 document.getElementById('screen-login').classList.remove('active');
 document.getElementById('screen-tipo-ganado').classList.add('active');
 }
+// Borra el caché guardado del navegador y da de baja el service worker, para
+// forzar que la próxima vez se descargue la versión más nueva de verdad —
+// sirve cuando alguien ve la app "atorada" en una versión vieja después de
+// que se subieron cambios. A propósito NO toca localStorage (ahí vive el
+// hato/salud/pesajes que un productor haya guardado sin señal todavía —
+// borrarlo perdería ese trabajo).
+async function forzarActualizacionApp(){
+if (!confirm('Esto va a limpiar la copia guardada de la app y recargarla desde cero — tus datos guardados (hato, salud, etc.) NO se tocan. ¿Continuar?')) return;
+mostrarToast('Actualizando...');
+try {
+if ('caches' in window){
+const nombres = await caches.keys();
+await Promise.all(nombres.map(n => caches.delete(n)));
+}
+if ('serviceWorker' in navigator){
+const registros = await navigator.serviceWorker.getRegistrations();
+await Promise.all(registros.map(r => r.unregister()));
+}
+} catch(e){
+console.warn('No se pudo limpiar caché/service worker por completo', e);
+}
+location.reload();
+}
 function mostrarPantallaLogin(){
 document.getElementById('screen-tipo-ganado').classList.remove('active');
 document.getElementById('screen-login').classList.add('active');
@@ -9493,6 +9611,7 @@ document.getElementById('screen-codigo-trabajador').classList.remove('active');
 mostrarApp('productor');
 mostrarToast(`Bienvenido, ${trabajador.nombre}`);
 }
+let intervaloMensajesProgramadosActivo = null;
 function mostrarApp(rol){
 document.getElementById('screen-login').classList.remove('active');
 document.getElementById('app-productor').classList.toggle('hidden', rol !== 'productor');
@@ -9514,7 +9633,16 @@ etiquetaVoz.style.opacity = '1'; etiquetaVoz.style.transform = 'translateX(0)';
 setTimeout(() => { etiquetaVoz.style.opacity = '0'; etiquetaVoz.style.transform = 'translateX(-6px)'; }, 3200);
 }
 if (rol === 'productor') { renderTodoProductor(); verificarVigenciaProductor(); setTimeout(revisarAlertasMoonitor, 1200); actualizarBadgeChatProductor(); }
-else { renderTodoAdmin(); irAdmin(quiereAbrirChatDirecto ? 'mensajes' : 'home'); revisarMensajesProgramadosDebidos(); setInterval(revisarMensajesProgramadosDebidos, 60000); actualizarBadgeChatAdmin(); }
+else {
+renderTodoAdmin(); irAdmin(quiereAbrirChatDirecto ? 'mensajes' : 'home'); revisarMensajesProgramadosDebidos(); actualizarBadgeChatAdmin();
+// Sin este candado, entrar como admin varias veces en la misma sesión
+// (ej. cerrar sesión y volver a entrar sin recargar la página) iba creando
+// un temporizador nuevo cada vez, sin cancelar los anteriores — se
+// acumulaban corriendo en paralelo para siempre, con el riesgo real de
+// mandar el mismo mensaje programado más de una vez.
+if (intervaloMensajesProgramadosActivo) clearInterval(intervaloMensajesProgramadosActivo);
+intervaloMensajesProgramadosActivo = setInterval(revisarMensajesProgramadosDebidos, 60000);
+}
 }
 async function iniciarSesion(){
 const usuario = valor('login-usuario').trim().toLowerCase();
@@ -10954,8 +11082,14 @@ const fabChatAdmin = document.getElementById('btn-chat-flotante-admin');
 if (fabChatAdmin) fabChatAdmin.classList.toggle('hidden', nombre === 'mensajes');
 window.scrollTo(0,0);
 }
+let animalEditandoIndice = null;
 function irModulo(letra){
 if (estado.modoTrabajador && !estado.permisosTrabajador['modulo' + letra]){ mostrarToast(tr('trabajadores__acceso_no_disponible')); return; }
+// Si se llega aquí por la navegación normal (tocando el módulo desde el
+// menú), se sale de cualquier modo de edición que hubiera quedado abierto
+// — evita editar por accidente un animal viejo si alguien empezó a editar,
+// se salió sin guardar, y luego entra a dar de alta uno nuevo.
+animalEditandoIndice = null;
 irA('estatus');
 letraActual = letra;
 subtabActual = 'registrar';
@@ -11349,6 +11483,45 @@ ${a.potrero ? `<span class="text-xs font-bold mt-1 inline-block px-2 py-0.5 roun
 </div>`; }).join('');
 }
 let animalHistorialActual = null;
+// Reusa el mismo formulario de "dar de alta" (Módulo A) para editar un
+// animal ya existente — así hereda automáticamente todas sus validaciones
+// (arete duplicado, fecha futura, etc.) en vez de duplicar ese código en un
+// formulario aparte, que sería más fácil que se desincronizara con el
+// tiempo.
+function editarAnimalDesdeHistorial(){
+const i = animalHistorialActual;
+const a = estado.animales[i];
+if (a == null) return;
+cerrarHistorial();
+irModulo('A'); // esto ya deja animalEditandoIndice en null — se pone después, a propósito
+animalEditandoIndice = i;
+establecerValor('f-arete', a.arete || '');
+establecerValor('f-chip', a.chip || '');
+establecerValor('f-nombre', a.nombre || '');
+establecerValor('f-raza', a.raza || '');
+establecerValor('f-sexo', a.sexo || 'hembra');
+establecerValor('f-fecha', a.fecha || '');
+establecerValor('f-estatus', a.estatus || 'activo');
+establecerValor('f-proposito', a.proposito || 'reemplazo');
+if (a.proposito === 'engorda' && typeof toggleCamposEngorda === 'function') toggleCamposEngorda();
+establecerValor('f-engorda-dias', a.engordaDiasObjetivo || '');
+establecerValor('f-engorda-peso-meta', a.engordaPesoMeta || '');
+establecerValor('f-madre', a.madre || '');
+establecerValor('f-padre', a.padre || '');
+establecerValor('f-potrero', a.potrero || '');
+establecerValor('f-motivobaja', a.motivoBaja || '');
+const botonGuardar = document.querySelector('#modulo-cuerpo button[onclick="guardarAnimal()"]');
+if (botonGuardar) botonGuardar.innerHTML = `<i class="fa-solid fa-check"></i> Guardar cambios`;
+const cuerpo = document.getElementById('modulo-cuerpo');
+if (cuerpo){
+const aviso = document.createElement('div');
+aviso.className = 'rounded-2xl p-3 text-xs font-bold mb-1';
+aviso.style.cssText = 'background:#FEF3C7; color:#92400E; border:2px solid #F59E0B;';
+aviso.innerHTML = `<i class="fa-solid fa-pen"></i> Editando a ${a.nombre || a.arete || 'este animal'} — los cambios reemplazan sus datos actuales.`;
+cuerpo.prepend(aviso);
+}
+mostrarToast('Corrige lo que haga falta y toca "Guardar cambios"');
+}
 function verHistorialAnimal(i){
 const a = estado.animales[i];
 if (!a) return;
@@ -12154,6 +12327,17 @@ img.src = dataUrl;
 }
 function archivoADataUrl(archivo){
 return new Promise((resolve, reject) => {
+// Límite de seguridad ANTES de intentar leer el archivo: una foto
+// gigantesca (más de 25 MB — fuera de rango incluso para una foto normal de
+// celular) puede agotar la memoria del navegador al procesarla y cerrar la
+// pestaña de golpe en celulares con poca RAM — eso no es un error de
+// JavaScript que un try/catch pueda atrapar, así que hay que evitar
+// intentarlo siquiera.
+const LIMITE_ARCHIVO_BYTES = 25 * 1024 * 1024;
+if (archivo.size > LIMITE_ARCHIVO_BYTES){
+reject(new Error('ARCHIVO_DEMASIADO_GRANDE'));
+return;
+}
 const lector = new FileReader();
 lector.onload = () => resolve(lector.result);
 lector.onerror = reject;
@@ -12373,7 +12557,14 @@ el.value = val;
 return true;
 }
 function limpiarCampos(ids){ ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
+let guardandoAnimalEnCurso = false;
 async function guardarAnimal(){
+// Sin este candado, si el registro lleva foto (que tarda en comprimirse y
+// subirse), un segundo toque al botón mientras el primero todavía está
+// esperando puede colarse, pasar la misma revisión de arete duplicado antes
+// de que el primero termine de guardar, y crear 2 animales con el mismo
+// arete — justo lo que esa revisión estaba tratando de evitar.
+if (guardandoAnimalEnCurso) return;
 const arete = valor('f-arete').trim();
 const nombreAnimal = valor('f-nombre').trim();
 quitarErrorCampo('f-arete'); quitarErrorCampo('f-nombre');
@@ -12382,19 +12573,30 @@ marcarErrorCampo('f-arete', 'Arete (o el nombre)');
 mostrarToast(tr('guardar_registros__escribe_al_menos_el_arete'));
 return;
 }
-if (arete && estado.animales.some(a => a.arete === arete)){
+// La fecha de nacimiento no debería quedar en el futuro — es un dato de
+// algo que ya pasó.
+if (valor('f-fecha') && valor('f-fecha') > hoyISO()){
+mostrarToast('La fecha de nacimiento no puede ser futura — revisa el campo Fecha');
+marcarErrorCampo('f-fecha', 'Fecha');
+return;
+}
+if (arete && estado.animales.some((a, idx) => a.arete === arete && idx !== animalEditandoIndice)){
 mostrarToast(tr('guardar_registros__ya_tienes_un_animal_registrado'));
 return;
 }
 if (arete){
 const conflicto = buscarAreteEnOtraUPP(arete);
-if (conflicto){
+// Si se está editando, un "conflicto" contra la MISMA cuenta activa con el
+// mismo arete es en realidad el propio animal, no un choque de verdad.
+if (conflicto && !(animalEditandoIndice !== null && conflicto.cuentaId === estado.cuentaActivaId)){
 mostrarConflictoArete(arete, conflicto);
 return;
 }
 }
+guardandoAnimalEnCurso = true;
+try {
 const archivoFoto = document.getElementById('f-foto')?.files?.[0];
-let foto = null;
+let foto = animalEditandoIndice !== null ? estado.animales[animalEditandoIndice].foto : null;
 if (archivoFoto){
 try {
 const comprimida = await comprimirArchivoImagen(archivoFoto, 800, 0.75);
@@ -12408,7 +12610,7 @@ foto = await archivoADataUrl(archivoFoto);
 }
 const proposito = valor('f-proposito');
 const esEngorda = proposito === 'engorda';
-estado.animales.push({
+const datosAnimal = {
 arete, chip: valor('f-chip'), nombre: valor('f-nombre'),
 raza: valor('f-raza'), sexo: valor('f-sexo'), fecha: valor('f-fecha'),
 estatus: valor('f-estatus'), madre: valor('f-madre'), padre: valor('f-padre'),
@@ -12417,11 +12619,25 @@ proposito, engordaDiasObjetivo: esEngorda ? Number(valor('f-engorda-dias')) || n
 engordaPesoMeta: esEngorda ? Number(valor('f-engorda-peso-meta')) || null : null,
 engordaInicio: esEngorda ? (valor('f-fecha') && new Date() ? new Date().toISOString().slice(0,10) : null) : null,
 engordaFinalizado: false, engordaDiasFinal: null,
-});
+};
+if (animalEditandoIndice !== null && estado.animales[animalEditandoIndice]){
+// Se actualiza el mismo objeto (en vez de reemplazarlo por uno nuevo) para
+// no perder campos que este formulario no toca — como engordaFinalizado si
+// ya se había cerrado esa engorda antes de editar los datos básicos.
+Object.assign(estado.animales[animalEditandoIndice], datosAnimal);
+mostrarToast('Datos del animal actualizados');
+animalEditandoIndice = null;
+} else {
+estado.animales.push(datosAnimal);
+mostrarToast(tr('guardar_registros__animal_registrado'));
+}
 limpiarCampos(['f-arete','f-chip','f-nombre','f-raza','f-fecha','f-madre','f-padre','f-motivobaja','f-engorda-dias','f-engorda-peso-meta']);
 limpiarBorradorRegistroGanado();
 cambiarSubtab('ver'); renderResumenProductor(); renderHato();
-renderResumenVientresToros(); mostrarToast(tr('guardar_registros__animal_registrado'));
+renderResumenVientresToros();
+} finally {
+guardandoAnimalEnCurso = false;
+}
 }
 function diasEnEngorda(a){
 if (a.engordaFinalizado) return a.engordaDiasFinal;
@@ -12607,8 +12823,19 @@ const enLote = document.getElementById('f-modo-lote') && document.getElementById
 const camposRequeridos = [{ id:'f-producto', etiqueta:'Producto/tratamiento' }, { id:'f-fecha', etiqueta:'Fecha' }];
 if (!enLote) camposRequeridos.unshift({ id:'f-animal', etiqueta:'Arete o nombre del animal' });
 if (!marcarCamposFaltantes(camposRequeridos)) return;
+// La fecha del evento (vacuna, tratamiento, etc.) no debería quedar en el
+// futuro — es un registro de algo que YA se hizo. Se avisa y se deja
+// corregir, en vez de guardar una fecha que no tiene sentido.
+if (valor('f-fecha') && valor('f-fecha') > hoyISO()){
+mostrarToast('La fecha no puede ser futura — revisa el campo Fecha');
+marcarErrorCampo('f-fecha', 'Fecha');
+return;
+}
 const esUrgente = tipo === 'muerte_subita' || tipo === 'sospecha_exotica';
-const diasRetiro = document.getElementById('f-dias-retiro') ? Number(valor('f-dias-retiro')) || 0 : 0;
+// Días de retiro de leche: un número negativo produciría una fecha de
+// retiro ANTES del propio tratamiento, algo sin sentido — se fuerza a que
+// nunca sea menor a 0.
+const diasRetiro = document.getElementById('f-dias-retiro') ? Math.max(0, Number(valor('f-dias-retiro')) || 0) : 0;
 let retiroHasta = null;
 if (diasRetiro > 0 && valor('f-fecha')){
 const f = new Date(valor('f-fecha'));
@@ -12671,10 +12898,21 @@ const img = document.getElementById('tp-foto-preview');
 img.src = imagenTicketPagoTemp; img.classList.remove('hidden');
 } catch(e){ console.warn('No se pudo procesar la foto del ticket', e); mostrarToast('No se pudo leer esa imagen'); }
 }
+let enviandoConfirmacionPago = false;
 async function enviarConfirmacionPago(){
+// Evita el caso de doble toque/doble clic: sin este candado, dos llamadas
+// podían quedar esperando la respuesta de red al mismo tiempo, revisar el
+// folio contra los mismos datos viejos (ninguna había alcanzado a guardar
+// todavía), y las dos "ver" el folio como nuevo — coliendo la protección
+// contra folios duplicados que se hizo justo para evitar eso.
+if (enviandoConfirmacionPago) return;
 const folio = valor('tp-folio').trim();
 if (!folio){ mostrarToast('Escribe el número de folio/referencia del ticket'); return; }
 if (!imagenTicketPagoTemp){ mostrarToast('Sube la foto del ticket'); return; }
+enviandoConfirmacionPago = true;
+const botonEnviar = document.querySelector('#screen-suscripcion button[onclick="enviarConfirmacionPago()"]');
+if (botonEnviar) botonEnviar.disabled = true;
+try {
 // Antes de revisar si el folio ya se usó, se trae la versión más reciente de
 // la cola de administración — la copia local de un productor puede no traer
 // lo que mandaron otros productores mientras tanto (ya no se queda
@@ -12718,6 +12956,10 @@ document.getElementById('tp-foto-preview').classList.add('hidden');
 document.getElementById('tp-foto-input').value = '';
 renderMisConfirmacionesPago();
 mostrarToast('Confirmación enviada — tu administrador la va a revisar');
+} finally {
+enviandoConfirmacionPago = false;
+if (botonEnviar) botonEnviar.disabled = false;
+}
 }
 function renderMisConfirmacionesPago(){
 const cont = document.getElementById('lista-mis-confirmaciones-pago');
@@ -13183,6 +13425,18 @@ renderCalendarioReproductivo();
 }
 function guardarReproduccion(){
 if (!marcarCamposFaltantes([{ id:'f-vaca', etiqueta:'Arete o nombre de la vaca' }, { id:'f-fecha', etiqueta:'Fecha' }])) return;
+// El campo de la vaca es de texto libre con autocompletar — no filtra por
+// sexo, así que por error se podría seleccionar un macho. Si el animal está
+// registrado en el hato y su sexo es macho, se avisa y se detiene el
+// guardado (a diferencia de otros avisos de este pack, este sí bloquea,
+// porque un registro reproductivo de un macho como "vaca" no tiene sentido
+// y ensuciaría los reportes).
+const animalVaca = buscarAncestroPorIdentificador(valor('f-vaca'));
+if (animalVaca && animalVaca.sexo === 'macho'){
+mostrarToast(`${valor('f-vaca')} está registrado como macho en tu hato — un parto/servicio no se le puede asignar a él`);
+marcarErrorCampo('f-vaca', 'Arete o nombre de la vaca');
+return;
+}
 const secado = document.getElementById('f-secado') ? valor('f-secado') : '';
 const partoReal = document.getElementById('f-parto-real') ? valor('f-parto-real') : '';
 const cierreLactancia = document.getElementById('f-cierre-lactancia') ? valor('f-cierre-lactancia') : '';
@@ -13197,6 +13451,13 @@ descontarDosisSementalSiAplica(valor('f-toro'), valor('f-servicio'));
 const criaSexo = document.getElementById('f-cria-sexo') ? valor('f-cria-sexo') : '';
 if (partoReal && criaSexo){
 const criaArete = (document.getElementById('f-cria-arete') ? valor('f-cria-arete') : '').trim();
+// Mismo resguardo que se usa al dar de alta un animal a mano — sin esto, se
+// podía escribir por error el arete de un animal que ya existe y quedar
+// duplicado sin ningún aviso, ya que esta alta automática no pasaba por la
+// misma revisión.
+if (criaArete && estado.animales.some(a => a.arete === criaArete)){
+mostrarToast(`Ya existe un animal con el arete ${criaArete} — el registro reproductivo sí se guardó, pero da de alta la cría a mano en el Módulo A con un arete distinto`);
+} else {
 const criaPeso = document.getElementById('f-cria-peso') ? valor('f-cria-peso') : '';
 const nuevaCria = {
 arete: criaArete, chip:'', nombre:'', raza:'', sexo: criaSexo, fecha: partoReal,
@@ -13207,8 +13468,9 @@ estado.animales.push(nuevaCria);
 if (criaPeso){
 estado.pesajes.push({ animal: criaArete || nuevaCria.nombre || `cría de ${valor('f-vaca')}`, fecha: partoReal, peso: Number(criaPeso), lote:'', condicionCorporal: null });
 }
-limpiarCampos(['f-cria-arete','f-cria-sexo','f-cria-peso']);
 mostrarToast(`Registro guardado — cría dada de alta sola en el hato (${criaSexo})`);
+}
+limpiarCampos(['f-cria-arete','f-cria-sexo','f-cria-peso']);
 } else {
 mostrarToast(tr('escaneo_codigo_barras__registro_reproductivo_guardado_se'));
 }
@@ -18144,6 +18406,11 @@ mostrarToast(tr('reportes_cefpp__informe_descargado'));
 }
 // ================= MENSAJES CON EL PRODUCTOR (hilos + boletín segmentado) =================
 let hiloAbiertoCuentaId = null;
+// Recuerda, por cada contenedor de chat, si la persona ya pidió ver el
+// historial completo (en vez del límite de los últimos 200 mensajes) — así
+// no se vuelve a esconder solo si llega un mensaje nuevo mientras lo está
+// viendo.
+const mostrarTodoElHilo = {};
 let pendienteAdjuntoProductor = null;
 let pendienteAdjuntoAdmin = null;
 let pendienteAdjuntoSegmentado = null;
@@ -18349,15 +18616,28 @@ actualizarBadgeChatAdmin();
 function pintarHilo(idCont, hilo, vista, cuentaId, filtro){
 const cont = document.getElementById(idCont);
 if (!cont) return;
-const hiloMostrado = filtro ? hilo.filter(m => (m.texto || '').toLowerCase().includes(filtro.toLowerCase())) : hilo;
-if (hiloMostrado.length === 0){
+const hiloFiltrado = filtro ? hilo.filter(m => (m.texto || '').toLowerCase().includes(filtro.toLowerCase())) : hilo;
+if (hiloFiltrado.length === 0){
 cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-comments"></i><p>${filtro ? 'Sin resultados para "' + filtro + '"' : tr('mensajes_veterinario_productor__aun_no_hay_mensajes')}</p></div>`;
 return;
 }
+// Con una conversación de miles de mensajes acumulados durante años, armar
+// TODOS de un jalón en el HTML puede congelar el celular cada vez que llega
+// uno nuevo (se vuelve a pintar completo). Por default solo se muestran los
+// últimos 200 — con un botón arriba para traer más si hace falta ver algo
+// viejo. Al buscar, si se busca algo específico, sí se busca en todo el
+// historial (no solo en los últimos 200), para no dejar resultados fuera.
+const LIMITE_MENSAJES_VISIBLES = 200;
+mostrarTodoElHilo[idCont] = mostrarTodoElHilo[idCont] || false;
+const hayMasOcultos = !filtro && !mostrarTodoElHilo[idCont] && hiloFiltrado.length > LIMITE_MENSAJES_VISIBLES;
+const hiloMostrado = hayMasOcultos ? hiloFiltrado.slice(-LIMITE_MENSAJES_VISIBLES) : hiloFiltrado;
 cont.classList.add('chat-fondo');
 let fechaAnterior = null;
 const REACCIONES = ['👍','❤️','👀'];
-cont.innerHTML = hiloMostrado.map(m => {
+const botonVerMasHTML = hayMasOcultos
+? `<div style="text-align:center; margin-bottom:10px;"><button onclick="mostrarTodoElHilo['${idCont}']=true; pintarHilo('${idCont}', hiloDe('${cuentaId}'), '${vista}', '${cuentaId}', valor('${idCont === 'lista-mensajes-productor' ? 'chat-productor-buscar' : 'chat-hilo-buscar'}'));" class="text-xs font-bold px-3 py-2 rounded-full" style="background:rgba(0,0,0,0.08); color:var(--ink);">Ver ${hiloFiltrado.length - LIMITE_MENSAJES_VISIBLES} mensaje(s) anteriores</button></div>`
+: '';
+cont.innerHTML = botonVerMasHTML + hiloMostrado.map(m => {
 const esMio = m.de === vista;
 const checkHTML = esMio ? `<i class="fa-solid ${m.leido ? 'fa-check-double leido' : 'fa-check'} burbuja-check"></i>` : '';
 let separador = '';

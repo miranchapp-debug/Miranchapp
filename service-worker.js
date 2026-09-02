@@ -7,7 +7,7 @@
 // al celular de los productores/veterinarios que hay algo nuevo que bajar —
 // si no lo cambias, algunos celulares podrían seguir viendo la copia vieja
 // guardada por un tiempo.
-const CACHE_NAME = 'ranchapp-v2';
+const CACHE_NAME = 'ranchapp-v3';
 
 const ARCHIVOS_DEL_CASCARON = [
   './',
@@ -38,12 +38,17 @@ self.addEventListener('activate', (evento) => {
   self.clients.claim();
 });
 
-// Estrategia "muestra lo guardado, y de paso revisa si hay algo nuevo":
-// - Si ya existe una copia guardada del archivo pedido, se entrega DE
-//   INMEDIATO (la app abre al instante, sin esperar internet ni gastar
-//   datos).
-// - Al mismo tiempo, de fondo, intenta traer la versión más reciente por si
-//   cambió — y la deja guardada para la PRÓXIMA vez que se abra.
+// Estrategia MIXTA, por tipo de archivo:
+// - index.html (y "/"): NETWORK FIRST — siempre intenta traer la versión más
+//   nueva del servidor primero. Solo si no hay internet, usa la copia
+//   guardada como respaldo. Antes esto era "muestra lo guardado primero" para
+//   TODO, lo que significaba que un cambio subido a GitHub tardaba 2
+//   recargas en verse (la primera mostraba la copia vieja Y de paso
+//   actualizaba el caché; la segunda ya mostraba lo nuevo). Con esto, se ve
+//   en la primera.
+// - Todo lo demás (ícono, manifest.json): CACHE FIRST — cambian poquísimo,
+//   así que se entregan al instante desde lo guardado y se refrescan de
+//   fondo por si acaso, sin hacer esperar a la persona.
 // - Solo controla peticiones a nuestro propio sitio (GET) — todo lo que sea
 //   de Firebase, de las librerías externas (CDN), o de otro origen, se deja
 //   pasar tal cual, sin intentar guardarlo aquí.
@@ -51,6 +56,23 @@ self.addEventListener('fetch', (evento) => {
   if (evento.request.method !== 'GET') return;
   const url = new URL(evento.request.url);
   if (url.origin !== self.location.origin) return;
+
+  const esHTML = evento.request.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html');
+
+  if (esHTML) {
+    evento.respondWith(
+      fetch(evento.request)
+        .then((respuestaDeRed) => {
+          if (respuestaDeRed && respuestaDeRed.status === 200) {
+            const copia = respuestaDeRed.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(evento.request, copia));
+          }
+          return respuestaDeRed;
+        })
+        .catch(() => caches.match(evento.request)) // sin internet: se queda con lo guardado, sin tronar
+    );
+    return;
+  }
 
   evento.respondWith(
     caches.match(evento.request).then((respuestaGuardada) => {
@@ -62,7 +84,7 @@ self.addEventListener('fetch', (evento) => {
           }
           return respuestaDeRed;
         })
-        .catch(() => respuestaGuardada); // sin internet: se queda con lo guardado, sin tronar
+        .catch(() => respuestaGuardada);
 
       return respuestaGuardada || buscarVersionNueva;
     })
