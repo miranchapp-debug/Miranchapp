@@ -377,11 +377,16 @@ body{ font-family:'Inter', sans-serif; background:var(--parchment); color:var(--
 .screen.active{ display:block; }
 #overlay-suscripcion-vencida.hidden,
 #modal-exportar.hidden,
-#modal-conflicto-arete.hidden{ display:none !important; }
+#modal-conflicto-arete.hidden,
+#modal-ajustar-esquinas.hidden,
+#modal-dibujar-fierro.hidden,
+#badge-chat-productor.hidden,
+#badge-confirmaciones-pago-pendientes.hidden,
+#badge-chat-admin.hidden{ display:none !important; }
 .tile{
 display:flex; flex-direction:column; justify-content:space-between;
-min-height:128px; padding:1.1rem; border-radius:28px; color:#fff;
-font-weight:800; font-size:1.05rem;
+min-height:92px; padding:.85rem; border-radius:22px; color:#fff;
+font-weight:800; font-size:.95rem;
 box-shadow:0 10px 20px -8px rgba(0,0,0,0.28);
 transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
 text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent;
@@ -405,8 +410,8 @@ transition:transform .12s ease;
 .tile:active .icono{ transform:scale(0.9); }
 .tile-row{
 display:flex; align-items:center; gap:.9rem;
-min-height:76px; padding:1rem 1.2rem; border-radius:22px; color:#fff;
-font-weight:800; font-size:1rem; text-align:left; cursor:pointer;
+min-height:60px; padding:.7rem 1rem; border-radius:18px; color:#fff;
+font-weight:800; font-size:.92rem; text-align:left; cursor:pointer;
 box-shadow:0 8px 18px -8px rgba(0,0,0,0.28);
 border:2px solid rgba(255,255,255,0.12);
 transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
@@ -434,8 +439,8 @@ transition:transform .12s ease, box-shadow .12s ease; -webkit-tap-highlight-colo
 .tile-row-flat:hover{ transform:translateY(-2px); box-shadow:0 12px 22px -8px rgba(0,0,0,0.32); }
 .tile-row-flat:active{ transform:scale(0.97); }
 .tile-btn{
-position:relative; display:flex; align-items:center; width:100%; min-height:76px;
-border-radius:22px; overflow:hidden; cursor:pointer; border:2px solid rgba(255,255,255,0.12);
+position:relative; display:flex; align-items:center; width:100%; min-height:60px;
+border-radius:18px; overflow:hidden; cursor:pointer; border:2px solid rgba(255,255,255,0.12);
 box-shadow:0 8px 18px -8px rgba(0,0,0,0.28); transition:transform .12s ease, box-shadow .12s ease;
 -webkit-tap-highlight-color:transparent;
 }
@@ -531,7 +536,7 @@ transition:background .12s ease, transform .1s ease;
 .btn-volver:active{ transform:scale(0.96); }
 .btn-primario-plano{
 display:flex; align-items:center; justify-content:center; gap:.6rem;
-min-height:60px; padding:14px 22px; border-radius:999px; font-weight:800; font-size:1.05rem;
+min-height:50px; padding:11px 20px; border-radius:999px; font-weight:800; font-size:.95rem;
 background:var(--pine); color:#fff; cursor:pointer;
 box-shadow:0 8px 18px -8px rgba(0,0,0,0.35);
 transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
@@ -635,7 +640,12 @@ transition:transform .12s ease, box-shadow .12s ease;
 .tab-letra:hover{ transform:translateY(-2px); box-shadow:0 8px 14px -8px rgba(0,0,0,0.25); }
 .tab-letra:active{ transform:scale(0.92); }
 .tab-letra.active{ color:#fff; border-color:transparent; transform:scale(1.08); box-shadow:0 8px 16px -8px rgba(0,0,0,0.35); }
-.chip-modulo{ display:flex; align-items:center; gap:.4rem; flex-shrink:0; padding:.5rem .9rem; border-radius:999px; border:1.5px solid rgba(92,58,30,0.25); background:rgba(255,255,255,0.55); color:#5C3A1E; font-size:.8rem; font-weight:700; white-space:nowrap; }
+.chip-modulo{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.35rem; padding:.9rem .4rem; border-radius:16px; border:2px solid var(--line); background:#fff; color:var(--ink); font-size:.72rem; font-weight:700; text-align:center; min-height:76px; }
+.chip-modulo i{ font-size:1.3rem; }
+.chip-modulo-azul{ border-color:#3B82F6; color:#3B82F6; }
+.chip-modulo-rojo{ border-color:#DC2626; color:#DC2626; }
+.chip-modulo-verde{ border-color:#16A34A; color:#16A34A; }
+.chip-modulo-naranja{ border-color:#EA580C; color:#EA580C; }
 .chip-modulo.active{ background:var(--pine); border-color:var(--pine); color:#fff; }
 .subtab{
 flex:1; text-align:center; padding:.7rem 0; border-radius:999px; cursor:pointer;
@@ -754,12 +764,12 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <p class="text-sm mb-2" style="color:var(--sage);" data-i18n="login_seleccion_rol__crea_tu_acceso">Crea tu acceso. Tu cuenta queda lista para usarse de inmediato.</p>
 <div>
 <label class="campo-label" data-i18n="admin_cuentas_productores__tipo_de_modulo">Tipo de módulo</label>
-<div class="flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:none;">
-<button class="chip-modulo active" id="reg-tipo-btn-leche" onclick="seleccionarTipoRegistro('leche')" type="button"><i class="fa-solid fa-jug-detergent"></i><span data-i18n="admin_cuentas_productores__lechera">Lechera</span></button>
-<button class="chip-modulo" id="reg-tipo-btn-carne" onclick="seleccionarTipoRegistro('carne')" type="button"><i class="fa-solid fa-drumstick-bite"></i><span data-i18n="admin_cuentas_productores__carne">Carne</span></button>
-<button class="chip-modulo" id="reg-tipo-btn-punto" onclick="seleccionarTipoRegistro('punto')" type="button"><i class="fa-solid fa-industry"></i><span data-i18n="login_seleccion_rol__punto_receptor_de_leche">Punto receptor</span></button>
-<button class="chip-modulo" id="reg-tipo-btn-mvz" onclick="seleccionarTipoRegistro('mvz')" type="button"><i class="fa-solid fa-user-doctor"></i><span data-i18n="login_seleccion_rol__mvz">MVZ</span></button>
-<button class="chip-modulo" id="reg-tipo-btn-cefp" onclick="seleccionarTipoRegistro('cefp')" title="Comité Estatal de Fomento y Protección Pecuaria" type="button"><i class="fa-solid fa-building-shield"></i><span>CEFPP</span></button>
+<div class="grid grid-cols-3 gap-2">
+<button class="chip-modulo chip-modulo-azul active" id="reg-tipo-btn-leche" onclick="seleccionarTipoRegistro('leche')" type="button"><i class="fa-solid fa-jug-detergent"></i><span data-i18n="admin_cuentas_productores__lechera">Lechera</span></button>
+<button class="chip-modulo chip-modulo-rojo" id="reg-tipo-btn-carne" onclick="seleccionarTipoRegistro('carne')" type="button"><i class="fa-solid fa-drumstick-bite"></i><span data-i18n="admin_cuentas_productores__carne">Carne</span></button>
+<button class="chip-modulo chip-modulo-azul" id="reg-tipo-btn-punto" onclick="seleccionarTipoRegistro('punto')" type="button"><i class="fa-solid fa-industry"></i><span data-i18n="login_seleccion_rol__punto_receptor_de_leche">Punto receptor</span></button>
+<button class="chip-modulo chip-modulo-verde" id="reg-tipo-btn-mvz" onclick="seleccionarTipoRegistro('mvz')" type="button"><i class="fa-solid fa-user-doctor"></i><span data-i18n="login_seleccion_rol__mvz">MVZ</span></button>
+<button class="chip-modulo chip-modulo-naranja" id="reg-tipo-btn-cefp" onclick="seleccionarTipoRegistro('cefp')" title="Comité Estatal de Fomento y Protección Pecuaria" type="button"><i class="fa-solid fa-building-shield"></i><span>CEFPP</span></button>
 </div>
 </div>
 <input id="reg-tipo" type="hidden" value="leche"/>
@@ -782,24 +792,21 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <div>
 <label class="campo-label" id="reg-nombre-label" data-i18n="admin_cuentas_productores__nombre_del_productor">Nombre del productor</label>
-<div class="flex items-center gap-2 rounded-2xl px-3" style="background:rgba(255,255,255,0.55); border:1px solid rgba(92,58,30,0.25);">
-<i class="fa-solid fa-user" style="color:#5C3A1E;"></i>
-<input id="reg-nombre" placeholder="Nombre completo" style="background:transparent; border:none; padding-left:.5rem;" type="text"/>
+<div class="flex items-center gap-2 rounded-2xl px-3" style="background:#F1E8D0; border:1px solid rgba(92,58,30,0.25);">
+<input id="reg-nombre" placeholder="Nombre completo" style="background:transparent; border:none; width:100%; padding:.7rem 0;" type="text"/>
 </div>
 </div>
 <div id="reg-grupo-productor" class="space-y-2">
 <div>
 <label class="campo-label" data-i18n="admin_cuentas_productores__nombre_del_predio">Nombre del predio</label>
-<div class="flex items-center gap-2 rounded-2xl px-3" style="background:rgba(255,255,255,0.55); border:1px solid rgba(92,58,30,0.25);">
-<i class="fa-solid fa-map-location-dot" style="color:#5C3A1E;"></i>
-<input id="reg-predio" placeholder="Nombre de la finca" style="background:transparent; border:none; padding-left:.5rem;" type="text"/>
+<div class="flex items-center gap-2 rounded-2xl px-3" style="background:#F1E8D0; border:1px solid rgba(92,58,30,0.25);">
+<input id="reg-predio" placeholder="Nombre de la finca" style="background:transparent; border:none; width:100%; padding:.7rem 0;" type="text"/>
 </div>
 </div>
 <div>
 <label class="campo-label" data-i18n="admin_cuentas_productores__numero_de_upp">Número de UPP *</label>
-<div class="flex items-center gap-2 rounded-2xl px-3" style="background:rgba(255,255,255,0.55); border:1px solid rgba(92,58,30,0.25);">
-<i class="fa-solid fa-id-card" style="color:#5C3A1E;"></i>
-<input id="reg-upp" maxlength="12" placeholder="UPP (12 dígitos)" style="background:transparent; border:none; padding-left:.5rem;" type="text"/>
+<div class="flex items-center gap-2 rounded-2xl px-3" style="background:#F1E8D0; border:1px solid rgba(92,58,30,0.25);">
+<input id="reg-upp" maxlength="12" placeholder="Número UPP (12 dígitos)" style="background:transparent; border:none; width:100%; padding:.7rem 0;" type="text"/>
 </div>
 </div>
 </div>
@@ -810,9 +817,8 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <input id="reg-residencia" type="text"/>
 </div>
 <div><label class="campo-label" data-i18n="admin_cuentas_productores__telefono_whatsapp">Teléfono (WhatsApp)</label>
-<div class="flex items-center gap-2 rounded-2xl px-3" style="background:rgba(255,255,255,0.55); border:1px solid rgba(92,58,30,0.25);">
-<i class="fa-brands fa-whatsapp" style="color:#25D366;"></i>
-<input id="reg-telefono" placeholder="+52 555-1234" style="background:transparent; border:none; padding-left:.5rem;" type="tel"/>
+<div class="flex items-center gap-2 rounded-2xl px-3" style="background:#F1E8D0; border:1px solid rgba(92,58,30,0.25);">
+<input id="reg-telefono" placeholder="+52 555-1234" style="background:transparent; border:none; width:100%; padding:.7rem 0;" type="tel"/>
 </div>
 </div>
 <div id="reg-grupo-ubicacion" class="hidden">
@@ -873,11 +879,11 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <p class="text-sm mt-1 text-center" data-i18n="seleccion_tipo_ganado__elige_tu_tipo_de_produccion" style="color:#B9CDBE;">Elige tu tipo de producción para adaptar tus funciones</p>
 </div>
 <div class="bg-white rounded-3xl p-6 space-y-4 shadow-xl">
-<button class="w-full btn-primario-plano" onclick="elegirTipoGanado('carne')" style="background:var(--orange); min-height:72px;">
+<button class="w-full btn-primario-plano" onclick="elegirTipoGanado('carne')" style="background:var(--orange); min-height:56px;">
 <i class="fa-solid fa-drumstick-bite"></i>
 <span data-i18n="seleccion_tipo_ganado__ganado_vacuno_de_carne">Ganado Vacuno de Carne</span>
 </button>
-<button class="w-full btn-primario-plano" onclick="elegirTipoGanado('leche')" style="background:var(--blue); min-height:72px;">
+<button class="w-full btn-primario-plano" onclick="elegirTipoGanado('leche')" style="background:var(--blue); min-height:56px;">
 <i class="fa-solid fa-jug-detergent"></i>
 <span data-i18n="seleccion_tipo_ganado__ganado_vacuno_de_leche">Ganado Vacuno de Leche</span>
 </button>
@@ -959,10 +965,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <div class="space-y-2" id="actividades-recientes-home"></div>
 </div>
-<button class="w-full btn-primario-plano" onclick="abrirResumenRapido()" style="background:var(--pine); min-height:68px;">
+<button class="w-full btn-primario-plano" onclick="abrirResumenRapido()" style="background:var(--pine); min-height:52px;">
 <i class="fa-solid fa-bolt"></i><span data-i18n="inicio_productor__resumen_rapido">Resumen rápido</span>
 </button>
-<button class="w-full btn-primario-plano" onclick="irA('mas')" style="background:var(--slate); min-height:68px;">
+<button class="w-full btn-primario-plano" onclick="irA('mas')" style="background:var(--slate); min-height:52px;">
 <i class="fa-solid fa-grip"></i><span data-i18n="inicio_productor__mas_funciones">Más funciones</span>
 </button>
 </div>
@@ -1289,29 +1295,33 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <select id="ed-municipio" onchange="mostrarMunicipioManual('ed')"><option value="">Selecciona el estado primero</option></select>
 <input class="hidden mt-1" id="ed-municipio-manual" placeholder="Escribe el municipio" type="text"/>
 </div>
-<div><label class="campo-label">Cd. o Población</label><input class="campo-mayusculas" id="ed-poblacion" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Cd. o Población</label><input class="campo-mayusculas" id="ed-poblacion" oninput="forzarMayusculas(this)" type="text"/></div>
 <div><label class="campo-label">Colonia</label><input class="campo-mayusculas" id="ed-colonia" oninput="forzarMayusculas(this)" type="text"/></div>
-<div class="col-span-2"><label class="campo-label">Calle y número</label><input id="ed-domicilio" type="text" value="Conocido"/></div>
-<div><label class="campo-label">C.P.</label><input id="ed-cp" maxlength="5" type="text"/></div>
+<div><label class="campo-label">Calle y número</label><input id="ed-domicilio" type="text" value="Conocido"/></div>
+<div><label class="campo-label">Correo-E (opcional)</label><input id="ed-correo" type="email"/></div>
 <div><label class="campo-label">Teléfono</label><input id="ed-telefono" maxlength="10" placeholder="10 dígitos" type="tel"/></div>
-<div class="col-span-2"><label class="campo-label">Correo-E (opcional)</label><input id="ed-correo" type="email"/></div>
+<div class="col-span-2"><label class="campo-label">C.P.</label><input id="ed-cp" maxlength="5" type="text"/></div>
 </div>
 </div>
 <div class="bg-white rounded-3xl p-4 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold text-sm" style="color:var(--sage);">2. Información de la UPP</h3>
 <div class="grid grid-cols-2 gap-2">
-<div class="col-span-2"><label class="campo-label">UPP</label><input id="ed-upp" maxlength="12" oninput="validarLongitudCampo(this,12,'UPP')" placeholder="Obligatorio" type="text"/></div>
-<div class="col-span-2"><label class="campo-label">Nombre del rancho (tu Predio)</label><input class="campo-mayusculas" id="ed-predio" oninput="forzarMayusculas(this)" placeholder="Obligatorio" type="text"/></div>
-<div class="col-span-2"><label class="campo-label">Localidad/Paraje</label><input class="campo-mayusculas" id="ed-localidad" oninput="forzarMayusculas(this)" type="text"/></div>
-<div><label class="campo-label">Municipio del predio</label><input class="campo-mayusculas" id="ed-municipiopredio" oninput="forzarMayusculas(this)" placeholder="Si es distinto" type="text"/></div>
-<div><label class="campo-label">Estado del predio</label><input class="campo-mayusculas" id="ed-estadopredio" oninput="forzarMayusculas(this)" placeholder="Si es distinto" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Número de UPP (Ingreso Global)</label><input id="ed-upp" maxlength="12" oninput="validarLongitudCampo(this,12,'UPP')" placeholder="Obligatorio" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Nombre del Rancho</label><input class="campo-mayusculas" id="ed-predio" oninput="forzarMayusculas(this)" placeholder="Obligatorio" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Localidad</label><input class="campo-mayusculas" id="ed-localidad" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Municipio</label><input class="campo-mayusculas" id="ed-municipiopredio" oninput="forzarMayusculas(this)" placeholder="Si es distinto al de arriba" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Estado (si es distinto)</label><input class="campo-mayusculas" id="ed-estadopredio" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2">
+<label class="campo-label">Número de GPS</label>
+<div class="flex gap-2">
+<input class="flex-1" id="ed-gps-coords" placeholder="Coordenadas" readonly type="text"/>
+<button class="text-sm font-bold px-4 rounded-full flex-shrink-0" onclick="registrarUbicacionUPP('ed')" style="background:var(--green); color:#fff;" type="button"><i class="fa-solid fa-location-crosshairs"></i> <span id="ed-gps-texto">GPS</span></button>
+</div>
+</div>
 <div class="col-span-2"><label class="campo-label">Cómo llegar al predio</label><input id="ed-comollegar" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Número de fierro de herrar</label><input id="ed-folio" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Fecha de actualización</label><input id="ed-actualizacionupp" type="date"/></div>
 </div>
-<button class="w-full text-sm font-bold py-2 rounded-full" onclick="registrarUbicacionUPP('ed')" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);">
-<i class="fa-solid fa-location-crosshairs mr-1"></i><span id="ed-gps-texto">Registrar ubicación GPS</span>
-</button>
 </div>
 <div class="bg-white rounded-3xl p-5 space-y-3" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold">3. Figura del fierro de herrar</h3>
@@ -1418,10 +1428,14 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <p class="text-xs font-bold mt-2" style="color:var(--sage);">Revisa y corrige lo que haga falta:</p>
 <div class="grid grid-cols-2 gap-2 mt-1">
 <div class="col-span-2"><label class="campo-label">Nombre del predio</label><input class="campo-mayusculas" id="esc-upp-predio" oninput="forzarMayusculas(this)" type="text"/></div>
-<div><label class="campo-label">Superficie (ha)</label><input id="esc-upp-superficie" type="text"/></div>
-<div><label class="campo-label">Finalidad zootécnica</label><input class="campo-mayusculas" id="esc-upp-finalidad" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2"><label class="campo-label">Finalidad zootécnica</label><input class="campo-mayusculas" id="esc-upp-finalidad" oninput="forzarMayusculas(this)" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Municipio / Estado</label><input class="campo-mayusculas" id="esc-upp-municipioestado" oninput="forzarMayusculas(this)" type="text"/></div>
 <div class="col-span-2"><label class="campo-label">Referencias de localización</label><input class="campo-mayusculas" id="esc-upp-referencias" oninput="forzarMayusculas(this)" type="text"/></div>
+<div class="col-span-2">
+<button class="w-full text-sm font-bold py-3 rounded-full" onclick="registrarUbicacionUPP('esc')" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);" type="button">
+<i class="fa-solid fa-location-crosshairs mr-1"></i><span id="esc-gps-texto">Registrar ubicación GPS</span>
+</button>
+</div>
 </div>
 <details class="text-xs mt-2" style="color:var(--sage);"><summary>Ver texto que se leyó de la foto</summary><pre class="whitespace-pre-wrap text-xs mt-1" id="esc-upp-texto-crudo" style="max-height:140px; overflow-y:auto; background:var(--parchment); padding:.5rem; border-radius:8px;"></pre></details>
 </div>
@@ -1828,10 +1842,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <div class="hidden fixed inset-0 z-40" id="fab-sheet" onclick="toggleFab()" style="background:rgba(33,30,25,0.4);"></div>
 <div class="hidden fixed bottom-24 right-5 z-50 bg-white rounded-3xl p-3 space-y-2 shadow-2xl" id="fab-menu" style="border:2px solid var(--line); min-width:230px;"></div>
-<button class="fixed z-50 flex items-center justify-center rounded-full shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" onclick="toggleFab()" style="right:20px; bottom:96px; width:64px; height:64px; background:var(--orange); color:#fff; font-size:1.6rem; border:none;">
+<button class="hidden fixed z-50 flex items-center justify-center rounded-full shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="fab-mas-productor" onclick="toggleFab()" style="right:20px; bottom:96px; width:64px; height:64px; background:var(--orange); color:#fff; font-size:1.6rem; border:none;">
 <i class="fa-solid fa-plus"></i>
 </button>
-<button class="fixed z-50 flex items-center justify-center shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="btn-chat-flotante-productor" onclick="irA('mensajes')" style="right:22px; bottom:172px; width:52px; height:52px; background:#25D366; color:#fff; font-size:1.3rem; border:none; padding:0; border-radius:16px;">
+<button class="hidden fixed z-50 flex items-center justify-center shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="btn-chat-flotante-productor" onclick="irA('mensajes')" style="right:22px; bottom:172px; width:52px; height:52px; background:#25D366; color:#fff; font-size:1.3rem; border:none; padding:0; border-radius:16px;">
 <span style="display:block; width:100%; height:100%; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class="fa-solid fa-comment-medical"></i></span>
 <span class="hidden" id="badge-chat-productor" style="position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 4px; border-radius:999px; background:var(--red); color:#fff; font-size:.65rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; z-index:5;">0</span>
 </button>
@@ -2086,27 +2100,27 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="flex-1 text-xs font-bold py-2 rounded-full" id="tab-cefpp-tb" onclick="cambiarTabComiteCEFPP('tb')">Tuberculosis</button>
 </div>
 <div id="bloque-cefpp-general" class="space-y-3">
-<button onclick="irAdmin('solicitudescefp')" class="tile bg-teal w-full" style="min-height:80px; position:relative;">
+<button onclick="irAdmin('solicitudescefp')" class="tile bg-teal w-full" style="min-height:60px; position:relative;">
 <span class="icono"><i class="fa-solid fa-user-clock"></i></span>
 <span>Solicitudes de cuenta CEFPP</span>
 <span class="hidden absolute text-xs font-bold px-2 py-0.5 rounded-full" id="badge-cefpp-solicitudes" style="background:var(--red); color:#fff; top:8px; right:8px;"></span>
 </button>
-<button onclick="irAdmin('cefpp')" class="tile bg-red w-full" style="min-height:80px;">
+<button onclick="irAdmin('cefpp')" class="tile bg-red w-full" style="min-height:60px;">
 <span class="icono"><i class="fa-solid fa-shield-virus"></i></span>
 <span>Reportes a CEFPP (casos urgentes)</span>
 </button>
 </div>
 <div class="hidden space-y-3" id="bloque-cefpp-tb">
-<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red w-full" style="min-height:80px; position:relative;">
+<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red w-full" style="min-height:60px; position:relative;">
 <span class="icono"><i class="fa-solid fa-user-doctor"></i></span>
 <span>Admin TB — avisos de reactores y médicos de campo</span>
 <span class="hidden absolute text-xs font-bold px-2 py-0.5 rounded-full" id="badge-cefpp-tb" style="background:#fff; color:var(--red); top:8px; right:8px;"></span>
 </button>
-<button onclick="irAdmin('reportestb')" class="tile bg-purple w-full" style="min-height:80px;">
+<button onclick="irAdmin('reportestb')" class="tile bg-purple w-full" style="min-height:60px;">
 <span class="icono"><i class="fa-solid fa-chart-column"></i></span>
 <span>Reportes de pruebas TB</span>
 </button>
-<button onclick="irAdmin('generartb')" class="tile bg-slate w-full" style="min-height:80px;">
+<button onclick="irAdmin('generartb')" class="tile bg-slate w-full" style="min-height:60px;">
 <span class="icono"><i class="fa-solid fa-file-lines"></i></span>
 <span>Generar informe general</span>
 </button>
@@ -2118,15 +2132,15 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <h2 class="font-display text-2xl font-bold">TB — Departamento de Tuberculosis</h2>
 <p class="text-sm" style="color:var(--sage);">Punto de entrada fijo a las 3 formas de trabajar en el departamento.</p>
 <div class="space-y-3">
-<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red w-full" style="min-height:96px;">
+<button onclick="irAdmin('ventanageneraltb')" class="tile bg-red w-full" style="min-height:68px;">
 <span class="icono"><i class="fa-solid fa-user-doctor"></i></span>
 <span>Admin TB — avisos de reactores y médicos de campo</span>
 </button>
-<button onclick="irAdmin('reportestb')" class="tile bg-purple w-full" style="min-height:96px;">
+<button onclick="irAdmin('reportestb')" class="tile bg-purple w-full" style="min-height:68px;">
 <span class="icono"><i class="fa-solid fa-chart-column"></i></span>
 <span>Reportes de pruebas TB</span>
 </button>
-<button onclick="irAdmin('generartb')" class="tile bg-slate w-full" style="min-height:96px;">
+<button onclick="irAdmin('generartb')" class="tile bg-slate w-full" style="min-height:68px;">
 <span class="icono"><i class="fa-solid fa-file-lines"></i></span>
 <span>Generar informe general</span>
 </button>
@@ -3460,13 +3474,13 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <!-- ============================================================ -->
 <!-- ============ FAB GLOBAL: COMANDOS DE VOZ ============ -->
 <!-- ============================================================ -->
-<button aria-label="Comando de voz — mantén presionado mientras hablas, suelta cuando termines" class="hidden" id="fab-comando-voz" onmousedown="iniciarEscuchaContinua()" onmouseup="detenerEscuchaContinua()" onmouseleave="detenerEscuchaContinua()" ontouchstart="event.preventDefault(); iniciarEscuchaContinua();" ontouchend="event.preventDefault(); detenerEscuchaContinua();" ontouchcancel="detenerEscuchaContinua()" style="position:fixed; left:16px; bottom:78px; z-index:9999; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease; touch-action:none;">
+<button aria-label="Comando de voz — mantén presionado mientras hablas, suelta cuando termines" class="hidden" id="fab-comando-voz" onmousedown="iniciarEscuchaContinua()" onmouseup="detenerEscuchaContinua()" onmouseleave="detenerEscuchaContinua()" ontouchstart="event.preventDefault(); iniciarEscuchaContinua();" ontouchend="event.preventDefault(); detenerEscuchaContinua();" ontouchcancel="detenerEscuchaContinua()" style="position:fixed; left:16px; bottom:78px; z-index:110; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease; touch-action:none;">
 <span id="fab-voz-anillo" style="position:absolute; inset:-6px; border-radius:999px; border:3px solid var(--red); opacity:0; pointer-events:none;"></span>
 <span id="fab-voz-etiqueta" style="position:absolute; left:66px; bottom:8px; white-space:nowrap; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,0.25); pointer-events:none; opacity:0; transform:translateX(-6px); transition:opacity .18s ease, transform .18s ease;">Toca y habla</span>
 <i class="fa-solid fa-microphone" id="fab-voz-icono"></i>
 </button>
 <!-- ---- Confirmación antes de guardar un comando de voz en segundo plano ---- -->
-<div class="hidden" id="modal-confirmar-voz" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9998; align-items:flex-end;">
+<div class="hidden" id="modal-confirmar-voz" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:109; align-items:flex-end;">
 <div class="w-full bg-white rounded-t-3xl p-5 space-y-3">
 <div class="flex items-center gap-2">
 <i class="fa-solid fa-microphone-lines text-2xl" style="color:var(--pine);"></i>
@@ -3476,7 +3490,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <p class="text-xs italic rounded-xl px-3 py-2" id="texto-crudo-confirmar-voz" style="background:var(--parchment); color:var(--sage);"></p>
 <p class="text-xs" style="color:var(--sage);">Puedes decir "sí" o "no", o tocar un botón.</p>
 <div class="space-y-2 pt-2">
-<button onclick="responderConfirmacionVoz(true)" style="width:100%; min-height:76px; font-size:1.3rem; font-weight:800; border-radius:999px; background:var(--pine); color:#fff; border:none;" type="button"><i class="fa-solid fa-check"></i> SÍ, GUARDAR</button>
+<button onclick="responderConfirmacionVoz(true)" style="width:100%; min-height:56px; font-size:1.3rem; font-weight:800; border-radius:999px; background:var(--pine); color:#fff; border:none;" type="button"><i class="fa-solid fa-check"></i> SÍ, GUARDAR</button>
 <button class="text-sm font-bold py-3 rounded-full" onclick="responderConfirmacionVoz(false)" style="width:100%; background:var(--parchment); color:var(--red); border:2px solid var(--line);" type="button"><i class="fa-solid fa-xmark"></i> No, cancelar</button>
 </div>
 </div>
@@ -3489,6 +3503,13 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 }
 #fab-voz-anillo.escuchando{ animation:miranchapp-anillo-voz 1.1s ease-out infinite; opacity:1; }
 #fab-comando-voz.hidden{ display:none !important; }
+/* Estos 2 elementos del modal de "dibujar el fierro" tienen "display:flex"
+   puesto directo en su style — un estilo así en línea le gana siempre a una
+   clase normal como .hidden, así que sin este empate a propósito, JS podía
+   quitarles/ponerles la clase "hidden" y de todos modos se seguían viendo,
+   mostrando el lienzo para dibujar y la vista previa AL MISMO TIEMPO. */
+#dibujo-fierro-vista-preview.hidden{ display:none !important; }
+#dibujo-fierro-botones-preview.hidden{ display:none !important; }
 .campo-con-error{ border-color:var(--red) !important; background:rgba(211,71,71,0.06) !important; }
 #fab-comando-voz.voz-escuchando{ background:var(--red); }
 #fab-comando-voz.voz-exito{ background:var(--green); }
@@ -9438,6 +9459,12 @@ document.getElementById('screen-login').classList.add('active');
 renderCuentasGuardadas();
 const fabVoz = document.getElementById('fab-comando-voz');
 if (fabVoz) fabVoz.classList.add('hidden');
+// Estos 2 son exclusivos del productor (el "+" de módulos y el chat con el
+// veterinario) — nadie debe verlos flotando antes de haber iniciado sesión.
+const fabMas = document.getElementById('fab-mas-productor');
+if (fabMas) fabMas.classList.add('hidden');
+const btnChat = document.getElementById('btn-chat-flotante-productor');
+if (btnChat) btnChat.classList.add('hidden');
 }
 function alternarVerContrasenaLogin(){
 const campo = document.getElementById('login-clave');
@@ -9473,6 +9500,12 @@ document.getElementById('app-admin').classList.toggle('hidden', rol !== 'admin')
 estado.rolActual = rol;
 const fabVoz = document.getElementById('fab-comando-voz');
 if (fabVoz) fabVoz.classList.remove('hidden');
+// Solo el productor ve el "+" de módulos y el chat flotante — el admin
+// tiene sus propias pantallas para esto, no le hacen falta flotando encima.
+const fabMas = document.getElementById('fab-mas-productor');
+if (fabMas) fabMas.classList.toggle('hidden', rol !== 'productor');
+const btnChat = document.getElementById('btn-chat-flotante-productor');
+if (btnChat) btnChat.classList.toggle('hidden', rol !== 'productor');
 if (typeof actualizarBotonVozSegunConexion === 'function') actualizarBotonVozSegunConexion();
 const etiquetaVoz = document.getElementById('fab-voz-etiqueta');
 if (etiquetaVoz){
@@ -9968,7 +10001,7 @@ const perfiles = [
 ...estado.operadoresQueseria.map((op, i) => ({ id: op.id, nombre: op.nombre, icono:'fa-user', color: ['var(--pine)','var(--teal)','var(--orange)'][i % 3] })),
 ];
 cont.innerHTML = perfiles.map(p => `
-<button onclick="entrarQueseriaComo('${p.id}','${p.nombre.replace(/'/g, "\\'")}')" class="rounded-3xl p-4 flex flex-col items-center justify-center gap-2 shadow-xl" style="background:${p.color}; min-height:96px;">
+<button onclick="entrarQueseriaComo('${p.id}','${p.nombre.replace(/'/g, "\\'")}')" class="rounded-3xl p-3 flex flex-col items-center justify-center gap-2 shadow-xl" style="background:${p.color}; min-height:68px;">
 <i class="fa-solid ${p.icono} text-2xl" style="color:#fff;"></i>
 <span class="text-xs font-bold text-white text-center">${p.nombre}</span>
 </button>`).join('');
@@ -10006,7 +10039,7 @@ const iconoHTML = url
 ? `<span style="width:44px; height:44px; border-radius:14px; background-image:url('${url}'); background-size:cover; background-position:center;"></span>`
 : `<i class="fa-solid ${b.icono} text-3xl" style="color:#fff;"></i>`;
 return `
-<button onclick="irAQueseraPantalla('${b.id}')" class="rounded-3xl p-5 flex flex-col items-center justify-center gap-3 shadow-xl" style="background:${b.color}; min-height:120px;">
+<button onclick="irAQueseraPantalla('${b.id}')" class="rounded-3xl p-3 flex flex-col items-center justify-center gap-2 shadow-xl" style="background:${b.color}; min-height:84px;">
 ${iconoHTML}
 <span class="text-sm font-bold text-white text-center">${tr(b.labelKey)}</span>
 </button>`;
@@ -10369,6 +10402,10 @@ guardarEstadoLocal();
 renderCuentasGuardadas();
 const fabVoz = document.getElementById('fab-comando-voz');
 if (fabVoz) fabVoz.classList.add('hidden');
+const fabMas = document.getElementById('fab-mas-productor');
+if (fabMas) fabMas.classList.add('hidden');
+const btnChat = document.getElementById('btn-chat-flotante-productor');
+if (btnChat) btnChat.classList.add('hidden');
 }
 let historialPantallas = [];
 function irA(nombre){
@@ -14570,7 +14607,11 @@ if (coincidenciaExactaUpp.length === 1){
 seleccionarProductorParaPrueba(coincidenciaExactaUpp[0].id);
 return;
 }
-if (resultados.length === 0){ cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>`; return; }
+if (resultados.length === 0){
+cont.innerHTML = `<p class="text-xs text-center py-2" style="color:var(--sage);">Sin coincidencias.</p>
+<button onclick="agregarProductorNuevoDesdePruebaCampo()" class="w-full text-xs font-bold py-2.5 rounded-full" style="background:var(--pine); color:#fff;" type="button"><i class="fa-solid fa-user-plus"></i> Dar de alta como productor nuevo</button>`;
+return;
+}
 cont.innerHTML = resultados.map(c => `
 <button onclick="seleccionarProductorParaPrueba('${c.id}')" class="w-full text-left bg-white rounded-xl p-2 flex items-center gap-2" style="border:2px solid var(--line);">
 ${avatarHtml(c.nombre, null, 34)}
@@ -14579,6 +14620,30 @@ ${avatarHtml(c.nombre, null, 34)}
 }
 let cacheAnimalesProductorPrueba = null;
 let fierroImagenSesionPC = null;
+// Cuando la búsqueda no encuentra al productor, se da de alta ahí mismo, sin
+// salir de la prueba de campo — queda como una cuenta real (igual que si se
+// hubiera dado de alta desde "Ligar nueva cuenta"), solo que arranca vacía y
+// el veterinario la va llenando con el mismo resumen de siempre.
+function agregarProductorNuevoDesdePruebaCampo(){
+const nombreBuscado = valor('pc-buscar-productor').trim();
+const nuevo = {
+id: 'cta_' + Date.now(),
+nombre: nombreBuscado || '',
+predio: '', upp: '', apellidoPaterno: '', apellidoMaterno: '', nombres: nombreBuscado || '',
+curp: '', rfc: '', municipio: '', estadoMx: '', localidad: '', latitud: null, longitud: null,
+domicilio: '', codigoPostal: '', telefono: '', tipo: 'carne',
+hato: [], salud: [], pesajes: [], reproduccion: [],
+};
+estado.cuentasProductores.push(nuevo);
+productorSeleccionadoPruebaCampo = nuevo;
+document.getElementById('resultado-buscar-productor-pc').innerHTML = '';
+establecerValor('pc-buscar-productor', '');
+fierroImagenSesionPC = null;
+if (typeof actualizarTarjetaFierroChecklistPC === 'function') actualizarTarjetaFierroChecklistPC();
+renderResumenPropietarioPC(nuevo);
+guardarEstadoLocal();
+mostrarToast('Productor nuevo agregado — completa sus datos abajo');
+}
 // Arma el resumen "solo lectura" del propietario en la pantalla de Nueva
 // prueba: cada dato que ya existe en la cuenta del productor se muestra fijo
 // (gris, no editable); el que falte se convierte en un campo de texto normal
@@ -14627,19 +14692,17 @@ grid.innerHTML = [
 celdaResumenPropietario('pc-of-apellidopaterno', 'Apellido paterno', c.apellidoPaterno),
 celdaResumenPropietario('pc-of-apellidomaterno', 'Materno', c.apellidoMaterno),
 celdaResumenPropietario('pc-of-nombres', 'Nombre(s)', c.nombres),
-`<div class="resumen-tile"><span class="resumen-tile-etiqueta">CURP</span><span class="resumen-tile-valor">${c.curp || '—'}</span></div>`,
+celdaResumenPropietario('pc-of-curp', 'CURP', c.curp),
+celdaResumenPropietario('pc-of-rfc', 'RFC', c.rfc),
 celdaResumenPropietario('pc-of-clave-upp', 'UPP', c.upp),
-`<div class="resumen-tile"><span class="resumen-tile-etiqueta">Rancho</span><span class="resumen-tile-valor">${c.predio || '—'}</span></div>`,
+celdaResumenPropietario('pc-of-predio', 'Rancho', c.predio),
 municipioEstadoHtml,
 celdaResumenPropietario('pc-of-localidad', 'Localidad', c.localidad, true),
 gpsHtml,
 celdaFierroResumenPC(c),
-// Campos que siguen siendo necesarios para el dictamen impreso pero no se
-// muestran en este resumen compacto (domicilio, código postal, teléfono) —
-// se guardan igual, escondidos, tomados directo de la cuenta del productor.
-`<input type="hidden" id="pc-of-domicilio" value="${(c.domicilio||'').replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/>`,
-`<input type="hidden" id="pc-of-cp" value="${(c.codigoPostal||'').replace(/</g,'&lt;')}"/>`,
-`<input type="hidden" id="pc-of-telefono" value="${(c.telefono||'').replace(/</g,'&lt;')}"/>`,
+celdaResumenPropietario('pc-of-domicilio', 'Calle y número', c.domicilio, true),
+celdaResumenPropietario('pc-of-cp', 'C.P.', c.codigoPostal),
+celdaResumenPropietario('pc-of-telefono', 'Teléfono', c.telefono),
 ].join('');
 }
 // Regresa al buscador de productor (por si se seleccionó el que no era) —
@@ -15825,6 +15888,25 @@ guardarPruebaCampoEjecutar();
 }
 function guardarPruebaCampoEjecutar(){
 const c = productorSeleccionadoPruebaCampo;
+// Lo que el veterinario haya capturado aquí (para un productor nuevo o para
+// completar datos que le faltaban) se guarda también en la cuenta del
+// productor, no solo en esta prueba — así la próxima vez ya no aparece
+// vacío y, si era un productor nuevo, queda dado de alta de verdad.
+if (c){
+const mapaCampos = {
+apellidoPaterno:'pc-of-apellidopaterno', apellidoMaterno:'pc-of-apellidomaterno', nombres:'pc-of-nombres',
+curp:'pc-of-curp', rfc:'pc-of-rfc', upp:'pc-of-clave-upp', predio:'pc-of-predio',
+municipio:'pc-of-municipio', estadoMx:'pc-of-estado', localidad:'pc-of-localidad',
+latitud:'pc-of-latitud', longitud:'pc-of-longitud',
+domicilio:'pc-of-domicilio', codigoPostal:'pc-of-cp', telefono:'pc-of-telefono',
+};
+Object.entries(mapaCampos).forEach(([campoCuenta, idCampo]) => {
+const v = valor(idCampo);
+if (v) c[campoCuenta] = v;
+});
+if (!c.nombre && (c.apellidoPaterno || c.nombres)) c.nombre = [c.nombres, c.apellidoPaterno, c.apellidoMaterno].filter(Boolean).join(' ');
+guardarEstadoLocal();
+}
 const vet = veterinarioActivo();
 const tipoPrueba = tabPruebasCampoActual === 'prueba' ? valor('pc-tipo-prueba') : 'Areteo';
 const datos = {
@@ -19345,18 +19427,21 @@ function previsualizarNombreCompleto(prefijo){
 function registrarUbicacionUPP(prefijo){
 if (!navigator.geolocation){ mostrarToast('Tu navegador no permite obtener ubicación'); return; }
 const span = document.getElementById(prefijo + '-gps-texto');
-if (span) span.textContent = 'Obteniendo ubicación...';
+const campoCoords = document.getElementById(prefijo + '-gps-coords');
+if (span) span.textContent = 'Obteniendo...';
 navigator.geolocation.getCurrentPosition(
 pos => {
 estado.productor.latitudUPP = pos.coords.latitude;
 estado.productor.longitudUPP = pos.coords.longitude;
-if (span) span.textContent = `Ubicación registrada (${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)})`;
+const texto = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+if (campoCoords){ campoCoords.value = texto; if (span) span.textContent = 'GPS'; }
+else if (span) span.textContent = `Ubicación registrada (${texto})`;
 if (prefijo === 'adm') guardarProductor();
 guardarEstadoLocal();
 mostrarToast('Ubicación GPS registrada');
 },
 () => {
-if (span) span.textContent = 'Registrar ubicación GPS';
+if (span) span.textContent = campoCoords ? 'GPS' : 'Registrar ubicación GPS';
 mostrarToast('No se pudo obtener tu ubicación. Revisa los permisos.');
 },
 { enableHighAccuracy: true, timeout: 8000 }
@@ -20002,7 +20087,7 @@ const MAPA_PREVIEWS_ESCANEO = {
 'esc-upp-preview': 'uppFoto',
 'esc-siniiga-preview': 'siniigaFoto',
 };
-const CAMPOS_BORRADOR_ESCANEO = ['esc-cred-nombre','esc-cred-curp','esc-cred-folio','esc-cred-upp','esc-cred-actividad','esc-cred-domicilio','esc-cred-municipio','esc-upp-predio','esc-upp-superficie','esc-upp-finalidad','esc-upp-municipioestado','esc-upp-referencias'];
+const CAMPOS_BORRADOR_ESCANEO = ['esc-cred-nombre','esc-cred-curp','esc-cred-folio','esc-cred-upp','esc-cred-actividad','esc-cred-domicilio','esc-cred-municipio','esc-upp-predio','esc-upp-finalidad','esc-upp-municipioestado','esc-upp-referencias'];
 function guardarBorradorEscaneoDoc(){
 const pasoActivo = ['credencial','upp','siniiga','confirmar'].find(p => !document.getElementById('esc-paso-' + p)?.classList.contains('hidden')) || 'credencial';
 const datos = {
@@ -20230,8 +20315,6 @@ try {
 const texto = await extraerTextoDeImagen(await comprimirParaOCR(archivo), estado => { boton.textContent = estado === 'descargando' ? 'Descargando lector de texto...' : 'Leyendo...'; }, 'formulario');
 const etiquetasUPP = ['NOMBRE DEL PREDIO', 'PREDIO', 'UNIDAD DE PRODUCCIÓN', 'FINALIDAD ZOOTÉCNICA', 'FINALIDAD ZOOTECNICA', 'FINALIDAD', 'MUNICIPIO', 'ESTADO', 'REFERENCIA', 'LOCALIZACIÓN', 'LOCALIZACION', 'UBICACIÓN'];
 establecerValor('esc-upp-predio', extraerTrasEtiqueta(texto, ['NOMBRE DEL PREDIO', 'PREDIO', 'UNIDAD DE PRODUCCIÓN'], etiquetasUPP));
-const superficieMatch = texto.match(/(\d+[.,]?\d*)\s*(HA|HECTÁREAS|HECTAREAS)/i);
-establecerValor('esc-upp-superficie', superficieMatch ? superficieMatch[1].replace(',', '.') : '');
 establecerValor('esc-upp-finalidad', extraerTrasEtiqueta(texto, ['FINALIDAD ZOOTÉCNICA', 'FINALIDAD ZOOTECNICA', 'FINALIDAD'], etiquetasUPP));
 // El campo es "Municipio / Estado" (los dos datos juntos) — antes solo se
 // quedaba con el que apareciera primero en el texto (municipio O estado, no
@@ -20460,7 +20543,10 @@ cargarMunicipiosSelector('ed', p.municipio || '');
 establecerValor('ed-curp', p.curp || '');
 establecerValor('ed-rfc', p.rfc || '');
 const spanGps = document.getElementById('ed-gps-texto');
-if (spanGps) spanGps.textContent = (p.latitudUPP && p.longitudUPP) ? `Ubicación registrada (${p.latitudUPP.toFixed(5)}, ${p.longitudUPP.toFixed(5)})` : 'Registrar ubicación GPS';
+const campoGpsCoords = document.getElementById('ed-gps-coords');
+const tieneGps = p.latitudUPP && p.longitudUPP;
+if (campoGpsCoords) campoGpsCoords.value = tieneGps ? `${p.latitudUPP.toFixed(5)}, ${p.longitudUPP.toFixed(5)}` : '';
+if (spanGps) spanGps.textContent = 'GPS';
 renderVistaFierroGuardado('ed');
 document.getElementById('ed-fierro-recorte-cont')?.classList.add('hidden');
 renderCamposPersonalizadosFormulario('ed-campos-personalizados', p.camposPersonalizados);
