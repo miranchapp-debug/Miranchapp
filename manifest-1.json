@@ -1,0 +1,14 @@
+{
+  "name": "Mi RanchApp",
+  "short_name": "RanchApp",
+  "description": "Sistema de manejo ganadero — hato, salud, reproducción, pruebas de campo y más.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF8F3",
+  "theme_color": "#1F3A2E",
+  "icons": [
+    { "src": "icon-logo.jpg", "sizes": "220x208", "type": "image/jpeg", "purpose": "any" }
+  ]
+}
