@@ -10671,6 +10671,21 @@ if (elFecha) elFecha.textContent = `${d}/${m}/${y}`;
 return !vencida;
 }
 function cerrarSesion(){
+// Si se cierra sesión mientras el modo demo sigue activo (por ejemplo,
+// tocando el botón normal de "Salir" en vez del botón específico de la
+// franja morada), hay que restaurar primero los datos reales — si no, el
+// aviso morado se queda pegado en la pantalla de login, y peor: el guardado
+// de abajo se bloquearía en silencio (el resguardo de guardarEstadoLocal
+// nunca deja guardar mientras modoDemoActivo siga en true).
+if (estado.modoDemoActivo && respaldoEstadoAntesDeDemo){
+const real = JSON.parse(respaldoEstadoAntesDeDemo);
+Object.keys(estado).forEach(k => delete estado[k]);
+Object.assign(estado, real);
+respaldoEstadoAntesDeDemo = null;
+}
+estado.modoDemoActivo = false;
+const bannerDemo = document.getElementById('banner-modo-demo');
+if (bannerDemo) bannerDemo.classList.add('hidden');
 document.getElementById('app-productor').classList.add('hidden');
 document.getElementById('app-admin').classList.add('hidden');
 document.getElementById('screen-tipo-ganado').classList.remove('active');
