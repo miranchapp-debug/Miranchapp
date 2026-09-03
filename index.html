@@ -8238,6 +8238,13 @@ console.warn('No se pudo cargar el estado guardado localmente', e);
 }
 }
 function normalizarEstadoCargado(){
+// El modo demo NUNCA debe quedar guardado de un uso anterior — si por
+// cualquier bug de una versión vieja se llegó a guardar como "true" alguna
+// vez, se quedaría así para siempre y ninguna corrección de rutas de
+// navegación lo alcanzaría a arreglar, porque el problema no es por dónde
+// se navega, es lo que se carga desde el celular al abrir la app. Aquí se
+// fuerza a "false" siempre, sin excepción, cada vez que se abre la app.
+estado.modoDemoActivo = false;
 const arreglos = ['animales','salud','reproduccion','pesajes','potreros','costos','boletines',
 'bodega','movimientosAnimal','colaSincronizacion','cuentasProductores','solicitudesTransferencia',
 'auditoriaTransferencias','usuarios','trabajadores','veterinarios','tareas','planSanitario','mensajes','visitasVet',
@@ -11241,7 +11248,36 @@ let anterior = historialPantallasAdmin.pop();
 while (anterior && !document.getElementById('screen-admin-' + anterior)) anterior = historialPantallasAdmin.pop();
 cambiarPantallaAdmin(anterior || destinoRespaldo || 'home');
 }
+// En vez de mantener una lista de lo que está PROHIBIDO (que ya demostró
+// que se le escapan pantallas nuevas cada vez que se agrega algo), esto
+// funciona al revés: para cada rol restringido, se dice exactamente qué SÍ
+// puede ver — todo lo que no esté en su lista se bloquea por default. Así,
+// cualquier pantalla nueva que se agregue después queda bloqueada
+// automáticamente para estos roles, sin tener que acordarse de venir aquí
+// a prohibirla a mano cada vez.
+const PANTALLAS_PERMITIDAS_POR_ROL_RESTRINGIDO = {
+comite: ['home','cefpp','comitecefpp','nueva-solicitud-cefpp','solicitudescefp','capturapcc','generartb','reportestb','ventanageneraltb','tbhub','mensajes','boletines'],
+medicocampotb: ['home','medicocampotb','capturapcc','mensajes','boletines'],
+capturistatb: ['home','capturistatb','capturapcc','mensajes','boletines'],
+capturista: ['home','pruebascapturista','capturapcc','mensajes','boletines'],
+almita: ['home','almita','mensajes','boletines'],
+veterinario: ['home','boletines','cuentas','pruebascampo','vetnotas','vetproductores','nueva-prueba-campo','productor','mensajes','tbhub','generartb','reportestb','ventanageneraltb'],
+};
+function rolRestringidoActivo(){
+if (estado.modoComite) return 'comite';
+if (estado.modoMedicoCampoTB) return 'medicocampotb';
+if (estado.modoCapturistaTB) return 'capturistatb';
+if (estado.modoCapturista) return 'capturista';
+if (estado.modoAlmita) return 'almita';
+if (estado.vistaVeterinario || estado.modoVeterinario) return 'veterinario';
+return null; // administrador completo — sin restricción, ve todo
+}
 function cambiarPantallaAdmin(nombre){
+const rolRestringido = rolRestringidoActivo();
+if (rolRestringido && !PANTALLAS_PERMITIDAS_POR_ROL_RESTRINGIDO[rolRestringido].includes(nombre)){
+mostrarToast('Esta sección es solo para el administrador');
+nombre = 'home';
+}
 document.querySelectorAll('#app-admin .screen').forEach(s => s.classList.remove('active'));
 document.getElementById('screen-admin-' + nombre).classList.add('active');
 document.querySelectorAll('#app-admin .navbar-item').forEach(b => b.classList.remove('active'));
@@ -14685,7 +14721,7 @@ if (!cont) return;
 // configuración) — son exclusivas del administrador de verdad. Antes se
 // mostraban siempre, sin importar el rol, así que un veterinario (o
 // comité, capturista, etc.) las veía igual que un administrador completo.
-const esAdminCompleto = !estado.modoComite && !estado.modoMedicoCampoTB && !estado.modoCapturistaTB && !estado.modoCapturista && !estado.modoAlmita && !estado.vistaVeterinario && !estado.modoVeterinario;
+const esAdminCompleto = !rolRestringidoActivo();
 const btnMetricas = document.getElementById('btn-metricas-admin');
 if (btnMetricas) btnMetricas.classList.toggle('hidden', !esAdminCompleto);
 const btnMas = document.getElementById('btn-mas-admin');
@@ -14694,6 +14730,15 @@ if (btnMas) btnMas.classList.toggle('hidden', !esAdminCompleto);
 // ni comité, ni ningún productor lo pueden ver, sin excepción.
 const btnModoDemo = document.getElementById('btn-modo-demo-admin');
 if (btnModoDemo) btnModoDemo.classList.toggle('hidden', !esAdminCompleto);
+// Las pestañas de "Usuarios" (contraseñas de todo el sistema) y "Config"
+// tampoco deben verse siquiera — ya están bloqueadas por dentro, pero
+// mostrarlas igual sería confuso (tocar algo que rebota a Inicio).
+const navUsuarios = document.querySelector('[data-nav-admin="usuarios"]');
+if (navUsuarios) navUsuarios.classList.toggle('hidden', !esAdminCompleto);
+const navConfig = document.querySelector('[data-nav-admin="config"]');
+if (navConfig) navConfig.classList.toggle('hidden', !esAdminCompleto);
+const navInfo = document.querySelector('[data-nav-admin="info"]');
+if (navInfo) navInfo.classList.toggle('hidden', !esAdminCompleto);
 if (estado.modoComite){
 const pendTB = (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length;
 const pendCEFPP = estado.salud.filter(r => r.estadoCEFPP && r.estadoCEFPP !== 'enviado').length;
