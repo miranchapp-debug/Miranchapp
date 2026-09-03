@@ -1936,7 +1936,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <span>Modo de prueba rápida</span>
 </button>
 </div>
-<!-- ---------- MODO DEMO (probar cualquier rol sin cuenta real) ---------- -->
+<!-- ---------- MODO DEMO (solo administrador, ver cualquier rol sin cuenta real) ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-admin-modo-demo">
 <button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold"><i class="fa-solid fa-flask"></i> Modo de prueba rápida</h2>
@@ -3508,8 +3508,6 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <!-- ============ FAB GLOBAL: COMANDOS DE VOZ ============ -->
 <!-- ============================================================ -->
 <!-- ---------- AVISO FIJO DE MODO DEMO ---------- -->
-<!-- Siempre por encima de todo (hasta de los modales) para que nunca se te
-     olvide que estás viendo datos de ejemplo, no una cuenta real. -->
 <div class="hidden" id="banner-modo-demo" style="position:fixed; top:0; left:0; right:0; z-index:9999; background:#7C3AED; color:#fff; padding:8px 14px; display:flex; align-items:center; gap:8px; font-size:.78rem; font-weight:700; box-shadow:0 4px 10px rgba(0,0,0,0.25);">
 <i class="fa-solid fa-flask"></i>
 <span id="banner-modo-demo-texto" style="flex:1;">Modo demo</span>
@@ -8412,14 +8410,14 @@ if (operador) return operador.nombre || usuario;
 return usuario;
 }
 // ============================================================
-// ===== MODO DEMO — probar cualquier rol al instante, sin cuentas reales =====
+// ===== MODO DEMO — solo administrador, ver cualquier rol al instante =====
 // ============================================================
-// Resuelve el problema real de perder tiempo dando de alta una cuenta de
-// cada rol solo para revisar que las pantallas se vean bien después de subir
-// un cambio. Reutiliza las pantallas y funciones de SIEMPRE, solo que con
-// datos de ejemplo — nunca lee ni escribe ninguna cuenta real, y nunca
-// guarda nada (los 2 resguardos de arriba, en guardarEstadoLocal y
-// sincronizarConFirebase, se encargan de eso).
+// Resuelve perder tiempo dando de alta cuentas falsas de cada rol solo para
+// revisar pantallas. Reutiliza las pantallas y funciones de SIEMPRE, con
+// datos de ejemplo — nunca lee ni escribe ninguna cuenta real. Con
+// honestidad: NO incluye ver cuentas reales de productores sin su
+// contraseña — eso es un riesgo de seguridad real que no se construye,
+// sin importar cómo se pida.
 const DATOS_DEMO_POR_ROL = {
 lechero: {
 tipoGanado: 'leche',
@@ -8463,24 +8461,29 @@ solicitudesRegistro: [], solicitudesPago: [], solicitudesTransferencia: [], resu
 },
 };
 let respaldoEstadoAntesDeDemo = null;
-function activarModoDemo(tipoDemo){
-const demo = DATOS_DEMO_POR_ROL[tipoDemo];
-if (!demo) return;
-// Si ya se estaba viendo OTRO modo demo (se cambió de "Lechero" a "Carne"
-// sin darle "Salir" primero), había un error real aquí: se guardaba como
-// "respaldo real" lo que en realidad ya eran datos de ejemplo — y al salir,
-// se perdía la cuenta real de verdad, reemplazada por datos falsos. Ahora,
-// si ya se estaba en modo demo, primero se restaura la cuenta real de
-// manera limpia, y HASTA ENTONCES se activa el nuevo modo — nunca se guarda
-// un respaldo "real" que en realidad ya era de mentira.
-if (estado.modoDemoActivo && respaldoEstadoAntesDeDemo){
+// Restaura la cuenta real desde el respaldo, de forma limpia — la usan
+// TODAS las salidas del modo demo (botón, cerrar sesión, login, quesería,
+// y el vigilante automático de abajo), para no repetir la misma lógica 5
+// veces y arriesgar que una copia se quede desactualizada.
+function restaurarDeModoDemoSiHaceFalta(){
+if (!estado.modoDemoActivo) return;
+if (respaldoEstadoAntesDeDemo){
 const real = JSON.parse(respaldoEstadoAntesDeDemo);
 Object.keys(estado).forEach(k => delete estado[k]);
 Object.assign(estado, real);
-respaldoEstadoAntesDeDemo = null;
 }
-// Se guarda el estado real completo, tal cual, para regresar exactamente
-// a como estaba — nada se pierde ni se mezcla con lo de ejemplo.
+respaldoEstadoAntesDeDemo = null;
+estado.modoDemoActivo = false;
+const bannerDemo = document.getElementById('banner-modo-demo');
+if (bannerDemo) bannerDemo.classList.add('hidden');
+}
+function activarModoDemo(tipoDemo){
+const demo = DATOS_DEMO_POR_ROL[tipoDemo];
+if (!demo) return;
+// Si ya se estaba viendo otro modo demo, se restaura primero de forma
+// limpia antes de activar el nuevo — nunca se guarda un respaldo que en
+// realidad ya era de mentira.
+restaurarDeModoDemoSiHaceFalta();
 respaldoEstadoAntesDeDemo = JSON.stringify(estado);
 Object.assign(estado, JSON.parse(JSON.stringify(demo)));
 estado.modoDemoActivo = true;
@@ -8502,24 +8505,26 @@ if (typeof irAdmin === 'function') irAdmin('home');
 }
 }
 function salirModoDemo(){
-if (!respaldoEstadoAntesDeDemo) return;
-const real = JSON.parse(respaldoEstadoAntesDeDemo);
-Object.keys(estado).forEach(k => delete estado[k]);
-Object.assign(estado, real);
-respaldoEstadoAntesDeDemo = null;
-const bannerDemo = document.getElementById('banner-modo-demo');
-if (bannerDemo) bannerDemo.classList.add('hidden');
+restaurarDeModoDemoSiHaceFalta();
 document.getElementById('app-productor').classList.add('hidden');
 document.getElementById('app-admin').classList.remove('hidden');
 if (typeof renderTodoAdmin === 'function') renderTodoAdmin();
 if (typeof irAdmin === 'function') irAdmin('home');
 mostrarToast('Modo demo cerrado — de vuelta en tu cuenta real');
 }
+// ---- VIGILANTE AUTOMÁTICO: se corrige solo, sin depender de que se haya
+// atrapado cada ruta de salida a mano. Cada segundo revisa: si la pantalla
+// de login está visible pero el modo demo sigue prendido por dentro (sin
+// importar por qué camino haya pasado eso), lo corrige de inmediato. Esta
+// es la protección de fondo real — las de arriba son solo para que se vea
+// bien al momento, esta es la que garantiza que nunca se quede pegado.
+setInterval(() => {
+if (!estado.modoDemoActivo) return;
+const loginVisible = document.getElementById('screen-login')?.classList.contains('active');
+if (loginVisible) restaurarDeModoDemoSiHaceFalta();
+}, 1000);
 function guardarEstadoLocal(){
-// Mientras el modo demo esté activo, nada se guarda de verdad — ni en este
-// celular ni en Firestore. Es la protección más importante de todo el modo
-// demo: si esto fallara, se podría sobreescribir la cuenta real del admin
-// con datos de ejemplo.
+// Mientras el modo demo esté activo, nada se guarda de verdad.
 if (estado.modoDemoActivo) return;
 if (guardadoLocalPendiente) clearTimeout(guardadoLocalPendiente);
 guardadoLocalPendiente = setTimeout(() => {
@@ -8578,9 +8583,6 @@ badge.classList.toggle('hidden', n === 0);
 badge.textContent = n;
 }
 async function sincronizarConFirebase(){
-// Segunda capa de protección del modo demo — aunque algo llegara a llamar
-// esta función mientras se ve una vista de ejemplo, nunca debe tocar
-// Firestore de verdad.
 if (estado.modoDemoActivo) return;
 if (!window.firebaseListo || typeof window.firebaseGuardarGlobal !== 'function') return;
 if (!navigator.onLine) return;
@@ -9727,21 +9729,7 @@ console.warn('No se pudo limpiar caché/service worker por completo', e);
 location.reload();
 }
 function mostrarPantallaLogin(){
-// Resguardo a prueba de cualquier camino: sin importar CÓMO se haya llegado
-// a la pantalla de login (cerrar sesión normal, un error, algo nuevo que se
-// agregue después), aquí se garantiza que el modo demo quede completamente
-// apagado — restaurando la cuenta real primero si hiciera falta. Antes esto
-// solo se resolvía en 2-3 funciones específicas; ahora se resuelve en el
-// único lugar por el que TODOS los caminos hacia el login tienen que pasar.
-if (estado.modoDemoActivo && respaldoEstadoAntesDeDemo){
-const real = JSON.parse(respaldoEstadoAntesDeDemo);
-Object.keys(estado).forEach(k => delete estado[k]);
-Object.assign(estado, real);
-respaldoEstadoAntesDeDemo = null;
-}
-estado.modoDemoActivo = false;
-const bannerDemo = document.getElementById('banner-modo-demo');
-if (bannerDemo) bannerDemo.classList.add('hidden');
+restaurarDeModoDemoSiHaceFalta();
 document.getElementById('screen-tipo-ganado').classList.remove('active');
 document.getElementById('screen-login').classList.add('active');
 renderCuentasGuardadas();
@@ -10706,21 +10694,7 @@ if (elFecha) elFecha.textContent = `${d}/${m}/${y}`;
 return !vencida;
 }
 function cerrarSesion(){
-// Si se cierra sesión mientras el modo demo sigue activo (por ejemplo,
-// tocando el botón normal de "Salir" en vez del botón específico de la
-// franja morada), hay que restaurar primero los datos reales — si no, el
-// aviso morado se queda pegado en la pantalla de login, y peor: el guardado
-// de abajo se bloquearía en silencio (el resguardo de guardarEstadoLocal
-// nunca deja guardar mientras modoDemoActivo siga en true).
-if (estado.modoDemoActivo && respaldoEstadoAntesDeDemo){
-const real = JSON.parse(respaldoEstadoAntesDeDemo);
-Object.keys(estado).forEach(k => delete estado[k]);
-Object.assign(estado, real);
-respaldoEstadoAntesDeDemo = null;
-}
-estado.modoDemoActivo = false;
-const bannerDemo = document.getElementById('banner-modo-demo');
-if (bannerDemo) bannerDemo.classList.add('hidden');
+restaurarDeModoDemoSiHaceFalta();
 document.getElementById('app-productor').classList.add('hidden');
 document.getElementById('app-admin').classList.add('hidden');
 document.getElementById('screen-tipo-ganado').classList.remove('active');
@@ -14716,6 +14690,8 @@ const btnMetricas = document.getElementById('btn-metricas-admin');
 if (btnMetricas) btnMetricas.classList.toggle('hidden', !esAdminCompleto);
 const btnMas = document.getElementById('btn-mas-admin');
 if (btnMas) btnMas.classList.toggle('hidden', !esAdminCompleto);
+// El modo demo es exclusivo del administrador de verdad — ni veterinario,
+// ni comité, ni ningún productor lo pueden ver, sin excepción.
 const btnModoDemo = document.getElementById('btn-modo-demo-admin');
 if (btnModoDemo) btnModoDemo.classList.toggle('hidden', !esAdminCompleto);
 if (estado.modoComite){
