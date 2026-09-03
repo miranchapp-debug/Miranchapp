@@ -2418,7 +2418,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="text-xs font-bold" onclick="cambiarProductorSeleccionadoPC()" style="color:var(--red);" type="button">Cambiar</button>
 </div>
 </div>
-<div class="grid grid-cols-2 gap-1.5" id="resumen-propietario-pc-grid"></div>
+<div class="grid grid-cols-2 gap-2" id="resumen-propietario-pc-grid"></div>
 </div>
 </div>
 <div class="hidden" id="bloque-modo-ejido">
@@ -7913,6 +7913,14 @@ camposPersonalizados: {},
 },
 configuracion: { fondoHome: null, fondoHeader: null, logoPersonalizado: null },
 cuentasProductores: [],
+// Productores que este admin/veterinario/comité ya confirmó por "Buscar
+// amigos" (encontrados entre sus propios contactos del celular) — la
+// bandeja de mensajes solo muestra gente de esta lista (o con quien ya
+// haya conversación empezada), nunca el directorio completo de todos los
+// productores del sistema. Así, una cuenta nueva no puede simplemente
+// navegar y escribirle a cualquiera — primero tiene que encontrarlo entre
+// sus contactos reales.
+contactosVerificadosChat: [],
 // Última copia guardada del inventario de animales de cada productor, tomada
 // la última vez que hubo señal — para que la búsqueda de arete en pruebas de
 // campo (TB/Brucelosis) siga funcionando aunque el médico entre sin conexión.
@@ -8203,7 +8211,7 @@ const arreglos = ['animales','salud','reproduccion','pesajes','potreros','costos
 'bodega','movimientosAnimal','colaSincronizacion','cuentasProductores','solicitudesTransferencia',
 'auditoriaTransferencias','usuarios','trabajadores','veterinarios','tareas','planSanitario','mensajes','visitasVet',
 'predios','banners','ventanasExtra','produccionLeche','tanqueLeche','alimentacionLeche','becerros',
-'inventarioAlimento','lecheros','productoresLeche','recepcionesLeche','solicitudesVinculacionLeche','solicitudesRegistro','solicitudesPago'];
+'inventarioAlimento','lecheros','productoresLeche','recepcionesLeche','solicitudesVinculacionLeche','solicitudesRegistro','solicitudesPago','contactosVerificadosChat'];
 arreglos.forEach(clave => { if (!Array.isArray(estado[clave])) estado[clave] = []; });
 estado.relojSimulado = null;
 if (!estado.configuracion || typeof estado.configuracion !== 'object') estado.configuracion = { fondoHome: null, fondoHeader: null, logoPersonalizado: null };
@@ -14420,6 +14428,16 @@ renderModulo();
 function renderGridAdminHome(){
 const cont = document.getElementById('grid-admin-home');
 if (!cont) return;
+// "Métricas de interacción" y "Más funciones" llevan a información de TODO
+// el sistema (cuentas de todos los productores, reportes generales,
+// configuración) — son exclusivas del administrador de verdad. Antes se
+// mostraban siempre, sin importar el rol, así que un veterinario (o
+// comité, capturista, etc.) las veía igual que un administrador completo.
+const esAdminCompleto = !estado.modoComite && !estado.modoMedicoCampoTB && !estado.modoCapturistaTB && !estado.modoCapturista && !estado.modoAlmita && !estado.vistaVeterinario && !estado.modoVeterinario;
+const btnMetricas = document.getElementById('btn-metricas-admin');
+if (btnMetricas) btnMetricas.classList.toggle('hidden', !esAdminCompleto);
+const btnMas = document.getElementById('btn-mas-admin');
+if (btnMas) btnMas.classList.toggle('hidden', !esAdminCompleto);
 if (estado.modoComite){
 const pendTB = (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length;
 const pendCEFPP = estado.salud.filter(r => r.estadoCEFPP && r.estadoCEFPP !== 'enviado').length;
@@ -14952,9 +14970,9 @@ const tieneValor = valorCuenta != null && String(valorCuenta).trim() !== '';
 const claseAncho = ancho2 ? ' col-span-2' : '';
 const valorSeguro = tieneValor ? String(valorCuenta).replace(/</g, '&lt;').replace(/"/g, '&quot;') : '';
 if (tieneValor){
-return `<div class="resumen-tile${claseAncho}"><span class="resumen-tile-etiqueta">${etiqueta}</span><span class="resumen-tile-valor">${valorSeguro}</span><input type="hidden" id="${id}" value="${valorSeguro}"/></div>`;
+return `<div class="${claseAncho.trim()}"><label class="campo-label">${etiqueta}</label><input id="${id}" readonly style="background:var(--parchment); color:var(--ink);" type="text" value="${valorSeguro}"/></div>`;
 }
-return `<div class="resumen-tile resumen-tile-vacio${claseAncho}"><label class="resumen-tile-etiqueta" for="${id}">${etiqueta}</label><input class="resumen-tile-input" id="${id}" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Sin datos — captúralo aquí" type="text"/></div>`;
+return `<div class="${claseAncho.trim()}"><label class="campo-label">${etiqueta}</label><input id="${id}" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Captúralo aquí" type="text"/></div>`;
 }
 function renderResumenPropietarioPC(c){
 const cont = document.getElementById('resumen-propietario-pc');
@@ -14969,38 +14987,36 @@ document.getElementById('buscador-productor-pc-cont')?.classList.add('hidden');
 // campitos chicos lado a lado para completarlos ahí mismo.
 const tieneMunicipioYEstado = (c.municipio || '').trim() && (c.estadoMx || '').trim();
 const municipioEstadoHtml = tieneMunicipioYEstado
-? `<div class="resumen-tile col-span-2"><span class="resumen-tile-etiqueta">Municipio</span><span class="resumen-tile-valor">${String(c.municipio).replace(/</g,'&lt;')}, ${String(c.estadoMx).replace(/</g,'&lt;')}</span><input type="hidden" id="pc-of-municipio" value="${String(c.municipio).replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/><input type="hidden" id="pc-of-estado" value="${String(c.estadoMx).replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/></div>`
-: `<div class="resumen-tile resumen-tile-vacio col-span-2"><span class="resumen-tile-etiqueta">Municipio / Estado</span>
-<div class="grid grid-cols-2 gap-1.5 mt-1">
-<input class="resumen-tile-input" id="pc-of-municipio" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Municipio" style="background:#fff !important; border:1.5px solid var(--line) !important; border-radius:8px; padding:6px 8px !important;" type="text" value="${(c.municipio||'').replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/>
-<input class="resumen-tile-input" id="pc-of-estado" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Estado" style="background:#fff !important; border:1.5px solid var(--line) !important; border-radius:8px; padding:6px 8px !important;" type="text" value="${(c.estadoMx||'').replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/>
-</div></div>`;
+? `<div><label class="campo-label">Estado</label><input id="pc-of-estado" readonly style="background:var(--parchment); color:var(--ink);" type="text" value="${String(c.estadoMx).replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/></div>
+<div><label class="campo-label">Municipio</label><input id="pc-of-municipio" readonly style="background:var(--parchment); color:var(--ink);" type="text" value="${String(c.municipio).replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/></div>`
+: `<div><label class="campo-label">Estado</label><input id="pc-of-estado" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Captúralo aquí" type="text" value="${(c.estadoMx||'').replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/></div>
+<div><label class="campo-label">Municipio</label><input id="pc-of-municipio" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Captúralo aquí" type="text" value="${(c.municipio||'').replace(/</g,'&lt;').replace(/"/g,'&quot;')}"/></div>`;
 // GPS: si el productor ya tiene coordenadas guardadas en su cuenta, se
-// muestran fijas con una insignia verde (como ya viene dado de alta); si no
-// las tiene, se dejan dos campos chicos para capturarlas a mano.
+// muestran fijas (como ya viene dado de alta); si no las tiene, se dejan
+// dos campos chicos para capturarlas a mano.
 const tieneGPS = c.latitud != null && c.longitud != null && String(c.latitud).trim() && String(c.longitud).trim();
-const gpsHtml = tieneGPS
-? `<div class="col-span-2 resumen-gps-badge"><i class="fa-solid fa-location-dot" style="color:var(--green);"></i><span class="text-xs font-bold" style="color:var(--ink);">${c.latitud}, ${c.longitud}</span><i class="fa-solid fa-circle-check ml-auto" style="color:var(--green);"></i><input type="hidden" id="pc-of-latitud" value="${c.latitud}"/><input type="hidden" id="pc-of-longitud" value="${c.longitud}"/></div>`
-: `<div class="resumen-tile resumen-tile-vacio col-span-2"><span class="resumen-tile-etiqueta"><i class="fa-solid fa-location-dot"></i> GPS (sin datos — captúralo a mano)</span>
-<div class="grid grid-cols-2 gap-1.5 mt-1">
-<input id="pc-of-latitud" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Latitud" style="background:#fff !important; border:1.5px solid var(--line) !important; border-radius:8px; padding:6px 8px !important;" type="text"/>
-<input id="pc-of-longitud" oninput="guardarBorradorPruebaCampoActivo()" placeholder="Longitud" style="background:#fff !important; border:1.5px solid var(--line) !important; border-radius:8px; padding:6px 8px !important;" type="text"/>
-</div></div>`;
+const gpsHtml = `<div class="col-span-2">
+<label class="campo-label">Número de GPS</label>
+<div class="flex gap-2">
+<input id="pc-of-latitud" placeholder="Latitud" style="flex:1;" type="text" value="${tieneGPS ? c.latitud : ''}" ${tieneGPS ? 'readonly' : "oninput=\"guardarBorradorPruebaCampoActivo()\""}/>
+<input id="pc-of-longitud" placeholder="Longitud" style="flex:1;" type="text" value="${tieneGPS ? c.longitud : ''}" ${tieneGPS ? 'readonly' : "oninput=\"guardarBorradorPruebaCampoActivo()\""}/>
+</div>
+</div>`;
 grid.innerHTML = [
 celdaResumenPropietario('pc-of-apellidopaterno', 'Apellido paterno', c.apellidoPaterno),
-celdaResumenPropietario('pc-of-apellidomaterno', 'Materno', c.apellidoMaterno),
-celdaResumenPropietario('pc-of-nombres', 'Nombre(s)', c.nombres),
+celdaResumenPropietario('pc-of-apellidomaterno', 'Apellido materno', c.apellidoMaterno),
+celdaResumenPropietario('pc-of-nombres', 'Nombre(s)', c.nombres, true),
 celdaResumenPropietario('pc-of-curp', 'CURP', c.curp),
 celdaResumenPropietario('pc-of-rfc', 'RFC', c.rfc),
-celdaResumenPropietario('pc-of-clave-upp', 'UPP', c.upp),
-celdaResumenPropietario('pc-of-predio', 'Rancho', c.predio),
 municipioEstadoHtml,
-celdaResumenPropietario('pc-of-localidad', 'Localidad', c.localidad, true),
-gpsHtml,
-celdaFierroResumenPC(c),
 celdaResumenPropietario('pc-of-domicilio', 'Calle y número', c.domicilio, true),
 celdaResumenPropietario('pc-of-cp', 'C.P.', c.codigoPostal),
 celdaResumenPropietario('pc-of-telefono', 'Teléfono', c.telefono),
+celdaResumenPropietario('pc-of-clave-upp', 'Número de UPP', c.upp, true),
+celdaResumenPropietario('pc-of-predio', 'Nombre del Rancho', c.predio, true),
+celdaResumenPropietario('pc-of-localidad', 'Localidad', c.localidad, true),
+gpsHtml,
+celdaFierroResumenPC(c),
 ].join('');
 }
 // Regresa al buscador de productor (por si se seleccionó el que no era) —
@@ -18294,6 +18310,20 @@ if (!resultados.length){
 cont.innerHTML = `<p class="text-sm text-center py-2" style="color:var(--sage);">${tr('contactos__sin_coincidencias')}</p>`;
 return;
 }
+// Cada contacto que sí coincide con un productor registrado se agrega a la
+// lista de "verificados" — es justo lo que hace que luego aparezca en la
+// bandeja de mensajes, en vez de tener que ver a todo el directorio.
+let seAgregoAlguno = false;
+resultados.forEach(r => {
+if (r.match && r.match.tipo === 'productor' && r.match.ref && r.match.ref.id){
+if (!Array.isArray(estado.contactosVerificadosChat)) estado.contactosVerificadosChat = [];
+if (!estado.contactosVerificadosChat.includes(r.match.ref.id)){
+estado.contactosVerificadosChat.push(r.match.ref.id);
+seAgregoAlguno = true;
+}
+}
+});
+if (seAgregoAlguno){ guardarEstadoLocal(); if (typeof renderListaConversacionesAdmin === 'function') renderListaConversacionesAdmin(); }
 cont.innerHTML = resultados.map(r => {
 if (r.match){
 const puedeAbrirChat = r.match.tipo === 'productor' && r.match.ref && estado.rolActual === 'admin';
@@ -18798,9 +18828,19 @@ function renderListaConversacionesAdmin(){
 const cont = document.getElementById('lista-conversaciones-admin');
 if (!cont) return;
 const filtro = (valor('chat-buscar-conversacion') || '').toLowerCase();
-const cuentas = estado.cuentasProductores.filter(c => c.tipo !== 'punto').filter(c => !filtro || (c.nombre || '').toLowerCase().includes(filtro));
+const resumenPrevio = estado.resumenMensajes || {};
+const verificados = new Set(estado.contactosVerificadosChat || []);
+// Solo se muestra gente que ya se confirmó por "Buscar amigos" (encontrada
+// entre los contactos reales del celular) o con quien ya hubiera una
+// conversación empezada — nunca el directorio completo de todos los
+// productores del sistema. Así, una cuenta recién creada no puede navegar
+// y escribirle a cualquiera de la nada.
+const cuentas = estado.cuentasProductores
+.filter(c => c.tipo !== 'punto')
+.filter(c => verificados.has(c.id) || resumenPrevio[c.id])
+.filter(c => !filtro || (c.nombre || '').toLowerCase().includes(filtro));
 if (cuentas.length === 0){
-cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-comments"></i><p>${tr('cuentas_productores_alta__aun_no_hay_cuentas_de')}</p></div>`;
+cont.innerHTML = `<div class="vacio"><i class="fa-solid fa-comments"></i><p>Todavía no tienes contactos — usa "Buscar amigos" para encontrar productores que ya usan la app.</p></div>`;
 return;
 }
 // La bandeja de entrada se arma con el resumen liviano (último mensaje +
@@ -18850,6 +18890,7 @@ if (!esRefresco){
 establecerValor('chat-hilo-buscar', '');
 const modal = document.getElementById('modal-hilo-mensajes');
 modal.classList.remove('hidden'); modal.style.display = 'flex';
+ocultarFabsFlotantes(true);
 // Se escucha en vivo SOLO esta conversación mientras está abierta — al
 // abrir otra, o al cerrar, se deja de escuchar la anterior. Así el admin
 // nunca está "apuntado" a recibir avisos de los 300 chats a la vez,
@@ -18878,6 +18919,7 @@ renderListaConversacionesAdmin();
 function cerrarHiloMensajes(){
 const modal = document.getElementById('modal-hilo-mensajes');
 modal.classList.add('hidden'); modal.style.display = 'none';
+ocultarFabsFlotantes(false);
 hiloAbiertoCuentaId = null;
 cancelarEscuchaHiloAdmin();
 cancelarEscuchaHiloAdmin = () => {};
@@ -21669,28 +21711,32 @@ let reconocimientoVozActivo = null;
 // TODO junto hasta que se suelta — una pausa breve al hablar ya no corta ni
 // guarda nada a medias.
 let vozAcumuladaContinua = '';
-function iniciarEscuchaContinua(){
+let botonVozPresionado = false;
+function iniciarEscuchaContinua(reinicioAutomatico){
 // Los comandos de voz (Web Speech API) mandan el audio a servidores de
 // Google para reconocerlo — NO funcionan sin conexión. Antes, si la persona
 // hablaba sin señal, simplemente no pasaba nada y no se sabía por qué. Ahora
 // se avisa de una vez y no se abre el micrófono, para no hacerla perder
 // tiempo hablando en balde.
+if (!reinicioAutomatico){
 if (!navigator.onLine){
 mostrarToast('Comandos de voz necesitan señal — usa el formulario normal mientras tanto');
 estadoVisualVoz('sinConexion');
 return;
 }
+botonVozPresionado = true;
+}
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!SR){ mostrarToast('Este navegador no tiene reconocimiento de voz disponible'); return; }
 if (reconocimientoVozActivo) return; // ya se está grabando, no abrir dos veces
-vozAcumuladaContinua = '';
+if (!reinicioAutomatico) vozAcumuladaContinua = '';
 const rec = new SR();
 rec.lang = CONFIG_VOZ.idiomaReconocimiento;
 rec.continuous = true; // no se corta solo por una pausa — sigue escuchando hasta que se suelte el botón
 rec.interimResults = true; // muestra en pantalla lo que se va escuchando, no solo hasta que se suelte el botón
 rec.maxAlternatives = 1;
 reconocimientoVozActivo = rec;
-rec.onstart = () => { estadoVisualVoz('escuchando'); tonoInicioEscucha(); };
+rec.onstart = () => { estadoVisualVoz('escuchando'); if (!reinicioAutomatico) tonoInicioEscucha(); };
 rec.onresult = evt => {
 // Con continuous=true pueden llegar varios resultados mientras se sigue
 // presionando el botón (uno por cada pausa breve que el navegador nota) —
@@ -21717,6 +21763,11 @@ etiqueta.style.opacity = '1'; etiqueta.style.transform = 'translateX(0)';
 };
 rec.onerror = evt => {
 if (evt.error === 'no-speech') return; // con "mantener presionado" esto es normal mientras la persona respira/piensa, no es un error real
+// "aborted" pasa cuando el propio navegador corta la sesión sola (el
+// límite de tiempo típico de Android/Chrome) — no es un error real del
+// usuario, así que no se avisa ni se trata como fallo; onend se encarga
+// de reiniciar solo si el dedo sigue en el botón.
+if (evt.error === 'aborted') return;
 estadoVisualVoz('error');
 if (evt.error === 'not-allowed' || evt.error === 'permission-denied') mostrarToast('Falta permiso del micrófono — actívalo en los ajustes del navegador');
 else mostrarToast('No se pudo usar el micrófono — revisa tu conexión e inténtalo de nuevo');
@@ -21724,6 +21775,17 @@ reconocimientoVozActivo = null;
 };
 rec.onend = () => {
 reconocimientoVozActivo = null;
+// El navegador (sobre todo Android/Chrome) suele cortar el reconocimiento
+// solo cada pocos segundos, aunque continuous esté en true — es una
+// limitación conocida de esta tecnología, no un error. Si el dedo TODAVÍA
+// está en el botón cuando esto pasa, se reinicia de inmediato una sesión
+// nueva SIN procesar nada todavía — lo que ya se llevaba escuchado se
+// conserva y se le sigue agregando, para que la persona nunca note el
+// corte ni tenga que volver a empezar.
+if (botonVozPresionado){
+setTimeout(() => iniciarEscuchaContinua(true), 60);
+return;
+}
 // Esto se dispara tanto si la persona soltó el botón como si el navegador
 // cerró solo — en los dos casos se procesa lo que se alcanzó a juntar.
 const textoFinal = vozAcumuladaContinua.trim();
@@ -21738,6 +21800,7 @@ estadoVisualVoz('inactivo');
 try { rec.start(); } catch(e){ estadoVisualVoz('error'); reconocimientoVozActivo = null; }
 }
 function detenerEscuchaContinua(){
+botonVozPresionado = false;
 if (reconocimientoVozActivo){ try { reconocimientoVozActivo.stop(); } catch(e){} }
 }
 
