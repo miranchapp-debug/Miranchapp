@@ -1586,7 +1586,10 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="screen px-5 py-6 space-y-5" id="screen-graficas">
 <button class="btn-volver" onclick="volverAtras('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
 <h2 class="font-display text-2xl font-bold">Gráficas</h2>
-<p class="text-sm" data-i18n="graficas__vista_previa_el_diseno_final" style="color:var(--sage);">Vista previa — el diseño final de las gráficas lo definimos juntos más adelante.</p>
+<p class="text-sm" style="color:var(--sage);">Elige la que quieras ver — se abre solo esa, no gasta datos de más cargando las demás.</p>
+<div class="space-y-2" id="lista-graficas-menu"></div>
+<div class="hidden" id="detalle-grafica-cont">
+<button class="btn-volver mb-3" onclick="volverAListaGraficas()"><i class="fa-solid fa-arrow-left"></i> Ver lista de gráficas</button>
 <div data-grafica-card="indicadoresLeche" id="grafica-card-indicadoresLeche"><div class="hidden space-y-5" id="panel-indicadores-leche"></div></div>
 <div data-grafica-card="crecimiento" id="grafica-card-crecimiento"><div class="space-y-5" id="panel-crecimiento"></div></div>
 <div data-grafica-card="financiero" id="grafica-card-financiero"><div class="space-y-5" id="panel-financiero"></div></div>
@@ -1635,6 +1638,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <p class="vacio hidden" id="vacio-chart-bajas"><i class="fa-solid fa-circle-minus"></i><span data-i18n="graficas__aun_no_hay_bajas_registradas">Aún no hay bajas registradas.</span></p>
 </div></div>
 </div>
+</div>
 <!-- ---------- BOLETINES ---------- -->
 <div class="screen px-5 py-6 space-y-4" id="screen-boletines">
 <button class="btn-volver" onclick="volverAtras('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
@@ -1655,7 +1659,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div style="position:absolute; left:25%; right:25%; top:30%; bottom:30%; border:3px solid var(--orange); border-radius:12px;"></div>
 </div>
 <p class="text-center text-sm py-2 px-6" style="color:#fff;">Centra solo la figura del fierro dentro del recuadro, sin texto alrededor</p>
-<button class="mx-6 mb-6 py-4 rounded-full font-bold" onclick="capturarFotoFierroConGuia()" style="background:var(--orange); color:#fff;">
+<button class="mx-6 mb-6 py-3 rounded-full font-bold" onclick="capturarFotoFierroConGuia()" style="background:var(--orange); color:#fff;">
 <i class="fa-solid fa-camera mr-1"></i> Capturar
 </button>
 </div>
@@ -1857,7 +1861,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <i class="fa-solid fa-plus"></i>
 </button>
 <button class="hidden fixed flex items-center justify-center shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="btn-chat-flotante-productor" onclick="irA('mensajes')" style="right:22px; bottom:172px; width:52px; height:52px; background:#25D366; color:#fff; font-size:1.3rem; border:none; padding:0; border-radius:16px; z-index:110;">
-<span style="display:block; width:100%; height:100%; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class="fa-solid fa-comment-medical"></i></span>
+<span style="display:block; width:100%; height:100%; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class="fa-solid fa-hat-cowboy"></i></span>
 <span class="hidden" id="badge-chat-productor" style="position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 4px; border-radius:999px; background:var(--red); color:#fff; font-size:.65rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; z-index:5;">0</span>
 </button>
 <nav class="fixed bottom-0 left-0 right-0 bg-white flex" id="navbar-productor" style="border-top:2px solid var(--line);"></nav>
@@ -3336,8 +3340,8 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="navbar-item" data-nav-admin="boletines" onclick="irAdmin('boletines')"><i class="fa-solid fa-bullhorn"></i><span>Boletines</span></button>
 <button class="navbar-item" data-nav-admin="info" onclick="irAdmin('info')"><i class="fa-solid fa-chart-simple"></i><span>Info</span></button>
 </nav>
-<button class="fixed z-50 flex items-center justify-center shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="btn-chat-flotante-admin" onclick="irAdmin('mensajes')" style="right:22px; bottom:96px; width:52px; height:52px; background:#25D366; color:#fff; font-size:1.3rem; border:none; padding:0; border-radius:16px;">
-<span style="display:block; width:100%; height:100%; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class="fa-solid fa-comment-medical"></i></span>
+<button class="fixed flex items-center justify-center shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="btn-chat-flotante-admin" onclick="irAdmin('mensajes')" style="right:22px; bottom:96px; width:52px; height:52px; background:#25D366; color:#fff; font-size:1.3rem; border:none; padding:0; border-radius:16px; z-index:110;">
+<span style="display:block; width:100%; height:100%; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class="fa-solid fa-hat-cowboy"></i></span>
 <span class="hidden" id="badge-chat-admin" style="position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 4px; border-radius:999px; background:var(--red); color:#fff; font-size:.65rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; z-index:5;">0</span>
 </button>
 </div>
@@ -8462,6 +8466,19 @@ let respaldoEstadoAntesDeDemo = null;
 function activarModoDemo(tipoDemo){
 const demo = DATOS_DEMO_POR_ROL[tipoDemo];
 if (!demo) return;
+// Si ya se estaba viendo OTRO modo demo (se cambió de "Lechero" a "Carne"
+// sin darle "Salir" primero), había un error real aquí: se guardaba como
+// "respaldo real" lo que en realidad ya eran datos de ejemplo — y al salir,
+// se perdía la cuenta real de verdad, reemplazada por datos falsos. Ahora,
+// si ya se estaba en modo demo, primero se restaura la cuenta real de
+// manera limpia, y HASTA ENTONCES se activa el nuevo modo — nunca se guarda
+// un respaldo "real" que en realidad ya era de mentira.
+if (estado.modoDemoActivo && respaldoEstadoAntesDeDemo){
+const real = JSON.parse(respaldoEstadoAntesDeDemo);
+Object.keys(estado).forEach(k => delete estado[k]);
+Object.assign(estado, real);
+respaldoEstadoAntesDeDemo = null;
+}
 // Se guarda el estado real completo, tal cual, para regresar exactamente
 // a como estaba — nada se pierde ni se mezcla con lo de ejemplo.
 respaldoEstadoAntesDeDemo = JSON.stringify(estado);
@@ -9710,6 +9727,21 @@ console.warn('No se pudo limpiar caché/service worker por completo', e);
 location.reload();
 }
 function mostrarPantallaLogin(){
+// Resguardo a prueba de cualquier camino: sin importar CÓMO se haya llegado
+// a la pantalla de login (cerrar sesión normal, un error, algo nuevo que se
+// agregue después), aquí se garantiza que el modo demo quede completamente
+// apagado — restaurando la cuenta real primero si hiciera falta. Antes esto
+// solo se resolvía en 2-3 funciones específicas; ahora se resuelve en el
+// único lugar por el que TODOS los caminos hacia el login tienen que pasar.
+if (estado.modoDemoActivo && respaldoEstadoAntesDeDemo){
+const real = JSON.parse(respaldoEstadoAntesDeDemo);
+Object.keys(estado).forEach(k => delete estado[k]);
+Object.assign(estado, real);
+respaldoEstadoAntesDeDemo = null;
+}
+estado.modoDemoActivo = false;
+const bannerDemo = document.getElementById('banner-modo-demo');
+if (bannerDemo) bannerDemo.classList.add('hidden');
 document.getElementById('screen-tipo-ganado').classList.remove('active');
 document.getElementById('screen-login').classList.add('active');
 renderCuentasGuardadas();
@@ -10257,7 +10289,10 @@ estado.queseria.operadorActivo = null;
 estado.queseria.rolActivoQueseria = null;
 estado.puntoActivoId = null;
 document.getElementById('app-quesera').classList.add('hidden');
-document.getElementById('screen-login').classList.add('active');
+// Se usa la misma función que ya blinda contra el modo demo (en vez de
+// prender la pantalla de login directo aquí) — así este camino también
+// queda cubierto, sin duplicar esa lógica una tercera vez.
+mostrarPantallaLogin();
 }
 function renderGridPerfilesQueseria(){
 const cont = document.getElementById('grid-perfiles-queseria');
@@ -11422,21 +11457,21 @@ cont.innerHTML = `<p class="text-sm" style="color:var(--sage);"><i class="fa-sol
 }
 }
 function iconoClima(codigo){
-if (codigo === 0) return 'fa-sun';
-if ([1,2].includes(codigo)) return 'fa-cloud-sun';
-if (codigo === 3) return 'fa-cloud';
-if ([45,48].includes(codigo)) return 'fa-smog';
-if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(codigo)) return 'fa-cloud-showers-heavy';
-if ([71,73,75,77,85,86].includes(codigo)) return 'fa-snowflake';
-if ([95,96,99].includes(codigo)) return 'fa-cloud-bolt';
-return 'fa-cloud-sun';
+if (codigo === 0) return '☀️';
+if ([1,2].includes(codigo)) return '⛅';
+if (codigo === 3) return '☁️';
+if ([45,48].includes(codigo)) return '🌫️';
+if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(codigo)) return '🌧️';
+if ([71,73,75,77,85,86].includes(codigo)) return '❄️';
+if ([95,96,99].includes(codigo)) return '⛈️';
+return '⛅';
 }
 function pintarClimaHome(){
 const cont = document.getElementById('clima-home');
 if (!cont || !climaHomeCache) return;
 const c = climaHomeCache.datos.current;
 cont.innerHTML = `
-<span style="font-size:2rem; color:var(--orange);"><i class="fa-solid ${iconoClima(c.weather_code)}"></i></span>
+<span style="font-size:2rem;">${iconoClima(c.weather_code)}</span>
 <div class="flex-1">
 <p class="font-display text-xl font-bold">${Math.round(c.temperature_2m)}°C</p>
 <p class="text-xs" style="color:var(--sage);"><i class="fa-solid fa-location-dot mr-1"></i>${climaHomeCache.lugar || tr('render_modulos_f__ubicacion_central')}${climaHomeCache.aproximado ? ' · ' + tr('inicio_productor__ubicacion_aproximada') : ''}</p>
@@ -11453,7 +11488,7 @@ for (let i = horaActual; i < Math.min(horaActual + 12, h.time.length); i++){
 const hEtiqueta = new Date(h.time[i]).getHours().toString().padStart(2,'0') + ':00';
 filasHoras += `<div class="flex flex-col items-center gap-1 flex-shrink-0" style="width:56px;">
 <p class="text-xs" style="color:var(--sage);">${hEtiqueta}</p>
-<i class="fa-solid ${iconoClima(h.weather_code[i])}" style="color:var(--orange);"></i>
+<span style="font-size:1.3rem;">${iconoClima(h.weather_code[i])}</span>
 <p class="text-sm font-bold">${Math.round(h.temperature_2m[i])}°</p>
 <p class="text-xs" style="color:var(--blue);">${h.precipitation_probability[i]}%</p>
 </div>`;
@@ -11508,20 +11543,23 @@ const cont = document.getElementById('acceso-rapido-home');
 if (!cont) return;
 const esLeche = estado.tipoGanado === 'leche';
 const items = [
-{ mostrar: estado.visibilidad.hato, clave:'hato', icono:'fa-list-ul', color:'var(--blue)', texto: tr('hato_inventario_animales__estatus_del_hato'), accion:"irA('hato')" },
-{ mostrar: estado.visibilidad.moduloC && puedeVerModuloTrabajador('C'), clave:'C', icono:'fa-heart', color:'var(--pink)', texto: nombreModulo('C'), accion:"irModulo('C')" },
-{ mostrar: estado.visibilidad.moduloK && puedeVerModuloTrabajador('K'), clave:'K', icono:'fa-warehouse', color:'var(--orange)', texto: nombreModulo('K'), accion:"irModulo('K')" },
-{ mostrar: true, clave:'transferencias', icono:'fa-tag', color:'var(--orange)', texto: tr('menu_mas_productor__transferencias_de_aretes'), accion:"irA('transferencias')" },
+{ mostrar: estado.visibilidad.hato, clave:'hato', icono:'fa-list-ul', emoji:'🐄', color:'var(--blue)', texto: tr('hato_inventario_animales__estatus_del_hato'), accion:"irA('hato')" },
+{ mostrar: estado.visibilidad.moduloC && puedeVerModuloTrabajador('C'), clave:'C', icono:'fa-heart', emoji:'❤️', color:'var(--pink)', texto: nombreModulo('C'), accion:"irModulo('C')" },
+{ mostrar: estado.visibilidad.moduloK && puedeVerModuloTrabajador('K'), clave:'K', icono:'fa-warehouse', emoji:'📦', color:'var(--orange)', texto: nombreModulo('K'), accion:"irModulo('K')" },
+{ mostrar: true, clave:'transferencias', icono:'fa-tag', emoji:'🏷️', color:'var(--orange)', texto: tr('menu_mas_productor__transferencias_de_aretes'), accion:"irA('transferencias')" },
 esLeche
-? { mostrar: estado.visibilidad.moduloG && puedeVerModuloTrabajador('G'), clave:'G', icono:'fa-jug-detergent', color:'var(--blue)', texto: nombreModulo('G'), accion:"irModulo('G')" }
-: { mostrar: estado.visibilidad.moduloD && puedeVerModuloTrabajador('D'), clave:'D', icono:'fa-weight-scale', color:'var(--green)', texto: nombreModulo('D'), accion:"irModulo('D')" },
-{ mostrar: true, clave:'', icono:'fa-headset', color:'#25D366', texto: tr('menu_mas_productor__mensajes_con_tu_veterinario'), accion:"irA('mensajes')" },
+? { mostrar: estado.visibilidad.moduloG && puedeVerModuloTrabajador('G'), clave:'G', icono:'fa-jug-detergent', emoji:'🥛', color:'var(--blue)', texto: nombreModulo('G'), accion:"irModulo('G')" }
+: { mostrar: estado.visibilidad.moduloD && puedeVerModuloTrabajador('D'), clave:'D', icono:'fa-weight-scale', emoji:'⚖️', color:'var(--green)', texto: nombreModulo('D'), accion:"irModulo('D')" },
+{ mostrar: true, clave:'', icono:'fa-headset', emoji:'🤠', color:'#25D366', texto: tr('menu_mas_productor__mensajes_con_tu_veterinario'), accion:"irA('mensajes')" },
 ];
 cont.innerHTML = items.filter(it => it.mostrar).slice(0, 6).map(it => {
 const url = it.clave && estado.iconosBotones && estado.iconosBotones[it.clave];
+// Si el admin subió un ícono propio, ese manda. Si no, se usa un emoji en
+// vez del ícono plano de siempre — se ve con relieve real en cualquier
+// celular, sin necesitar ninguna imagen generada aparte.
 const iconoHTML = url
 ? `<span class="icono-cuadro" style="background-image:url('${url}'); background-size:cover; background-position:center; background-color:transparent;"></span>`
-: `<span class="icono-cuadro"><i class="fa-solid ${it.icono}"></i></span>`;
+: `<span class="icono-cuadro" style="font-size:1.6rem;">${it.emoji}</span>`;
 return `
 <button class="tile-cuadro" onclick="${it.accion}" style="background:${it.color};">
 ${iconoHTML}
@@ -12042,7 +12080,7 @@ ${letraActual === 'C' && subtabActual === 'ver' ? `<button onclick="abrirCalenda
 </div>`;
 const encabezado = `
 <div class="bg-white rounded-3xl p-5 mt-4" style="border:2px solid var(--line); border-top:6px solid ${info.color};">
-<p class="font-display font-bold text-lg mb-3">${letraActual}. ${info.nombre}</p>
+<p class="font-display font-bold text-lg mb-3">${info.nombre}</p>
 ${subtabsHtml}
 <div id="modulo-cuerpo"></div>
 </div>
@@ -14164,22 +14202,69 @@ cont.innerHTML = estado.boletines.map((b,i) => `
 </div>`).join('');
 }
 function reordenarGraficas(){
-const cont = document.getElementById('screen-graficas');
+const cont = document.getElementById('detalle-grafica-cont');
 if (!cont) return;
 estado.ordenGraficas.forEach(clave => {
 const el = document.getElementById('grafica-card-' + clave);
 if (!el) return;
-el.classList.toggle('hidden', estado.visibilidadGraficas[clave] === false);
 cont.appendChild(el);
 });
 }
-async function actualizarGraficas(){
+// Mapa de cada gráfica: ícono para la lista, nombre para mostrar, y la
+// función exacta que la dibuja (se llama solo esa, no todas).
+const CATALOGO_GRAFICAS = {
+indicadoresLeche: { icono:'fa-droplet', nombre:'Indicadores de leche', fn: () => renderPanelIndicadoresLeche() },
+crecimiento: { icono:'fa-arrow-trend-up', nombre:'Crecimiento del hato', fn: () => renderPanelCrecimiento() },
+financiero: { icono:'fa-sack-dollar', nombre:'Resumen financiero', fn: () => renderPanelFinanciero() },
+sexo: { icono:'fa-chart-pie', nombre:'Composición por sexo', fn: () => renderGraficaSexo() },
+prenez: { icono:'fa-heart', nombre:'Tasa de preñez', fn: () => actualizarChartPrenez() },
+pesajes: { icono:'fa-weight-scale', nombre:'Evolución de pesajes', fn: () => renderGraficaPesajes() },
+costos: { icono:'fa-file-invoice-dollar', nombre:'Costos por categoría', fn: () => renderGraficaCostos() },
+fechas: { icono:'fa-calendar-days', nombre:'Próximas fechas importantes', fn: () => renderTimelineFechas() },
+potreros: { icono:'fa-map-location-dot', nombre:'Ocupación de potreros', fn: () => actualizarChartPotreros() },
+gastosingresos: { icono:'fa-scale-balanced', nombre:'Gastos vs. ingresos', fn: () => actualizarChartGastosIngresos() },
+edades: { icono:'fa-chart-simple', nombre:'Edades del hato', fn: () => actualizarChartEdades() },
+bajas: { icono:'fa-circle-minus', nombre:'Bajas por causa', fn: () => actualizarChartBajas() },
+};
+function renderListaGraficasMenu(){
+const cont = document.getElementById('lista-graficas-menu');
+if (!cont) return;
+const orden = (estado.ordenGraficas || Object.keys(CATALOGO_GRAFICAS)).filter(c => CATALOGO_GRAFICAS[c] && estado.visibilidadGraficas[c] !== false);
+cont.innerHTML = orden.map(clave => {
+const g = CATALOGO_GRAFICAS[clave];
+return `<button class="w-full flex items-center gap-3 bg-white rounded-2xl p-4" onclick="abrirGraficaIndividual('${clave}')" style="border:2px solid var(--line); text-align:left;">
+<i class="fa-solid ${g.icono}" style="color:var(--pine); width:24px; text-align:center;"></i>
+<span class="font-bold flex-1">${g.nombre}</span>
+<i class="fa-solid fa-chevron-right" style="color:var(--sage);"></i>
+</button>`;
+}).join('');
+}
+// Abre UNA gráfica: esconde la lista, esconde todas las demás tarjetas, y
+// solo dibuja la que se pidió — así nunca se cargan las 12 de un jalón.
+async function abrirGraficaIndividual(clave){
+const g = CATALOGO_GRAFICAS[clave];
+if (!g) return;
 await cargarChartJsSiNecesario();
+document.getElementById('lista-graficas-menu').classList.add('hidden');
+document.getElementById('detalle-grafica-cont').classList.remove('hidden');
+Object.keys(CATALOGO_GRAFICAS).forEach(otraClave => {
+const el = document.getElementById('grafica-card-' + otraClave);
+if (el) el.classList.toggle('hidden', otraClave !== clave);
+});
+try { g.fn(); } catch(e){ console.warn('No se pudo dibujar la gráfica ' + clave, e); }
+}
+function volverAListaGraficas(){
+document.getElementById('detalle-grafica-cont').classList.add('hidden');
+document.getElementById('lista-graficas-menu').classList.remove('hidden');
+renderListaGraficasMenu();
+}
+async function actualizarGraficas(){
 reordenarGraficas();
-renderPanelIndicadoresLeche();
-renderPanelCrecimiento();
-renderPanelFinanciero();
+renderListaGraficasMenu();
+}
+function renderGraficaSexo(){
 const ctxSexo = document.getElementById('chart-sexo');
+if (!ctxSexo) return;
 const hembras = estado.animales.filter(a => a.sexo === 'hembra').length;
 const machos = estado.animales.filter(a => a.sexo === 'macho').length;
 document.getElementById('vacio-chart-sexo').classList.toggle('hidden', estado.animales.length > 0);
@@ -14189,7 +14274,10 @@ type:'doughnut',
 data:{ labels:['Hembras','Machos'], datasets:[{ data:[hembras, machos], backgroundColor:['#DB2777','#2563EB'], borderWidth:0 }] },
 options:{ responsive:true, maintainAspectRatio:false, cutout:'65%' }
 });
+}
+function renderGraficaPesajes(){
 const ctxPesajes = document.getElementById('chart-pesajes');
+if (!ctxPesajes) return;
 document.getElementById('vacio-chart-pesajes').classList.toggle('hidden', estado.pesajes.length > 0);
 if (charts.pesajes) charts.pesajes.destroy();
 charts.pesajes = new Chart(ctxPesajes, {
@@ -14197,7 +14285,10 @@ type:'line',
 data:{ labels: estado.pesajes.map(p => p.fecha || ''), datasets:[{ label:'Peso (kg)', data: estado.pesajes.map(p => p.peso), borderColor:'#16A34A', backgroundColor:'rgba(22,163,74,0.15)', fill:true, tension:.3 }] },
 options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
 });
+}
+function renderGraficaCostos(){
 const ctxCostos = document.getElementById('chart-costos');
+if (!ctxCostos) return;
 const categorias = ['alimento','medicina','mantenimiento','mano_obra','otro'];
 const totales = categorias.map(c => estado.costos.filter(x => x.categoria === c && x.tipo !== 'ingreso').reduce((s,x)=>s+(x.monto||0),0));
 document.getElementById('vacio-chart-costos').classList.toggle('hidden', estado.costos.filter(x => x.tipo !== 'ingreso').length > 0);
@@ -14207,12 +14298,6 @@ type:'bar',
 data:{ labels:categorias, datasets:[{ label:'Monto', data:totales, backgroundColor:'#F97316' }] },
 options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
 });
-renderTimelineFechas();
-actualizarChartPotreros();
-actualizarChartGastosIngresos();
-actualizarChartEdades();
-actualizarChartBajas();
-actualizarChartPrenez();
 }
 function renderIndicadores(){
 const cont = document.getElementById('indicadores-clave');
