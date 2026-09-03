@@ -448,8 +448,8 @@ box-shadow:0 8px 18px -8px rgba(0,0,0,0.28); transition:transform .12s ease, box
 .tile-btn:hover{ transform:translateY(-2px); box-shadow:0 12px 22px -8px rgba(0,0,0,0.32); }
 .tile-btn:active{ transform:scale(0.97); }
 .tile-texto{
-position:relative; z-index:2; flex:1 1 auto; padding:1rem 1.2rem;
-padding-right:28%; color:#fff; font-weight:800; font-size:1rem; text-align:left; line-height:1.25;
+position:relative; z-index:2; flex:1 1 auto; padding:.55rem .8rem;
+padding-right:26%; color:#fff; font-weight:800; font-size:.88rem; text-align:left; line-height:1.2;
 }
 .tile-foto{
 position:absolute; right:0; top:0; bottom:0; width:38%;
@@ -11503,6 +11503,7 @@ establecerValor('f-raza', a.raza || '');
 establecerValor('f-sexo', a.sexo || 'hembra');
 establecerValor('f-fecha', a.fecha || '');
 establecerValor('f-estatus', a.estatus || 'activo');
+if (typeof toggleCamposBaja === 'function') toggleCamposBaja();
 establecerValor('f-proposito', a.proposito || 'reemplazo');
 if (a.proposito === 'engorda' && typeof toggleCamposEngorda === 'function') toggleCamposEngorda();
 establecerValor('f-engorda-dias', a.engordaDiasObjetivo || '');
@@ -11861,11 +11862,12 @@ if (letraActual === 'I') renderInventarioAlimento();
 if (letraActual === 'A' || subtabActual === 'registrar') renderFormularioModulo(letraActual);
 else renderListaModulo(letraActual);
 }
-function campo(id, label, tipo, opciones){
+function campo(id, label, tipo, opciones, onchange){
+const atrOnchange = onchange ? ` onchange="${onchange}"` : '';
 if (tipo === 'select'){
-return `<div><label class="campo-label">${label}</label><select id="${id}">${opciones.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
+return `<div><label class="campo-label">${label}</label><select id="${id}"${atrOnchange}>${opciones.map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
 }
-return `<div><label class="campo-label">${label}</label><input id="${id}" type="${tipo}"></div>`;
+return `<div><label class="campo-label">${label}</label><input id="${id}" type="${tipo}"${atrOnchange}></div>`;
 }
 function campoArete(id, label){
 return `<div>
@@ -11914,6 +11916,7 @@ if (el && datos[id]){ el.value = datos[id]; tieneAlgo = true; }
 });
 if (tieneAlgo){
 if (typeof toggleCamposEngorda === 'function') toggleCamposEngorda();
+if (typeof toggleCamposBaja === 'function') toggleCamposBaja();
 mostrarToast('Se restauraron los datos que habías empezado a llenar');
 }
 }
@@ -11941,7 +11944,12 @@ ${campo('f-sexo', tr('campo_f__sexo'),'select',['hembra','macho'])}
 </div>
 <div class="grid grid-cols-2 gap-3">
 ${campo('f-fecha', tr('campo_f__fecha_de_nacimiento'),'date')}
-${campo('f-estatus', tr('campo_f__estatus'),'select',['activo','engorda','gestante','lactando','vaquilla','semental'])}
+<div>
+<label class="campo-label">${tr('campo_f__estatus')}</label>
+<select id="f-estatus" onchange="toggleCamposBaja()">
+${['activo','engorda','gestante','lactando','vaquilla','semental','vendido','finado'].map(o=>`<option value="${o}">${o}</option>`).join('')}
+</select>
+</div>
 </div>
 <div>
 <label class="campo-label">${tr('render_modulos_f__proposito_del_animal')}</label>
@@ -11966,7 +11974,7 @@ ${campo('f-padre', tr('campo_f__padre_pajuela'),'text')}
 ${estado.potreros.map(p => `<option value="${p.nombre}">${p.nombre}</option>`).join('')}
 </select>
 </div>
-<div>
+<div id="grupo-motivobaja" class="hidden">
 <label class="campo-label">${tr('render_modulos_f__motivo_de_baja_solo_si')}</label>
 <input id="f-motivobaja" type="text" placeholder="${tr('render_modulos_f__ej_venta_enfermedad_robo')}">
 </div>
@@ -12040,8 +12048,8 @@ ${campo('f-diagnostico', tr('campo_f__diagnostico_de_gestacion'),'select',['sin_
 <div><label class="campo-label">${tr('render_modulos_f__fecha_probable_de_parto')}</label><input id="f-parto" type="date" onchange="autocalcularSecado()"></div>
 </div>
 <p class="text-xs -mt-2" style="color:var(--sage);"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>${tr('render_modulos_f__la_fecha_de_parto_se')}</p>
-${campo('f-parto-real', tr('campo_f__fecha_real_de_parto'),'date')}
-<div class="rounded-2xl p-3" style="background:var(--parchment);">
+${campo('f-parto-real', tr('campo_f__fecha_real_de_parto'),'date', null, 'actualizarVisibilidadCria()')}
+<div class="hidden rounded-2xl p-3" id="grupo-cria-nacida" style="background:var(--parchment);">
 <p class="text-xs font-bold mb-2" style="color:var(--pine);"><i class="fa-solid fa-cow"></i> Si ya nació, registra la cría (opcional)</p>
 <p class="text-xs mb-2" style="color:var(--sage);">Si llenas al menos el sexo, la cría se da de alta sola como animal nuevo del hato, ligada a esta madre.</p>
 <div class="grid grid-cols-2 gap-2">
@@ -12720,6 +12728,22 @@ function toggleCamposEngorda(){
 const esEngorda = valor('f-proposito') === 'engorda';
 document.getElementById('campos-engorda').classList.toggle('hidden', !esEngorda);
 document.getElementById('nota-engorda').classList.toggle('hidden', !esEngorda);
+}
+// El motivo de baja solo tiene sentido cuando el animal de verdad se está
+// dando de baja — mostrarlo siempre alargaba el formulario sin necesidad,
+// ya que el 99% de las veces que se usa esta pantalla es para dar de ALTA
+// un animal nuevo (estatus "activo"), no para darlo de baja.
+function toggleCamposBaja(){
+const esBaja = valor('f-estatus') === 'vendido' || valor('f-estatus') === 'finado';
+const grupo = document.getElementById('grupo-motivobaja');
+if (grupo) grupo.classList.toggle('hidden', !esBaja);
+}
+// El bloque para registrar la cría solo tiene caso si ya se puso la fecha
+// real de parto (osea que ya nació de verdad) — antes se mostraba siempre,
+// aunque el parto todavía ni ocurriera.
+function actualizarVisibilidadCria(){
+const grupo = document.getElementById('grupo-cria-nacida');
+if (grupo) grupo.classList.toggle('hidden', !valor('f-parto-real'));
 }
 function revisarResumenSemanal(){
 const hoy = new Date();
