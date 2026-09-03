@@ -606,10 +606,10 @@ input:focus, button:focus, select:focus, textarea:focus{
 outline:3px solid var(--yellow); outline-offset:2px;
 }
 input, select, textarea{
-width:100%; border-radius:12px; padding:.5rem .8rem; font-size:.95rem;
+width:100%; border-radius:10px; padding:8px; font-size:.95rem;
 border:2px solid var(--line); background:#fff;
 }
-label.campo-label{ display:block; font-size:.78rem; font-weight:700; margin-bottom:.2rem; color:var(--ink); }
+label.campo-label{ display:block; font-size:.75rem; font-weight:700; margin-bottom:.2rem; color:var(--ink); }
 input.campo-mayusculas, textarea.campo-mayusculas{ text-transform:uppercase; }
 input.campo-mayusculas::placeholder, textarea.campo-mayusculas::placeholder{ text-transform:none; }
 .grupo-campo{ position:relative; }
@@ -1264,7 +1264,11 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <i class="fa-solid fa-pen mr-1"></i>Editar
 </button>
 </div>
-<div class="grid grid-cols-2 gap-y-4 gap-x-3 text-sm" id="resumen-productor"></div>
+<div class="grid grid-cols-2 gap-y-3 gap-x-3 text-sm" id="resumen-productor"></div>
+<button class="w-full text-xs font-bold py-2 mt-3 rounded-full" id="btn-ver-mas-datos-productor" onclick="toggleDatosProductorExtra()" style="background:var(--parchment); color:var(--pine); border:2px solid var(--line);">
+<i class="fa-solid fa-chevron-down mr-1"></i>Ver más datos
+</button>
+<div class="hidden grid grid-cols-2 gap-y-3 gap-x-3 text-sm mt-3" id="resumen-productor-extra"></div>
 </div>
 <div class="bg-white rounded-3xl p-5" style="border:2px solid var(--line);">
 <h3 class="font-display font-bold mb-3">Resumen de mi inventario</h3>
@@ -1923,6 +1927,20 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <span class="icono"><i class="fa-solid fa-grip"></i></span>
 <span data-i18n="inicio_productor__mas_funciones">Más funciones</span>
 </button>
+<button class="tile-row w-full" id="btn-modo-demo-admin" onclick="irAdmin('modo-demo')" style="background:linear-gradient(155deg, #7C3AED, #5B21B6);">
+<span class="icono"><i class="fa-solid fa-flask"></i></span>
+<span>Modo de prueba rápida</span>
+</button>
+</div>
+<!-- ---------- MODO DEMO (probar cualquier rol sin cuenta real) ---------- -->
+<div class="screen px-5 py-6 space-y-4" id="screen-admin-modo-demo">
+<button class="btn-volver" onclick="volverAtrasAdmin('home')"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="volver">Volver</span></button>
+<h2 class="font-display text-2xl font-bold"><i class="fa-solid fa-flask"></i> Modo de prueba rápida</h2>
+<p class="text-sm" style="color:var(--sage);">Ve cualquier rol al instante, con datos de ejemplo — nunca toca cuentas reales ni gasta lecturas de Firestore. Para salir, usa el botón morado que aparece arriba.</p>
+<button class="w-full btn-primario-plano" onclick="activarModoDemo('lechero')" style="background:var(--blue);"><i class="fa-solid fa-jug-detergent"></i> Ver como Lechero (demo)</button>
+<button class="w-full btn-primario-plano" onclick="activarModoDemo('carne')" style="background:var(--red);"><i class="fa-solid fa-drumstick-bite"></i> Ver como Carne (demo)</button>
+<button class="w-full btn-primario-plano" onclick="activarModoDemo('veterinario')" style="background:var(--green);"><i class="fa-solid fa-user-doctor"></i> Ver como Veterinario (demo)</button>
+<button class="w-full btn-primario-plano" onclick="activarModoDemo('comite')" style="background:var(--orange);"><i class="fa-solid fa-building-shield"></i> Ver como Comité (demo)</button>
 </div>
 <!-- ---------- MAS (ADMIN) ---------- -->
 <div class="screen px-5 py-6 space-y-5" id="screen-admin-mas">
@@ -3485,6 +3503,14 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <!-- ============================================================ -->
 <!-- ============ FAB GLOBAL: COMANDOS DE VOZ ============ -->
 <!-- ============================================================ -->
+<!-- ---------- AVISO FIJO DE MODO DEMO ---------- -->
+<!-- Siempre por encima de todo (hasta de los modales) para que nunca se te
+     olvide que estás viendo datos de ejemplo, no una cuenta real. -->
+<div class="hidden" id="banner-modo-demo" style="position:fixed; top:0; left:0; right:0; z-index:9999; background:#7C3AED; color:#fff; padding:8px 14px; display:flex; align-items:center; gap:8px; font-size:.78rem; font-weight:700; box-shadow:0 4px 10px rgba(0,0,0,0.25);">
+<i class="fa-solid fa-flask"></i>
+<span id="banner-modo-demo-texto" style="flex:1;">Modo demo</span>
+<button onclick="salirModoDemo()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; font-weight:700; padding:5px 12px; border-radius:999px; font-size:.72rem;">Salir</button>
+</div>
 <button aria-label="Comando de voz — mantén presionado mientras hablas, suelta cuando termines" class="hidden" id="fab-comando-voz" onmousedown="iniciarEscuchaContinua()" onmouseup="detenerEscuchaContinua()" onmouseleave="detenerEscuchaContinua()" ontouchstart="event.preventDefault(); iniciarEscuchaContinua();" ontouchend="event.preventDefault(); detenerEscuchaContinua();" ontouchcancel="detenerEscuchaContinua()" style="position:fixed; left:16px; bottom:78px; z-index:110; width:58px; height:58px; border-radius:999px; background:var(--pine); color:#fff; border:none; box-shadow:0 6px 18px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; font-size:1.3rem; transition:background .2s ease, transform .15s ease; touch-action:none;">
 <span id="fab-voz-anillo" style="position:absolute; inset:-6px; border-radius:999px; border:3px solid var(--red); opacity:0; pointer-events:none;"></span>
 <span id="fab-voz-etiqueta" style="position:absolute; left:66px; bottom:8px; white-space:nowrap; background:var(--ink); color:#fff; font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:999px; box-shadow:0 3px 10px rgba(0,0,0,0.25); pointer-events:none; opacity:0; transform:translateX(-6px); transition:opacity .18s ease, transform .18s ease;">Toca y habla</span>
@@ -7921,6 +7947,9 @@ cuentasProductores: [],
 // navegar y escribirle a cualquiera — primero tiene que encontrarlo entre
 // sus contactos reales.
 contactosVerificadosChat: [],
+// Cuando está en true, la app está mostrando una vista de ejemplo (modo
+// demo) — ningún guardado real se dispara mientras esto sea true.
+modoDemoActivo: false,
 // Última copia guardada del inventario de animales de cada productor, tomada
 // la última vez que hubo señal — para que la búsqueda de arete en pruebas de
 // campo (TB/Brucelosis) siga funcionando aunque el médico entre sin conexión.
@@ -8378,7 +8407,103 @@ const operador = estado.operadoresQueseria.find(o => (o.usuario || '').toLowerCa
 if (operador) return operador.nombre || usuario;
 return usuario;
 }
+// ============================================================
+// ===== MODO DEMO — probar cualquier rol al instante, sin cuentas reales =====
+// ============================================================
+// Resuelve el problema real de perder tiempo dando de alta una cuenta de
+// cada rol solo para revisar que las pantallas se vean bien después de subir
+// un cambio. Reutiliza las pantallas y funciones de SIEMPRE, solo que con
+// datos de ejemplo — nunca lee ni escribe ninguna cuenta real, y nunca
+// guarda nada (los 2 resguardos de arriba, en guardarEstadoLocal y
+// sincronizarConFirebase, se encargan de eso).
+const DATOS_DEMO_POR_ROL = {
+lechero: {
+tipoGanado: 'leche',
+productor: { nombre: 'Productor Demo (Lechera)', predio: 'Rancho Demo Lechero', upp: '00-000-0000-000', municipio: 'Municipio Demo', estado: 'Estado Demo', telefono: '5550000000', correo: 'demo@ejemplo.com', curp: '', rfc: '', actualizacionUPP: '', folio: '', vencimientoFierro: '', ejido: '', actividad: 'Ganadería lechera', latitudUPP: null, longitudUPP: null },
+animales: [
+{ arete:'DEMO001', nombre:'Vaca demo 1', raza:'Holstein', sexo:'Hembra', fecha:'2021-03-10', estatus:'Activo', potrero:'Potrero Demo', proposito:'', madre:'', padre:'', motivoBaja:'', foto:null, engordaFinalizado:false },
+{ arete:'DEMO002', nombre:'Vaca demo 2', raza:'Jersey', sexo:'Hembra', fecha:'2022-06-15', estatus:'Activo', potrero:'Potrero Demo', proposito:'', madre:'', padre:'', motivoBaja:'', foto:null, engordaFinalizado:false },
+{ arete:'DEMO003', nombre:'Becerra demo', raza:'Holstein', sexo:'Hembra', fecha:'2024-01-05', estatus:'Activo', potrero:'Potrero Demo', proposito:'reemplazo', madre:'DEMO001', padre:'', motivoBaja:'', foto:null, engordaFinalizado:false },
+],
+potreros: [{ nombre:'Potrero Demo', capacidad:20, color:'#5C6B55', poligono:null, hectareas:8 }],
+produccionLeche: [{ animal:'DEMO001', fecha: hoyISO(), ordenador:'', litrosAM:12, litrosPM:11, total:23, grasa:'', proteina:'', celulas:'', notas:'' }],
+salud: [], pesajes: [], reproduccion: [], costos: [], bodega: [], tareas: [], trabajadores: [], movimientosAnimal: [],
+},
+carne: {
+tipoGanado: 'carne',
+productor: { nombre: 'Productor Demo (Carne)', predio: 'Rancho Demo Carne', upp: '00-000-0000-001', municipio: 'Municipio Demo', estado: 'Estado Demo', telefono: '5550000001', correo: 'demo@ejemplo.com', curp: '', rfc: '', actualizacionUPP: '', folio: '', vencimientoFierro: '', ejido: '', actividad: 'Ganadería de carne', latitudUPP: null, longitudUPP: null },
+animales: [
+{ arete:'DEMO101', nombre:'Toro demo', raza:'Brahman', sexo:'Macho', fecha:'2020-02-01', estatus:'Semental', potrero:'Potrero Demo', proposito:'', madre:'', padre:'', motivoBaja:'', foto:null, engordaFinalizado:false },
+{ arete:'DEMO102', nombre:'Novillo demo', raza:'Charolais', sexo:'Macho', fecha:'2023-08-20', estatus:'Engorda', potrero:'Potrero Demo', proposito:'engorda', engordaDiasObjetivo:180, engordaPesoMeta:450, madre:'', padre:'', motivoBaja:'', foto:null, engordaFinalizado:false },
+{ arete:'DEMO103', nombre:'Vaquilla demo', raza:'Angus', sexo:'Hembra', fecha:'2022-11-11', estatus:'Vaquilla', potrero:'Potrero Demo', proposito:'', madre:'', padre:'', motivoBaja:'', foto:null, engordaFinalizado:false },
+],
+potreros: [{ nombre:'Potrero Demo', capacidad:30, color:'#5C6B55', poligono:null, hectareas:15 }],
+pesajes: [{ animal:'DEMO102', fecha: hoyISO(), peso:380, lote:'', condicionCorporal:3 }],
+salud: [], reproduccion: [], costos: [], bodega: [], tareas: [], trabajadores: [], movimientosAnimal: [], produccionLeche: [],
+},
+veterinario: {
+modoVeterinario: true, modoComite: false,
+cuentasProductores: [
+{ id:'demo_prod_1', nombre:'Productor Demo Uno', predio:'Rancho Uno Demo', upp:'00-000-0000-002', tipo:'carne', animales:[], salud:[], pesajes:[], reproduccion:[] },
+{ id:'demo_prod_2', nombre:'Productor Demo Dos', predio:'Rancho Dos Demo', upp:'00-000-0000-003', tipo:'leche', animales:[], salud:[], pesajes:[], reproduccion:[] },
+],
+solicitudesRegistro: [], solicitudesPago: [], solicitudesTransferencia: [], avisosReactoresTB: [], resumenMensajes: {},
+},
+comite: {
+modoComite: true, modoVeterinario: false,
+cuentasProductores: [
+{ id:'demo_prod_1', nombre:'Productor Demo Uno', predio:'Rancho Uno Demo', upp:'00-000-0000-002', tipo:'carne', animales:[], salud:[{ animal:'X', estadoCEFPP:'enviado' }], pesajes:[], reproduccion:[] },
+],
+avisosReactoresTB: [{ id:'demo_1', animal:'DEMO201', estatus:'pendiente', fecha: hoyISO() }],
+solicitudesRegistro: [], solicitudesPago: [], solicitudesTransferencia: [], resumenMensajes: {},
+},
+};
+let respaldoEstadoAntesDeDemo = null;
+function activarModoDemo(tipoDemo){
+const demo = DATOS_DEMO_POR_ROL[tipoDemo];
+if (!demo) return;
+// Se guarda el estado real completo, tal cual, para regresar exactamente
+// a como estaba — nada se pierde ni se mezcla con lo de ejemplo.
+respaldoEstadoAntesDeDemo = JSON.stringify(estado);
+Object.assign(estado, JSON.parse(JSON.stringify(demo)));
+estado.modoDemoActivo = true;
+const bannerDemo = document.getElementById('banner-modo-demo');
+if (bannerDemo){
+bannerDemo.classList.remove('hidden');
+document.getElementById('banner-modo-demo-texto').textContent = `Viendo modo ${tipoDemo.toUpperCase()} de ejemplo — nada de esto es real`;
+}
+if (tipoDemo === 'lechero' || tipoDemo === 'carne'){
+document.getElementById('app-admin').classList.add('hidden');
+document.getElementById('app-productor').classList.remove('hidden');
+if (typeof renderTodoProductor === 'function') renderTodoProductor();
+irA('home');
+} else {
+document.getElementById('app-productor').classList.add('hidden');
+document.getElementById('app-admin').classList.remove('hidden');
+if (typeof renderTodoAdmin === 'function') renderTodoAdmin();
+if (typeof irAdmin === 'function') irAdmin('home');
+}
+}
+function salirModoDemo(){
+if (!respaldoEstadoAntesDeDemo) return;
+const real = JSON.parse(respaldoEstadoAntesDeDemo);
+Object.keys(estado).forEach(k => delete estado[k]);
+Object.assign(estado, real);
+respaldoEstadoAntesDeDemo = null;
+const bannerDemo = document.getElementById('banner-modo-demo');
+if (bannerDemo) bannerDemo.classList.add('hidden');
+document.getElementById('app-productor').classList.add('hidden');
+document.getElementById('app-admin').classList.remove('hidden');
+if (typeof renderTodoAdmin === 'function') renderTodoAdmin();
+if (typeof irAdmin === 'function') irAdmin('home');
+mostrarToast('Modo demo cerrado — de vuelta en tu cuenta real');
+}
 function guardarEstadoLocal(){
+// Mientras el modo demo esté activo, nada se guarda de verdad — ni en este
+// celular ni en Firestore. Es la protección más importante de todo el modo
+// demo: si esto fallara, se podría sobreescribir la cuenta real del admin
+// con datos de ejemplo.
+if (estado.modoDemoActivo) return;
 if (guardadoLocalPendiente) clearTimeout(guardadoLocalPendiente);
 guardadoLocalPendiente = setTimeout(() => {
 // Se libera la bandera ANTES de hacer nada más: esta variable solo debe
@@ -8436,6 +8561,10 @@ badge.classList.toggle('hidden', n === 0);
 badge.textContent = n;
 }
 async function sincronizarConFirebase(){
+// Segunda capa de protección del modo demo — aunque algo llegara a llamar
+// esta función mientras se ve una vista de ejemplo, nunca debe tocar
+// Firestore de verdad.
+if (estado.modoDemoActivo) return;
 if (!window.firebaseListo || typeof window.firebaseGuardarGlobal !== 'function') return;
 if (!navigator.onLine) return;
 sincronizandoConFirebase = true;
@@ -10476,6 +10605,23 @@ doc.save('recepcion-de-leche.pdf');
 mostrarToast(tr('exportacion_pie_pagina__pdf_exportado'));
 }
 // ---------- Dictado por voz (reutilizable en cualquier módulo) ----------
+// Palabras dictadas que se convierten en signos de puntuación o acciones,
+// en vez de escribirse tal cual — igual que el dictado de WhatsApp.
+const COMANDOS_PUNTUACION_DICTADO = [
+{ frase: /\bcoma\b/gi, valor: ',' },
+{ frase: /\bpunto y coma\b/gi, valor: ';' },
+{ frase: /\bdos puntos\b/gi, valor: ':' },
+{ frase: /\bpunto\b/gi, valor: '.' },
+{ frase: /\bsigno de interrogaci[oó]n\b/gi, valor: '?' },
+{ frase: /\bnueva l[ií]nea\b/gi, valor: '\n' },
+{ frase: /\bguion\b/gi, valor: '-' },
+];
+function aplicarPuntuacionDictado(texto){
+let resultado = texto;
+COMANDOS_PUNTUACION_DICTADO.forEach(c => { resultado = resultado.replace(c.frase, c.valor); });
+// Limpia espacios que quedan antes de un signo de puntuación (ej. "hola ,").
+return resultado.replace(/\s+([.,;:?])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+}
 function activarDictadoVoz(idCampo){
 const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!Reconocimiento){ mostrarToast(tr('queseria__dictado_por_voz_no_disponible')); return; }
@@ -10483,12 +10629,27 @@ const campo = document.getElementById(idCampo);
 if (!campo) return;
 const reconocimiento = new Reconocimiento();
 reconocimiento.lang = idiomaActual === 'en' ? 'en-US' : idiomaActual === 'de' ? 'de-DE' : 'es-MX';
-reconocimiento.interimResults = false;
+reconocimiento.continuous = true;
+reconocimiento.interimResults = true;
 reconocimiento.maxAlternatives = 1;
 mostrarToast(tr('queseria__escuchando'));
+let vozFinalAcumulada = '';
 reconocimiento.onresult = e => {
-const texto = e.results[0][0].transcript;
-campo.value = campo.type === 'number' ? (texto.match(/[\d.,]+/) || [''])[0].replace(',', '.') : texto;
+let interino = '';
+for (let i = e.resultIndex; i < e.results.length; i++){
+const texto = e.results[i][0].transcript;
+if (e.results[i].isFinal){
+const textoLimpio = texto.toLowerCase().trim();
+// "Borrar todo" limpia el campo entero en vez de escribirse — se revisa
+// aquí, antes de acumularlo, para que nunca quede como texto literal.
+if (/\bborra(r)? todo\b/.test(textoLimpio)){ vozFinalAcumulada = ''; campo.value = ''; campo.dispatchEvent(new Event('input')); continue; }
+vozFinalAcumulada += (vozFinalAcumulada ? ' ' : '') + texto;
+} else {
+interino = texto;
+}
+}
+const combinado = aplicarPuntuacionDictado((vozFinalAcumulada + ' ' + interino).trim());
+campo.value = campo.type === 'number' ? (combinado.match(/[\d.,]+/) || [''])[0].replace(',', '.') : combinado;
 campo.dispatchEvent(new Event('input'));
 };
 reconocimiento.onerror = () => { mostrarToast(tr('queseria__dictado_por_voz_no_disponible')); };
@@ -11119,30 +11280,47 @@ cont.innerHTML = `
 }
 function renderResumenProductor(){
 const cont = document.getElementById('resumen-productor');
+const contExtra = document.getElementById('resumen-productor-extra');
 const p = estado.productor;
 const activos = estado.animales.filter(a => a.estatus !== 'vendido' && a.estatus !== 'finado').length;
-const campos = [
+// Solo lo esencial se ve de entrada (nombre, predio, UPP, animales) — el
+// resto (fechas de vigencia, ubicación, CURP, etc.) se queda detrás de
+// "Ver más datos", para que esta pantalla no sea puro scroll de algo que
+// casi nadie necesita ver a cada rato.
+const camposPrincipales = [
 ['nombre','Nombre', p.nombre],
-['predio','Nombre del predio', p.predio],
+['predio','Predio', p.predio],
 ['upp','UPP', p.upp],
-['actualizacionUPP','Última actualización UPP', p.actualizacionUPP],
-['folio','Folio fierro de herrar', p.folio],
-['vencimientoFierro','Vencimiento credencial fierro', p.vencimientoFierro],
-['estado','Estado', p.estado],
-['municipio','Municipio', p.municipio],
-['ejido','Ejido / parcela', p.ejido],
-['curp','CURP', p.curp],
-['actividad','Actividad pecuaria', p.actividad],
 ['animales', tr('render_home_productor__animales_activos'), activos + ' cabezas'],
 ];
-cont.innerHTML = campos
-.filter(([clave]) => estado.camposProductor[clave])
-.map(([clave, etiqueta, valor]) => `
+const camposExtra = [
+['actualizacionUPP','Act. UPP', p.actualizacionUPP],
+['folio','Folio fierro', p.folio],
+['vencimientoFierro','Vence fierro', p.vencimientoFierro],
+['estado','Estado', p.estado],
+['municipio','Municipio', p.municipio],
+['ejido','Ejido/parcela', p.ejido],
+['curp','CURP', p.curp],
+['actividad','Actividad', p.actividad],
+];
+const pintarCampo = ([clave, etiqueta, valor]) => `
 <div>
 <p style="color:var(--sage);">${etiqueta}</p>
 <p class="font-bold text-base">${valor && valor !== '0 cabezas' ? valor : (clave==='animales' ? valor : '<span style="color:var(--line);">Sin datos</span>')}</p>
-</div>`).join('');
+</div>`;
+if (cont) cont.innerHTML = camposPrincipales.filter(([clave]) => estado.camposProductor[clave]).map(pintarCampo).join('');
+if (contExtra) contExtra.innerHTML = camposExtra.filter(([clave]) => estado.camposProductor[clave]).map(pintarCampo).join('');
 renderResumenConteosInventarioProductor();
+}
+function toggleDatosProductorExtra(){
+const cont = document.getElementById('resumen-productor-extra');
+const boton = document.getElementById('btn-ver-mas-datos-productor');
+if (!cont || !boton) return;
+const abrir = cont.classList.contains('hidden');
+cont.classList.toggle('hidden', !abrir);
+boton.innerHTML = abrir
+? '<i class="fa-solid fa-chevron-up mr-1"></i>Ver menos'
+: '<i class="fa-solid fa-chevron-down mr-1"></i>Ver más datos';
 }
 function saludoSegunHora(){
 const hora = new Date().getHours();
@@ -11941,16 +12119,16 @@ const cuerpo = document.getElementById('modulo-cuerpo');
 let camposHtml = '', accion = '', colorBtn = MODULOS[letra].color;
 if (letra === 'A'){
 camposHtml = `
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campoArete('f-arete', tr('campo_f__arete_siniiga'))}
 ${campo('f-chip', tr('campo_f__arete_campana_chip'),'text')}
 </div>
 ${campo('f-nombre', tr('campo_f__nombre_o_alias'),'text')}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-raza', tr('campo_f__raza'),'text')}
 ${campo('f-sexo', tr('campo_f__sexo'),'select',['hembra','macho'])}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha_de_nacimiento'),'date')}
 <div>
 <label class="campo-label">${tr('campo_f__estatus')}</label>
@@ -11966,12 +12144,12 @@ ${['activo','engorda','gestante','lactando','vaquilla','semental','vendido','fin
 <option value="engorda">${tr('render_modulos_f__engorda_venta')}</option>
 </select>
 </div>
-<div id="campos-engorda" class="hidden grid grid-cols-2 gap-3">
+<div id="campos-engorda" class="hidden grid grid-cols-2 gap-2">
 <div><label class="campo-label">${tr('render_modulos_f__dias_objetivo_de_engorda')}</label><input id="f-engorda-dias" type="number" placeholder="${tr('render_modulos_f__ej_120')}"></div>
 <div><label class="campo-label">${tr('render_modulos_f__peso_meta_kg_opcional')}</label><input id="f-engorda-peso-meta" type="number"></div>
 </div>
 <p id="nota-engorda" class="hidden text-xs -mt-2" style="color:var(--sage);"><i class="fa-solid fa-stopwatch mr-1"></i>${tr('render_modulos_f__los_dias_correran_de_forma')}</p>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-madre', tr('campo_f__madre_arete_nombre'),'text')}
 ${campo('f-padre', tr('campo_f__padre_pajuela'),'text')}
 </div>
@@ -12007,16 +12185,16 @@ ${estado.potreros.map(p => `<option value="${p.nombre}">${p.nombre} (${estado.an
 </select>
 <p class="text-xs mt-1" style="color:var(--sage);">${tr('render_modulos_f__se_creara_un_registro_para')}</p>
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-tipo', tr('campo_f__tipo'),'select',['vacuna','vacuna_brucelosis_obligatoria','vacuna_tuberculosis_obligatoria','desparasitacion','tratamiento','diagnostico','revision','enfermedad','muerte_subita','sospecha_exotica','mastitis_clinica','mastitis_subclinica','diarrea_becerro','problema_respiratorio_becerro','onfalitis_ombligo'])}
 ${campo('f-producto', tr('campo_f__producto_diagnostico'),'text')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha_de_aplicacion'),'date')}
 ${campo('f-proxima', tr('campo_f__proxima_dosis'),'date')}
 </div>
 ${estado.tipoGanado === 'leche' ? `
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-cuarto-mastitis', tr('campo_f__cuarto_afectado_mastitis'),'select',['no_aplica','delantero_izq','delantero_der','trasero_izq','trasero_der'])}
 ${campo('f-cmt', tr('campo_f__resultado_cmt'),'select',['no_aplica','negativo','trazas','+1','+2','+3'])}
 </div>
@@ -12027,7 +12205,7 @@ ${campo('f-cmt', tr('campo_f__resultado_cmt'),'select',['no_aplica','negativo','
 </div>` : ''}
 <div>
 <label class="campo-label">${tr('render_modulos_f__insumo_de_bodega_usado_opcional')}</label>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 <select id="f-insumo-bodega">
 <option value="">${tr('render_modulos_f__sin_descontar_de_bodega')}</option>
 ${estado.bodega.map(i => `<option value="${i.id}">${i.producto} (${i.cantidad} ${i.unidad})</option>`).join('')}
@@ -12041,7 +12219,7 @@ accion = 'guardarSalud()';
 } else if (letra === 'C'){
 camposHtml = `
 ${campoArete('f-vaca', tr('campo_f__vaca_arete_o_nombre'))}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-servicio', tr('campo_f__tipo_de_servicio'),'select',['monta_directa','inseminacion_artificial'])}
 <div><label class="campo-label">${tr('render_modulos_f__fecha_de_servicio_monta')}</label><input id="f-fecha" type="date" onchange="autocalcularParto()"></div>
 </div>
@@ -12051,7 +12229,7 @@ ${campo('f-servicio', tr('campo_f__tipo_de_servicio'),'select',['monta_directa',
 <datalist id="lista-sementales-datalist">${estado.sementales.map(s => `<option value="${s.nombre}">${s.dosisDisponibles} dosis disponibles</option>`).join('')}</datalist>
 <button class="text-xs font-bold mt-1" onclick="abrirCatalogoSementales()" style="color:var(--pine);" type="button"><i class="fa-solid fa-list"></i> Catálogo de sementales/pajillas</button>
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-diagnostico', tr('campo_f__diagnostico_de_gestacion'),'select',['sin_diagnostico','confirmada','no_confirmada'])}
 <div><label class="campo-label">${tr('render_modulos_f__fecha_probable_de_parto')}</label><input id="f-parto" type="date" onchange="autocalcularSecado()"></div>
 </div>
@@ -12067,11 +12245,11 @@ ${campo('f-cria-sexo', 'Sexo de la cría','select',['hembra','macho'])}
 <div class="mt-2"><label class="campo-label">Peso al nacer (kg, opcional)</label><input id="f-cria-peso" min="0" step="0.5" type="number"></div>
 </div>
 ${estado.tipoGanado === 'leche' ? `
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 <div><label class="campo-label">${tr('campo_f__fecha_programada_secado')}</label><input id="f-secado" type="date"></div>
 </div>
 <p class="text-xs -mt-2" style="color:var(--sage);"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>${tr('campo_f__secado_se_calcula_solo')}</p>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 <div><label class="campo-label">${tr('campo_f__fecha_cierre_lactancia')}</label><input id="f-cierre-lactancia" type="date" onchange="autocalcularFinSecado()"></div>
 <div><label class="campo-label">${tr('campo_f__fin_periodo_seco')}</label><input id="f-fin-periodo-seco" type="date"></div>
 </div>
@@ -12080,7 +12258,7 @@ accion = 'guardarReproduccion()';
 } else if (letra === 'D'){
 camposHtml = `
 ${campoArete('f-animal', tr('campo_f__animal_arete_o_nombre'))}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha_de_pesaje'),'date')}
 ${campo('f-peso', tr('campo_f__peso_kg'),'number')}
 </div>
@@ -12090,7 +12268,7 @@ accion = 'guardarPesaje()';
 } else if (letra === 'E'){
 camposHtml = `
 ${campo('f-nombre', tr('campo_f__nombre_del_potrero'),'text')}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-capacidad', tr('campo_f__capacidad_animal'),'number')}
 <div><label class="campo-label">${tr('render_modulos_f__color_de_etiqueta')}</label><input id="f-color" type="color" value="#3C6B4F"></div>
 </div>
@@ -12105,21 +12283,21 @@ ${campo('f-capacidad', tr('campo_f__capacidad_animal'),'number')}
 <p class="text-xs mt-1" style="color:var(--sage);">${tr('render_modulos_f__usa_el_icono_de_poligono')}</p>
 <button type="button" onclick="activarGoogleMapsPotrero()" id="btn-google-maps-potrero" class="text-xs font-bold mt-2" style="color:var(--pine);"><i class="fa-brands fa-google mr-1"></i>${tr('render_modulos_f__usar_google_maps_mas_detalle')}</button>
 </div>
-<div id="mapa-potrero-resumen" class="hidden grid grid-cols-2 gap-3 text-sm">
+<div id="mapa-potrero-resumen" class="hidden grid grid-cols-2 gap-2 text-sm">
 <div><span class="campo-label">${tr('campo_f__hectareas')}</span><p class="font-bold" id="mapa-potrero-hectareas">—</p></div>
 <div><span class="campo-label">${tr('render_modulos_f__ubicacion_central')}</span><p class="font-bold" id="mapa-potrero-centro">—</p></div>
 </div>`;
 accion = 'guardarPotrero()';
 } else if (letra === 'F'){
 camposHtml = `
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-tipo-mov', tr('campo_f__tipo_de_movimiento'),'select',['gasto','ingreso'])}
 ${campo('f-monto', tr('campo_f__monto'),'number')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-categoria', tr('campo_f__categoria'),'select',['alimento','medicina','mantenimiento','mano_obra','venta_animal','otro'])}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha'),'date')}
 ${campo('f-imputar', tr('campo_f__imputar_a'),'text')}
 </div>
@@ -12134,15 +12312,15 @@ accion = 'guardarCosto()';
 } else if (letra === 'G'){
 camposHtml = `
 ${campoArete('f-animal', tr('campo_f__vaca_arete_o_nombre'))}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha_de_ordena'),'date')}
 ${campo('f-ordenador', tr('campo_f__quien_ordeno'),'text')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-litros-am', tr('campo_f__litros_ordena_am'),'number')}
 ${campo('f-litros-pm', tr('campo_f__litros_ordena_pm'),'number')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-grasa', tr('campo_f__grasa_opcional'),'number')}
 ${campo('f-celulas', tr('campo_f__celulas_somaticas_opcional'),'number')}
 </div>
@@ -12151,19 +12329,19 @@ ${campo('f-notas', tr('campo_f__notas'),'text')}`;
 accion = 'guardarLeche()';
 } else if (letra === 'H'){
 camposHtml = `
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha'),'date')}
 ${campo('f-litros-acopiados', tr('campo_f__litros_acopiados_tanque'),'number')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-temperatura', tr('campo_f__temperatura_tanque'),'number')}
 ${campo('f-recolectado', tr('campo_f__ya_paso_recolector'),'select',['si','no'])}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-comprador', tr('campo_f__comprador_pasteurizadora'),'text')}
 ${campo('f-precio-litro', tr('campo_f__precio_pagado_litro'),'number')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-bonos', tr('campo_f__bonos_calidad'),'number')}
 ${campo('f-descuentos', tr('campo_f__descuentos_calidad'),'number')}
 </div>
@@ -12172,11 +12350,11 @@ accion = 'guardarTanque()';
 } else if (letra === 'I'){
 camposHtml = `
 ${campoArete('f-animal', tr('campo_f__vaca_arete_o_nombre_lote'))}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha'),'date')}
 ${campo('f-etapa', tr('campo_f__etapa_de_lactancia'),'select',['inicio','pico','media','seca'])}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-racion', tr('campo_f__tipo_de_racion'),'text')}
 ${campo('f-kg-concentrado', tr('campo_f__kg_concentrado_dia'),'number')}
 </div>
@@ -12185,19 +12363,19 @@ accion = 'guardarAlimentacionLeche()';
 } else if (letra === 'J'){
 camposHtml = `
 ${campoArete('f-animal', tr('campo_f__becerro_arete_o_nombre'))}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha', tr('campo_f__fecha_de_nacimiento'),'date')}
 ${campo('f-peso-nacer', tr('campo_f__peso_al_nacer_kg'),'number')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-litros-calostro', tr('campo_f__litros_calostro_dados'),'number')}
 ${campo('f-horas-calostro', tr('campo_f__horas_despues_del_parto'),'number')}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-alojamiento', tr('campo_f__tipo_de_alojamiento'),'select',['cunero_individual','corral_grupo'])}
 ${campo('f-alimentacion', tr('campo_f__alimentacion_actual'),'select',['calostro','leche_sustituto','iniciador_solido','pastoreo'])}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-fecha-destete', tr('campo_f__fecha_de_destete'),'date')}
 ${campo('f-peso-destete', tr('campo_f__peso_al_destete_kg'),'number')}
 </div>
@@ -12207,11 +12385,11 @@ accion = 'guardarBecerro()';
 camposHtml = `
 <div id="alertas-bodega" class="space-y-2"></div>
 ${campo('f-producto', tr('campo_f__nombre_del_insumo'),'text')}
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-categoria', tr('campo_f__categoria'),'select',['alimento','sal_mineral','vacuna','medicamento','desparasitante','otro'])}
 ${campo('f-unidad', tr('campo_f__unidad'),'select',['kg','litro','saco','dosis','pieza'])}
 </div>
-<div class="grid grid-cols-2 gap-3">
+<div class="grid grid-cols-2 gap-2">
 ${campo('f-cantidad', tr('campo_f__cantidad_comprada'),'number')}
 ${campo('f-costo', tr('campo_f__costo_total'),'number')}
 </div>
@@ -14438,6 +14616,8 @@ const btnMetricas = document.getElementById('btn-metricas-admin');
 if (btnMetricas) btnMetricas.classList.toggle('hidden', !esAdminCompleto);
 const btnMas = document.getElementById('btn-mas-admin');
 if (btnMas) btnMas.classList.toggle('hidden', !esAdminCompleto);
+const btnModoDemo = document.getElementById('btn-modo-demo-admin');
+if (btnModoDemo) btnModoDemo.classList.toggle('hidden', !esAdminCompleto);
 if (estado.modoComite){
 const pendTB = (estado.avisosReactoresTB || []).filter(a => a.estatus === 'pendiente').length;
 const pendCEFPP = estado.salud.filter(r => r.estadoCEFPP && r.estadoCEFPP !== 'enviado').length;
@@ -21732,6 +21912,11 @@ if (reconocimientoVozActivo) return; // ya se está grabando, no abrir dos veces
 if (!reinicioAutomatico) vozAcumuladaContinua = '';
 const rec = new SR();
 rec.lang = CONFIG_VOZ.idiomaReconocimiento;
+// Le pasamos las palabras del rancho de antemano — ayuda a que el propio
+// reconocedor las entienda bien desde el inicio, no solo a corregirlas
+// después de transcribirlas mal.
+const gramaticaRancho = construirGramaticaVozRancho();
+if (gramaticaRancho) rec.grammars = gramaticaRancho;
 rec.continuous = true; // no se corta solo por una pausa — sigue escuchando hasta que se suelte el botón
 rec.interimResults = true; // muestra en pantalla lo que se va escuchando, no solo hasta que se suelte el botón
 rec.maxAlternatives = 1;
@@ -21991,9 +22176,33 @@ const numeros = texto.match(/\d+/g) || [];
 const arete = numeros.find(n => n !== (litrosMatch ? litrosMatch[1] : null)) || null;
 const esTarde = /\btarde\b/i.test(texto);
 const esManana = /\bma[ñn]ana\b/i.test(texto);
-return { arete, litros, turno: esTarde ? 'PM' : (esManana ? 'AM' : null) };
+return { arete, litros, turno: esTarde ? 'PM' : (esManana ? 'AM' : null), fecha: interpretarFechaRelativaVoz(texto) };
 },
 ejemplo: 'La vaca 12 dio 8 litros en la mañana / Ordeñé 6 litros a la 45',
+},
+{
+tipo: 'servicio',
+patron: /\b(?:mont[eaéó]\w*|monta\b|servici[oó]\w*|inseminé\w*|inseminaci[oó]n|cubri[oó]\w*|cubre\b)/i,
+extraer: m => {
+const texto = m.input;
+const numeros = texto.match(/\d+/g) || [];
+const tipoServicio = /insemin/i.test(texto) ? 'inseminacion_artificial' : 'monta_directa';
+const toroMatch = texto.match(/(?:con|pajilla)\s+(?:el\s+)?(?:toro\s+)?([a-zA-Zñáéíóú0-9 ]+?)(?:\s+el\s|\s*$)/i);
+return { arete: numeros[0] || null, toro: toroMatch ? toroMatch[1].trim() : (numeros[1] || null), tipoServicio };
+},
+ejemplo: 'Monté a la 45 con el toro 12 / Inseminé a la vaca 20 con la pajilla Brahman 405',
+},
+{
+tipo: 'bodega',
+patron: /\b(?:us[eéo]\w*|saqu[eéo]\w*|gast[eéo]\w*|consum[ií]\w*).*\b(?:kilo|kilos|kg|litro|litros|bulto|bultos|costal|costales|dosis|piezas?)\b/i,
+extraer: m => {
+const texto = m.input;
+const cantMatch = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:kilo|kilos|kg|litro|litros|bulto|bultos|costal|costales|dosis|piezas?)/i);
+const cantidad = cantMatch ? parseFloat(cantMatch[1].replace(',', '.')) : null;
+const prodMatch = texto.match(/(?:de|del)\s+([a-zA-Zñáéíóú ]+?)(?:\s+de la bodega|\s*$)/i);
+return { cantidad, producto: prodMatch ? prodMatch[1].trim() : null };
+},
+ejemplo: 'Usé 5 kilos de alimento / Saqué 2 litros de desinfectante de la bodega',
 },
 ];
 // ============================================================
@@ -22112,6 +22321,120 @@ decirEnVoz(`Prueba de ${datos.tipoPrueba === 'TB' ? 'tuberculina' : 'brucelosis'
 // productor — la única forma válida de entrar a una cuenta es con su propio
 // usuario y contraseña, de manera formal. Esto aplica igual para admin,
 // comité y veterinario: nadie puede usar la voz para saltarse ese control.
+// ============================================================
+// ===== FECHAS RELATIVAS DICTADAS ("ayer", "antier", "hace 3 días"...) =====
+// ============================================================
+// Convierte una expresión de tiempo hablada a una fecha real ISO. Regresa
+// null si no se detectó ninguna (para que quien llame use hoy por default,
+// sin forzar una fecha que nadie dijo).
+function interpretarFechaRelativaVoz(texto){
+const hoy = hoyISO();
+if (/\bhoy\b/i.test(texto)) return hoy;
+if (/\bayer\b/i.test(texto)) return sumarDiasISO(hoy, -1);
+if (/\b(anti(er)?|anteayer)\b/i.test(texto)) return sumarDiasISO(hoy, -2);
+const haceMatch = texto.match(/\bhace\s+(\d+)\s+d[ií]as?\b/i);
+if (haceMatch) return sumarDiasISO(hoy, -parseInt(haceMatch[1], 10));
+const haceSemanaMatch = texto.match(/\bhace\s+(\d+)\s+semanas?\b/i);
+if (haceSemanaMatch) return sumarDiasISO(hoy, -parseInt(haceSemanaMatch[1], 10) * 7);
+if (/\bla semana pasada\b/i.test(texto)) return sumarDiasISO(hoy, -7);
+const DIAS_SEMANA_VOZ = { domingo:0, lunes:1, martes:2, 'miércoles':3, miercoles:3, jueves:4, viernes:5, 'sábado':6, sabado:6 };
+const diaMatch = texto.match(/\bel\s+(lunes|martes|mi[ée]rcoles|jueves|viernes|s[áa]bado|domingo)\b/i);
+if (diaMatch){
+const diaObjetivo = DIAS_SEMANA_VOZ[diaMatch[1].toLowerCase()];
+const diaHoy = new Date(hoy + 'T12:00:00').getDay();
+let diferencia = diaHoy - diaObjetivo;
+if (diferencia <= 0) diferencia += 7;
+return sumarDiasISO(hoy, -diferencia);
+}
+return null;
+}
+// ============================================================
+// ===== NIVEL 2: EXTRAER VARIOS DATOS DE UNA SOLA FRASE LARGA =====
+// (dar de alta un animal completo, hablando desordenado y sin pausas)
+// ============================================================
+// Con honestidad: esto NO es una inteligencia artificial que "entiende"
+// cualquier frase — es un extractor de entidades por reglas y cercanía de
+// palabras, especializado en cómo la gente describe un animal nuevo al
+// hablar. Cubre el caso real de "apúntame una vaca pinta negra que compré
+// ayer, arete 5842, 420 kilos, cargada de 3 meses, del potrero El Sauz" —
+// sacando cada dato de su propio pedazo de la frase, sin que el usuario
+// tenga que tocar ningún campo.
+function extraerAltaAnimalCompleta(textoOriginal){
+const texto = textoOriginal;
+const numeroMatch = texto.match(/\d+/);
+if (!numeroMatch) return null;
+const arete = numeroMatch[0];
+const confianza = {};
+// Sexo y raza — igual que antes.
+const sexoMatch = texto.match(/\b(macho|hembra)\b/i);
+const sexo = sexoMatch ? sexoMatch[1].toLowerCase() : null;
+const razaMatch = texto.match(/\b(holstein|angus|charolais|charoláis|brahman|brahm[aá]n|simmental|hereford|jersey|pardo suizo|suizo|cebú|cebu|criollo|gyr|sardo negro|limousin|beefmaster|brangus|indubrasil)\b/i);
+const raza = razaMatch ? razaMatch[1].replace(/\b\w/g, c => c.toUpperCase()) : null;
+// Nombre/descripción — si no se reconoce una raza de catálogo, se toma la
+// descripción de color/tipo que suele decirse justo después de "vaca",
+// "becerro", etc. (ej. "vaca pinta negra") como el nombre del animal, para
+// no dejarlo completamente vacío.
+let nombre = '';
+if (!raza){
+const descMatch = texto.match(/\b(?:vaca|becerr[oa]|ternero|ternera|vaquilla|novill[oa]|toro|res)\s+((?:[a-zñáéíóú]+\s*){1,3}?)(?:\s+que\s|\s+arete\s|,|\s+de\s+la\s+upp|$)/i);
+if (descMatch && descMatch[1].trim().length > 2) nombre = descMatch[1].trim();
+}
+confianza.nombre = nombre ? 0.6 : 1; // si no dijo descripción, no es que falló — no hay nada que adivinar
+// Peso — número seguido de "kilo(s)"/"kg", ya con los números convertidos a
+// dígitos por convertirNumerosEspanolADigitos ANTES de llegar aquí.
+const pesoMatch = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:kilos?|kgs?)\b/i);
+const peso = pesoMatch ? parseFloat(pesoMatch[1].replace(',', '.')) : null;
+confianza.peso = peso ? 0.9 : 1;
+// Estado reproductivo + meses de gestación — "cargada de 3 meses" no debe
+// confundirse con "3 kilos" ni con el arete; se busca la palabra de estado
+// reproductivo Y un número de meses CERCA de ella (ventana de las 6
+// palabras siguientes), no en cualquier parte de la frase.
+let estadoReproductivo = null, mesesGestacion = null;
+const gestaMatch = texto.match(/\b(cargada|preñada|prenada|gestante)\b((?:\s+\S+){0,6})/i);
+if (gestaMatch){
+estadoReproductivo = 'gestante';
+const mesesEnVentana = gestaMatch[2].match(/(\d+)\s*mes(?:es)?/i);
+mesesGestacion = mesesEnVentana ? parseInt(mesesEnVentana[1], 10) : null;
+confianza.estadoReproductivo = mesesEnVentana ? 0.9 : 0.6; // dijo "cargada" pero no está claro cuántos meses
+} else if (/\b(vac[ií]a|abierta)\b/i.test(texto)){
+estadoReproductivo = 'vacia';
+confianza.estadoReproductivo = 0.85;
+} else if (/\ben celo\b/i.test(texto)){
+estadoReproductivo = 'en_celo';
+confianza.estadoReproductivo = 0.85;
+}
+// Potrero — lo que sigue a la palabra "potrero", comparado contra los
+// potreros que YA existen (por si el reconocedor lo transcribió un poco
+// distinto) — si no se parece a ninguno, se toma tal cual como uno NUEVO.
+let potrero = null;
+const potreroMatch = texto.match(/\bpotrero\s+((?:el\s+|la\s+|los\s+|las\s+)?[a-zA-ZñáéíóúÑÁÉÍÓÚ]+(?:\s+[a-zA-ZñáéíóúÑÁÉÍÓÚ]+){0,2})/i);
+if (potreroMatch){
+const dicho = potreroMatch[1].trim().replace(/,$/, '');
+const existente = (estado.potreros || []).find(p => p.nombre.toLowerCase() === dicho.toLowerCase());
+potrero = existente ? existente.nombre : dicho.replace(/\b\w/g, c => c.toUpperCase());
+confianza.potrero = existente ? 0.95 : 0.7; // potrero nuevo, no confirmado todavía contra el catálogo
+}
+// UPP — referencia corta tipo "R-33", o "UPP de [alguien]". Es el dato más
+// difícil de la frase de ejemplo real (una UPP prestada/de otra persona) —
+// se captura lo que se alcance a identificar, con confianza baja a
+// propósito, para que SIEMPRE se le pida confirmar esto en particular. Se
+// busca sin distinguir mayúsculas — el reconocedor de voz casi nunca
+// escribe en mayúscula una sola letra suelta a media frase.
+let uppReferencia = null;
+const uppLetraNumero = texto.match(/\b([a-zA-Z])[\s-]?(\d{1,4})\b/);
+const uppFrase = texto.match(/\bupp\s+(?:de\s+(?:mi\s+)?)?([a-zA-Zñáéíóú]+)/i);
+if (uppLetraNumero) uppReferencia = uppLetraNumero[1].toUpperCase() + '-' + uppLetraNumero[2];
+else if (uppFrase) uppReferencia = 'UPP de ' + uppFrase[1];
+if (uppReferencia) confianza.upp = 0.5;
+// Fecha de compra/llegada — "ayer", "antier", "hace 3 días"...
+const fecha = interpretarFechaRelativaVoz(texto);
+return {
+tipo: 'alta_animal_completa',
+datos: { arete, sexo, raza, nombre, peso, estadoReproductivo, mesesGestacion, potrero, uppReferencia, fecha },
+confianza,
+textoOriginal,
+};
+}
 function interpretarComandoAltaAnimal(texto){
 const disparadorAccion = /\b(dar de alta|alta de|registr\w*|agreg\w*|añad\w*|anad\w*|inscrib\w*|captur\w*|dar entrada|nuevo ingreso)\b/i.test(texto);
 const disparadorAdquisicion = /\b(lleg\w*|compr\w*)\b.*?\b(animal|arete|becerro|ternero|ternera|vaquilla|novillo|novilla|res)\b|\b(animal|arete|becerro|ternero|ternera|vaquilla|novillo|novilla|res)\b.*?\b(lleg\w*|compr\w*)\b/i.test(texto);
@@ -22511,8 +22834,43 @@ estadoVisualVoz('exito');
 mostrarBannerNotificacion('Formulario de Registro de ganado llenado por voz — revisa y guarda', 4000, 'fa-microphone');
 decirEnVoz('Listo, revisa los datos y guarda.');
 }
+// ============================================================
+// ===== MEMORIA DE CONTEXTO (sin backend, solo en este celular) =====
+// ============================================================
+// Guarda los últimos 3 animales mencionados por voz, para poder decir
+// "esa misma vaca" o "ese animal" en la SIGUIENTE frase sin repetir el
+// arete — se guarda en sessionStorage (se olvida al cerrar la pestaña,
+// a propósito: es contexto de la conversación de ahorita, no un historial
+// permanente).
+const CLAVE_CONTEXTO_VOZ_ANIMALES = 'miRanchAppContextoVozAnimales';
+function guardarContextoVozUltimoAnimal(arete){
+try {
+let pila = JSON.parse(sessionStorage.getItem(CLAVE_CONTEXTO_VOZ_ANIMALES) || '[]');
+pila = [arete, ...pila.filter(a => a !== arete)].slice(0, 3);
+sessionStorage.setItem(CLAVE_CONTEXTO_VOZ_ANIMALES, JSON.stringify(pila));
+} catch(e){}
+}
+function obtenerUltimoAnimalContextoVoz(){
+try {
+const pila = JSON.parse(sessionStorage.getItem(CLAVE_CONTEXTO_VOZ_ANIMALES) || '[]');
+return pila[0] || null;
+} catch(e){ return null; }
+}
+// Antes de interpretar cualquier comando, si la frase se refiere al animal
+// de la frase anterior ("esa misma vaca", "ese mismo animal", "la misma",
+// "el mismo") sin volver a decir el arete, se reemplaza esa referencia por
+// el arete real que se guardó como contexto — así el resto del sistema de
+// reglas (que sí sabe leer un arete) puede seguir funcionando igual.
+function resolverReferenciasContextoVoz(texto){
+if (!/\b(esa|ese|la|el)\s+misma?\s+(vaca|animal|res|becerr[oa]|arete)\b/i.test(texto) && !/\bla misma\b|\bel mismo\b/i.test(texto)) return texto;
+const ultimoArete = obtenerUltimoAnimalContextoVoz();
+if (!ultimoArete) return texto; // no hay contexto todavía, se deja tal cual (fallará la interpretación con un mensaje claro, no a ciegas)
+return texto.replace(/\b(esa|ese|la|el)\s+misma?\s+(vaca|animal|res|becerr[oa]|arete)\b/gi, 'arete ' + ultimoArete)
+.replace(/\bla misma\b|\bel mismo\b/gi, 'arete ' + ultimoArete);
+}
 function interpretarComandoVoz(textoOriginal){
 let texto = textoOriginal.trim();
+texto = resolverReferenciasContextoVoz(texto);
 // El diccionario de Plautdietsch se aplica SIEMPRE, sin importar el idioma de
 
 // reconocimiento configurado — así, si alguien mezcla español y Plautdietsch
@@ -22530,7 +22888,7 @@ const navegacion = interpretarComandoNavegacion(texto);
 if (navegacion) return navegacion;
 const tarea = interpretarComandoTareaTrabajador(texto);
 if (tarea) return tarea;
-const alta = interpretarComandoAltaAnimal(texto);
+const alta = extraerAltaAnimalCompleta(texto) || interpretarComandoAltaAnimal(texto);
 if (alta) return alta;
 const baja = interpretarComandoBajaAnimal(texto);
 if (baja) return baja;
@@ -22578,7 +22936,10 @@ const MAPEO_CORRECCIONES_VOZ = {
 'kilogramos':'kilos','kg':'kilos','libras':'kilos',
 };
 // Palabras "canónicas" del rancho contra las que se compara cualquier
-// palabra rara del dictado, para ver si el micrófono la escuchó mal.
+// palabra rara del dictado, para ver si el micrófono la escuchó mal. Se
+// amplió con razas y productos comunes — mientras más completa esta lista,
+// más términos del rancho reconoce bien en vez de transcribir algo parecido
+// pero incorrecto.
 const VOCABULARIO_CORRECCION_VOZ = [
 'vacuna','tratamiento','desparasitar','curar','inyectar','medicar','desinfectar','purgar','bañar','fumigar','castrar','cojear','enfermar','atender',
 'mover','pasar','cambiar','llevar','trasladar','sacar','meter','encerrar','arrear','jalar','soltar','juntar','reunir','regresar','potrero','corral',
@@ -22586,8 +22947,26 @@ const VOCABULARIO_CORRECCION_VOZ = [
 'registrar','agregar','añadir','inscribir','capturar','comprar','llegar',
 'envía','manda','dile','indica','avisa','comunica','encarga','pide','recuerda',
 'kilos','arete','becerro','becerra','ternero','ternera','vaquilla','novillo','novilla','toro','semental','hato','vaca','res','macho','hembra',
-'tuberculosis','brucelosis','vitamina','antibiótico'
+'tuberculosis','brucelosis','vitamina','antibiótico',
+'brahman','charolais','angus','simmental','holstein','suizo','cebú','criollo','beefmaster','brangus','limousin','simbrah','pardo','jersey','gyr','indubrasil',
+'ivermectina','oxitetraciclina','penicilina','clostridial','triple','rabia','paralítica','garrapaticida','desparasitante','vitaminado','calcio','hierro',
+'ordeña','ordeño','leche','litros','calostro','destete','engorda','reemplazo','sementales','pajilla','inseminación','monta','celo','diagnóstico',
+'gramo','gramos','mililitro','mililitros','dosis','centímetros','metros','hectáreas','alambre','bebedero','comedero','sombra','cerca',
 ];
+// El navegador soporta darle al reconocedor una lista de frases/palabras que
+// se espera escuchar (una "gramática") — esto ayuda a que RECONOZCA MEJOR
+// esas palabras desde el principio, no solo a corregirlas después de que ya
+// se transcribieron mal. Es una función nativa del navegador, gratis, sin
+// necesitar ningún servicio de paga.
+function construirGramaticaVozRancho(){
+const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+if (!SGL) return null;
+const lista = SGL ? new SGL() : null;
+if (!lista) return null;
+const gramatica = `#JSGF V1.0; grammar rancho; public <termino> = ${VOCABULARIO_CORRECCION_VOZ.join(' | ')} ;`;
+lista.addFromString(gramatica, 1);
+return lista;
+}
 function calcularLevenshteinVoz(a, b){
 const tmp = [];
 for (let i = 0; i <= a.length; i++) tmp[i] = [i];
@@ -22840,6 +23219,20 @@ if (tipo === 'potrero') return `Mover el arete ${datos.arete} al potrero ${datos
 if (tipo === 'parto') return `Registrar cría ${datos.sexo} de la madre con arete ${datos.areteMadre}`;
 if (tipo === 'gasto') return `Registrar ${datos.tipoMovimiento === 'ingreso' ? 'un ingreso' : 'un gasto'} de $${datos.monto} (${datos.categoria})`;
 if (tipo === 'leche') return `Registrar ordeña de ${datos.litros} litros del arete ${datos.arete}${datos.turno ? ' (' + datos.turno + ')' : ''}`;
+if (tipo === 'servicio') return `Registrar ${datos.tipoServicio === 'inseminacion_artificial' ? 'inseminación' : 'monta'} de la vaca ${datos.arete} con ${datos.toro || 'semental no especificado'}`;
+if (tipo === 'alta_animal_completa'){
+const partes = [`arete ${datos.arete}`];
+if (datos.nombre) partes.push(datos.nombre);
+if (datos.raza) partes.push('raza ' + datos.raza);
+if (datos.peso) partes.push(datos.peso + ' kilos');
+if (datos.estadoReproductivo === 'gestante') partes.push('cargada' + (datos.mesesGestacion ? ' de ' + datos.mesesGestacion + ' meses' : ''));
+else if (datos.estadoReproductivo) partes.push(datos.estadoReproductivo.replace('_',' '));
+if (datos.potrero) partes.push('potrero ' + datos.potrero);
+if (datos.uppReferencia) partes.push(datos.uppReferencia + ' (revisa esto, no estoy seguro)');
+if (datos.fecha && datos.fecha !== hoyISO()) partes.push('fecha ' + datos.fecha);
+return 'Dar de alta: ' + partes.join(', ');
+}
+if (tipo === 'bodega') return `Descontar ${datos.cantidad} de ${datos.producto} de la bodega`;
 if (tipo === 'alta_animal') return `Dar de alta el arete ${datos.arete}${datos.sexo ? ' (' + datos.sexo + ')' : ''}${datos.raza ? ', raza ' + datos.raza : ''}`;
 if (tipo === 'baja_animal') return `Dar de baja el arete ${datos.arete} (${datos.motivo})`;
 if (tipo === 'tarea_trabajador') return `Indicación para ${datos.trabajador.nombre}: ${datos.instruccion}`;
@@ -22873,10 +23266,58 @@ rec.lang = CONFIG_VOZ.idiomaReconocimiento;
 rec.continuous = false;
 rec.interimResults = false;
 reconocimientoConfirmacionVoz = rec;
+// Antes de decidir que "no" significa cancelar, se revisa si en realidad es
+// una CORRECCIÓN de un campo puntual ("no, el peso es 450, no 420" / "cambia
+// el potrero a La Mesa") — en vez de cancelar todo el registro, se corrige
+// solo ese dato y se vuelve a pedir confirmación con el dato ya corregido.
+const MAPA_CAMPOS_CORRECCION_VOZ = {
+peso: ['peso', 'kilos', 'kilo', 'kg'],
+potrero: ['potrero', 'corral'],
+arete: ['arete', 'número', 'numero'],
+litros: ['litros', 'litro'],
+producto: ['producto', 'medicamento'],
+monto: ['monto', 'precio', 'costo', 'cantidad'],
+toro: ['toro', 'pajilla', 'semental'],
+mesesGestacion: ['meses', 'gestación', 'gestacion'],
+};
+function intentarCorregirCampoPendiente(textoDicho){
+if (!comandoVozPendiente) return false;
+const textoConvertido = convertirNumerosEspanolADigitos(textoDicho.toLowerCase());
+let campoDetectado = null;
+for (const [campo, palabrasClave] of Object.entries(MAPA_CAMPOS_CORRECCION_VOZ)){
+if (palabrasClave.some(p => textoConvertido.includes(p))){ campoDetectado = campo; break; }
+}
+if (!campoDetectado) return false;
+if (!(campoDetectado in comandoVozPendiente.datos)) return false;
+// El nuevo valor es el ÚLTIMO número de la frase (para "el peso es 450, no
+// 420" — se queda con 450, el valor correcto que se dijo al final,
+// no el 420 que se está corrigiendo).
+const numeros = textoConvertido.match(/\d+(?:[.,]\d+)?/g);
+if (campoDetectado === 'potrero' || campoDetectado === 'producto' || campoDetectado === 'toro'){
+// Campos de texto: se toma lo que sigue a la palabra clave ("a"/"es").
+const m = textoConvertido.match(/(?:a|es)\s+([a-zñáéíóú ]+)$/i);
+if (!m) return false;
+comandoVozPendiente.datos[campoDetectado] = m[1].trim().replace(/\b\w/g, c => c.toUpperCase());
+} else {
+if (!numeros || numeros.length === 0) return false;
+// El valor correcto es el que sigue a "es"/"son" (ej. "el peso ES 450, no
+// 420") — no simplemente el último número de la frase, porque el número
+// que se está RECHAZANDO casi siempre viene después, no antes.
+const despuesDeEs = textoConvertido.match(/(?:es|son)\s+(\d+(?:[.,]\d+)?)/i);
+const valorCorregido = despuesDeEs ? despuesDeEs[1] : numeros[0];
+comandoVozPendiente.datos[campoDetectado] = parseFloat(valorCorregido.replace(',', '.'));
+}
+// Se vuelve a mostrar la confirmación con el dato ya corregido, en vez de
+// guardar directo — sigue habiendo oportunidad de revisar todo antes de
+// que se guarde de verdad.
+pedirConfirmacionComandoVoz(comandoVozPendiente.tipo, comandoVozPendiente.datos, comandoVozPendiente.textoOriginal + ' → corregido: ' + textoDicho);
+return true;
+}
 rec.onresult = evt => {
 const dicho = (evt.results[0][0].transcript || '').toLowerCase();
-if (/\b(s[ií]|confirmo|correcto|guardar?)\b/.test(dicho)) responderConfirmacionVoz(true);
-else if (/\b(no|cancela?r?|incorrecto)\b/.test(dicho)) responderConfirmacionVoz(false);
+if (/\b(s[ií]|confirmo|correcto|guardar?)\b/.test(dicho)) { responderConfirmacionVoz(true); return; }
+if (intentarCorregirCampoPendiente(dicho)) return;
+if (/\b(no|cancela?r?|incorrecto)\b/.test(dicho)) responderConfirmacionVoz(false);
 };
 rec.onend = () => { reconocimientoConfirmacionVoz = null; };
 rec.start();
@@ -22978,15 +23419,18 @@ if (tipo === 'pesaje'){
 const animal = animalEncontrado(datos.arete);
 if (!animal) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
 estado.pesajes.push({ animal: animal.arete, fecha: hoyISO(), peso: datos.peso, lote: null, condicionCorporal: null, origen: 'comando_voz', textoOriginal });
+guardarContextoVozUltimoAnimal(animal.arete);
 } else if (tipo === 'sanidad'){
 const animal = animalEncontrado(datos.arete);
 if (!animal) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
 estado.salud.push({ animal: animal.arete, producto: datos.producto, fecha: hoyISO(), proxima: '', notas: 'Registrado por comando de voz', diasRetiro: null, origen: 'comando_voz', textoOriginal });
+guardarContextoVozUltimoAnimal(animal.arete);
 } else if (tipo === 'potrero'){
 const a = animalEncontrado(datos.arete);
 if (!a) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
 a.potrero = datos.potrero;
 estado.movimientosAnimal.push({ animal: a.arete, tipo: 'potrero', concepto: 'Cambio de potrero por voz a ' + datos.potrero, monto: 0, fecha: hoyISO(), origen: 'comando_voz' });
+guardarContextoVozUltimoAnimal(a.arete);
 } else if (tipo === 'parto'){
 const madre = animalEncontrado(datos.areteMadre);
 if (!madre) throw new Error('Arete de la madre no encontrado: ' + datos.areteMadre);
@@ -22997,14 +23441,78 @@ fecha: hoyISO(), estatus:'Activo', madre: madre.arete, padre:'', potrero:'', mot
 proposito:'', engordaDiasObjetivo:null, engordaPesoMeta:null, engordaInicio:null, engordaFinalizado:false, engordaDiasFinal:null,
 origen: 'comando_voz', textoOriginal,
 });
+guardarContextoVozUltimoAnimal(nuevoArete);
 } else if (tipo === 'leche'){
 if (!datos.arete) throw new Error('No se identificó a qué animal pertenece la ordeña — di el número de arete');
 const animalLeche = animalEncontrado(datos.arete);
 if (!animalLeche) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
+const fechaLeche = datos.fecha || hoyISO();
 const am = datos.turno === 'AM' ? (datos.litros || 0) : 0;
 const pm = datos.turno === 'PM' ? (datos.litros || 0) : 0;
 const total = datos.turno ? (am + pm) : (datos.litros || 0);
-estado.produccionLeche.push({ animal: animalLeche.arete, fecha: hoyISO(), ordenador: '', litrosAM: am, litrosPM: pm, total, grasa:'', proteina:'', celulas:'', notas: 'Registrado por comando de voz', origen: 'comando_voz', textoOriginal });
+estado.produccionLeche.push({ animal: animalLeche.arete, fecha: fechaLeche, ordenador: '', litrosAM: am, litrosPM: pm, total, grasa:'', proteina:'', celulas:'', notas: 'Registrado por comando de voz', origen: 'comando_voz', textoOriginal });
+guardarContextoVozUltimoAnimal(animalLeche.arete);
+} else if (tipo === 'servicio'){
+const vaca = animalEncontrado(datos.arete);
+if (!vaca) throw new Error('Arete no encontrado en el hato: ' + datos.arete);
+const fecha = hoyISO();
+estado.reproduccion.push({
+vaca: vaca.arete, servicio: datos.tipoServicio, fecha, toro: datos.toro || '', diagnostico: 'sin_diagnostico',
+parto: sumarDias(fecha, 283), secado: null, partoReal: null, cierreLactancia: null, finPeriodoSeco: null,
+fechaProximoCelo: sumarDias(fecha, 21), celoDescartado: false, origen: 'comando_voz', textoOriginal,
+});
+guardarContextoVozUltimoAnimal(vaca.arete);
+} else if (tipo === 'alta_animal_completa'){
+if (estado.animales.some(a => a.arete === datos.arete)) throw new Error('Ya existe un animal registrado con el arete ' + datos.arete);
+if (typeof buscarAreteEnOtraUPP === 'function'){
+const conflicto = buscarAreteEnOtraUPP(datos.arete);
+if (conflicto) throw new Error('Ese arete ya está en uso en otra cuenta');
+}
+const fechaAlta = datos.fecha || hoyISO();
+// Si mencionó un potrero que no existe todavía en el catálogo, se da de
+// alta solo — así la próxima vez que alguien lo diga ya se reconoce contra
+// el catálogo real, en vez de quedar como texto suelto sin dueño.
+if (datos.potrero && !(estado.potreros || []).some(p => p.nombre.toLowerCase() === datos.potrero.toLowerCase())){
+estado.potreros = estado.potreros || [];
+estado.potreros.push({ nombre: datos.potrero, capacidad: null, color: '#5C6B55', poligono: null, hectareas: null, centro: null, origen: 'comando_voz' });
+}
+const nombreCompuesto = [datos.nombre, datos.raza].filter(Boolean).join(' ').trim();
+estado.animales.push({
+arete: datos.arete, chip:'', nombre: nombreCompuesto, raza: datos.raza || '',
+sexo: datos.sexo === 'macho' ? 'Macho' : (datos.sexo === 'hembra' ? 'Hembra' : 'Hembra'),
+fecha: fechaAlta, estatus:'Activo', madre:'', padre:'', potrero: datos.potrero || '', motivoBaja:'', foto:null,
+proposito:'', engordaDiasObjetivo:null, engordaPesoMeta:null, engordaInicio:null, engordaFinalizado:false, engordaDiasFinal:null,
+origen:'comando_voz', textoOriginal,
+});
+if (datos.peso){
+estado.pesajes.push({ animal: datos.arete, fecha: fechaAlta, peso: datos.peso, lote: null, condicionCorporal: null, origen: 'comando_voz', textoOriginal });
+}
+if (datos.estadoReproductivo === 'gestante'){
+// Los meses de gestación dictados se traducen a una fecha probable de
+// parto (283 días de gestación total, menos lo que ya lleva avanzado).
+const diasGestados = datos.mesesGestacion ? datos.mesesGestacion * 30 : 90;
+const fechaServicioEstimada = sumarDiasISO(fechaAlta, -diasGestados);
+estado.reproduccion.push({
+vaca: datos.arete, servicio: 'monta_directa', fecha: fechaServicioEstimada, toro: '', diagnostico: 'confirmada',
+parto: sumarDiasISO(fechaServicioEstimada, 283), secado: null, partoReal: null, cierreLactancia: null, finPeriodoSeco: null,
+fechaProximoCelo: null, celoDescartado: false, origen: 'comando_voz', textoOriginal,
+notas: 'Gestación estimada por dictado de voz — revisar fecha con el veterinario',
+});
+}
+// Se guarda como "último animal mencionado" para poder referirse a él
+// después sin repetir el arete (ej. "y esa misma vaca ponla en el corral 2").
+guardarContextoVozUltimoAnimal(datos.arete);
+if (datos.uppReferencia){
+mostrarToast(`Guardado — pero revisa la UPP: se entendió "${datos.uppReferencia}", confírmala a mano en los datos del animal`);
+}
+} else if (tipo === 'bodega'){
+if (!datos.cantidad || !datos.producto) throw new Error('No se identificó bien la cantidad o el producto — di algo como "usé 5 kilos de alimento"');
+// Se busca el insumo por parecido de nombre (igual que se busca un animal
+// por terminación de arete) — no hace falta decir el nombre exacto tal
+// cual está capturado en la bodega.
+const insumo = buscarPersonaFuzzy(datos.producto, estado.bodega, i => i.producto);
+if (!insumo) throw new Error('No se encontró "' + datos.producto + '" en tu bodega — revisa el nombre exacto');
+descontarInsumoBodega(insumo.persona.id, datos.cantidad);
 } else if (tipo === 'gasto'){
 if (!datos.monto) throw new Error('No se identificó el monto — di la cantidad seguida de "pesos"');
 estado.costos.push({ tipo: datos.tipoMovimiento, categoria: datos.categoria, monto: datos.monto, fecha: hoyISO(), imputar: '', descripcion: datos.descripcion, origen: 'comando_voz', textoOriginal });
