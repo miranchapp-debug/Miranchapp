@@ -383,6 +383,7 @@ body{ font-family:'Inter', sans-serif; background:var(--parchment); color:var(--
 #badge-chat-productor.hidden,
 #badge-confirmaciones-pago-pendientes.hidden,
 #badge-chat-admin.hidden{ display:none !important; }
+.fabs-ocultos-temporalmente{ display:none !important; }
 .tile{
 display:flex; flex-direction:column; justify-content:space-between;
 min-height:92px; padding:.85rem; border-radius:22px; color:#fff;
@@ -605,10 +606,10 @@ input:focus, button:focus, select:focus, textarea:focus{
 outline:3px solid var(--yellow); outline-offset:2px;
 }
 input, select, textarea{
-width:100%; border-radius:14px; padding:.85rem 1rem; font-size:1rem;
+width:100%; border-radius:12px; padding:.5rem .8rem; font-size:.95rem;
 border:2px solid var(--line); background:#fff;
 }
-label.campo-label{ display:block; font-size:.85rem; font-weight:700; margin-bottom:.4rem; color:var(--ink); }
+label.campo-label{ display:block; font-size:.78rem; font-weight:700; margin-bottom:.2rem; color:var(--ink); }
 input.campo-mayusculas, textarea.campo-mayusculas{ text-transform:uppercase; }
 input.campo-mayusculas::placeholder, textarea.campo-mayusculas::placeholder{ text-transform:none; }
 .grupo-campo{ position:relative; }
@@ -1640,7 +1641,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div class="space-y-3" id="lista-boletines"></div>
 </div>
 <!-- ---------- MODAL ESCANER POR CAMARA ---------- -->
-<div class="hidden fixed inset-0 z-50 flex flex-col" id="modal-scanner-fierro" style="background:rgba(20,20,20,0.95);">
+<div class="hidden fixed inset-0 flex flex-col" id="modal-scanner-fierro" style="background:rgba(20,20,20,0.95); z-index:150;">
 <div class="flex items-center justify-between p-4">
 <p class="text-white font-display font-bold">Centra el fierro en el recuadro</p>
 <button class="w-10 h-10 rounded-full flex items-center justify-center" onclick="cerrarCamaraFierro()" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-xmark"></i></button>
@@ -1654,7 +1655,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <i class="fa-solid fa-camera mr-1"></i> Capturar
 </button>
 </div>
-<div class="hidden fixed inset-0 z-50 flex flex-col" id="modal-scanner-camara" style="background:rgba(20,20,20,0.95);">
+<div class="hidden fixed inset-0 flex flex-col" id="modal-scanner-camara" style="background:rgba(20,20,20,0.95); z-index:150;">
 <div class="flex items-center justify-between p-4">
 <p class="text-white font-display font-bold" data-i18n="modal_escaner_camara__escanear_arete">Escanear arete</p>
 <button class="w-10 h-10 rounded-full flex items-center justify-center" onclick="cerrarEscanerCamara()" style="background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-xmark"></i></button>
@@ -1666,7 +1667,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <p class="text-center text-sm py-4 px-6" data-i18n="modal_escaner_camara__apunta_la_camara_al_codigo" id="texto-estado-scanner" style="color:#fff;">Apunta la cámara al código de barras del arete...</p>
 </div>
 <!-- ---------- MODAL RESUMEN RAPIDO ---------- -->
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-resumen-rapido" onclick="if(event.target===this) cerrarResumenRapido()" style="background:rgba(33,30,25,0.5);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-resumen-rapido" onclick="if(event.target===this) cerrarResumenRapido()" style="background:rgba(33,30,25,0.5); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-3" style="max-height:80vh; overflow-y:auto;">
 <div class="flex items-center justify-between">
 <p class="font-display text-xl font-bold"><i class="fa-solid fa-bolt mr-1" style="color:var(--orange);"></i><span data-i18n="inicio_productor__resumen_rapido">Resumen rápido</span></p>
@@ -1676,7 +1677,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </div>
 <!-- ---------- MODAL BOLETIN (LECTURA COMPLETA) ---------- -->
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-boletin" onclick="if(event.target===this) cerrarModalBoletin()" style="background:rgba(33,30,25,0.5);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-boletin" onclick="if(event.target===this) cerrarModalBoletin()" style="background:rgba(33,30,25,0.5); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-3" style="max-height:85vh; overflow-y:auto;">
 <img loading="lazy" decoding="async" class="hidden w-full rounded-2xl" id="modal-boletin-imagen" style="max-height:220px; object-fit:cover;"/>
 <p class="text-xs font-bold" id="modal-boletin-fecha" style="color:var(--purple);"></p>
@@ -1706,7 +1707,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </main>
 <!-- Botón flotante de acceso rápido -->
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-historial" onclick="if(event.target===this) cerrarHistorial()" style="background:rgba(33,30,25,0.5);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-historial" onclick="if(event.target===this) cerrarHistorial()" style="background:rgba(33,30,25,0.5); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-4" style="max-height:80vh; overflow-y:auto;">
 <div class="flex items-start justify-between gap-3">
 <div class="flex items-center gap-3">
@@ -1759,7 +1760,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
      de avanzar es descargando el informe primero. Nunca se borra nada, solo
      se archivan registros viejos DESPUÉS de que la persona ya se llevó su
      copia. -->
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-informe-bimestral" style="background:rgba(33,30,25,0.7);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-informe-bimestral" style="background:rgba(33,30,25,0.7); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-3" style="max-height:85vh; overflow-y:auto;">
 <div id="informe-bimestral-vista-1">
 <p class="font-display text-xl font-bold mb-1"><i class="fa-solid fa-box-archive"></i> Tu informe bimestral está listo</p>
@@ -1777,7 +1778,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 <!-- ---------- CALENDARIO REPRODUCTIVO (visual, tipo Gantt) ---------- -->
 
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-calendario-reproductivo" onclick="if(event.target===this) cerrarCalendarioReproductivo()" style="background:rgba(33,30,25,0.5);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-calendario-reproductivo" onclick="if(event.target===this) cerrarCalendarioReproductivo()" style="background:rgba(33,30,25,0.5); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-3" style="max-height:85vh; overflow-y:auto;">
 <div class="flex items-center justify-between">
 <p class="font-display text-xl font-bold"><i class="fa-solid fa-calendar-days"></i> Calendario reproductivo</p>
@@ -1792,7 +1793,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </div>
 <!-- ---------- CATÁLOGO DE CLIENTES / PROVEEDORES ---------- -->
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-catalogo-contactos" onclick="if(event.target===this) cerrarCatalogoContactos()" style="background:rgba(33,30,25,0.5);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-catalogo-contactos" onclick="if(event.target===this) cerrarCatalogoContactos()" style="background:rgba(33,30,25,0.5); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-3" style="max-height:85vh; overflow-y:auto;">
 <div class="flex items-center justify-between">
 <p class="font-display text-xl font-bold"><i class="fa-solid fa-address-book"></i> Clientes / proveedores</p>
@@ -1811,7 +1812,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </div>
 <!-- ---------- CATÁLOGO DE SEMENTALES / PAJILLAS ---------- -->
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-catalogo-sementales" onclick="if(event.target===this) cerrarCatalogoSementales()" style="background:rgba(33,30,25,0.5);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-catalogo-sementales" onclick="if(event.target===this) cerrarCatalogoSementales()" style="background:rgba(33,30,25,0.5); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-3" style="max-height:85vh; overflow-y:auto;">
 <div class="flex items-center justify-between">
 <p class="font-display text-xl font-bold"><i class="fa-solid fa-dna"></i> Sementales / pajillas</p>
@@ -1830,7 +1831,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 </div>
 </div>
 <!-- ---------- ÁRBOL GENEALÓGICO ---------- -->
-<div class="hidden fixed inset-0 z-50 flex items-end justify-center" id="modal-arbol-genealogico" onclick="if(event.target===this) cerrarArbolGenealogico()" style="background:rgba(33,30,25,0.5);">
+<div class="hidden fixed inset-0 flex items-end justify-center" id="modal-arbol-genealogico" onclick="if(event.target===this) cerrarArbolGenealogico()" style="background:rgba(33,30,25,0.5); z-index:150;">
 <div class="bg-white w-full max-w-sm rounded-t-[32px] p-6 space-y-3" style="max-height:85vh; overflow-y:auto;">
 <div class="flex items-center justify-between">
 <p class="font-display text-xl font-bold"><i class="fa-solid fa-sitemap"></i> Árbol genealógico</p>
@@ -1846,12 +1847,12 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <button class="fixed z-10 flex items-center justify-center rounded-full" onclick="cerrarLightboxAnimal()" style="top:20px; right:20px; width:44px; height:44px; background:rgba(255,255,255,0.15); color:#fff;"><i class="fa-solid fa-xmark text-xl"></i></button>
 <img loading="lazy" decoding="async" id="lightbox-foto-grande" src="" style="max-width:94vw; max-height:88vh; object-fit:contain; border-radius:12px;"/>
 </div>
-<div class="hidden fixed inset-0 z-40" id="fab-sheet" onclick="toggleFab()" style="background:rgba(33,30,25,0.4);"></div>
-<div class="hidden fixed bottom-24 right-5 z-50 bg-white rounded-3xl p-3 space-y-2 shadow-2xl" id="fab-menu" style="border:2px solid var(--line); min-width:230px;"></div>
-<button class="hidden fixed z-50 flex items-center justify-center rounded-full shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="fab-mas-productor" onclick="toggleFab()" style="right:20px; bottom:96px; width:64px; height:64px; background:var(--orange); color:#fff; font-size:1.6rem; border:none;">
+<div class="hidden fixed inset-0" id="fab-sheet" onclick="toggleFab()" style="background:rgba(33,30,25,0.4); z-index:105;"></div>
+<div class="hidden fixed bottom-24 right-5 bg-white rounded-3xl p-3 space-y-2 shadow-2xl" id="fab-menu" style="border:2px solid var(--line); min-width:230px; z-index:106;"></div>
+<button class="hidden fixed flex items-center justify-center rounded-full shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="fab-mas-productor" onclick="toggleFab()" style="right:20px; bottom:96px; width:64px; height:64px; background:var(--orange); color:#fff; font-size:1.6rem; border:none; z-index:110;">
 <i class="fa-solid fa-plus"></i>
 </button>
-<button class="hidden fixed z-50 flex items-center justify-center shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="btn-chat-flotante-productor" onclick="irA('mensajes')" style="right:22px; bottom:172px; width:52px; height:52px; background:#25D366; color:#fff; font-size:1.3rem; border:none; padding:0; border-radius:16px;">
+<button class="hidden fixed flex items-center justify-center shadow-2xl transition-transform duration-150 hover:-translate-y-1 active:scale-90" id="btn-chat-flotante-productor" onclick="irA('mensajes')" style="right:22px; bottom:172px; width:52px; height:52px; background:#25D366; color:#fff; font-size:1.3rem; border:none; padding:0; border-radius:16px; z-index:110;">
 <span style="display:block; width:100%; height:100%; border-radius:16px; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class="fa-solid fa-comment-medical"></i></span>
 <span class="hidden" id="badge-chat-productor" style="position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 4px; border-radius:999px; background:var(--red); color:#fff; font-size:.65rem; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #fff; z-index:5;">0</span>
 </button>
@@ -3013,7 +3014,7 @@ background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0
 <div id="lista-confirmaciones-pago" class="space-y-2"></div>
 </div>
 <!-- ---------- LIGHTBOX: FOTO DE TICKET DE PAGO ---------- -->
-<div class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" id="lightbox-ticket-pago" onclick="cerrarLightboxTicketPago()" style="background:rgba(0,0,0,0.85);">
+<div class="hidden fixed inset-0 flex items-center justify-center p-4" id="lightbox-ticket-pago" onclick="cerrarLightboxTicketPago()" style="background:rgba(0,0,0,0.85); z-index:150;">
 <img id="lightbox-ticket-pago-img" style="max-width:100%; max-height:90vh; border-radius:12px;"/>
 </div>
 <!-- ---------- CONFIGURACION: CONTENIDO Y VENTANAS EXTRA ---------- -->
@@ -12728,6 +12729,16 @@ if (estado.ultimaSemanaResumen === claveSemana) return;
 estado.ultimaSemanaResumen = claveSemana;
 setTimeout(() => abrirResumenRapido(), 400);
 }
+// Esconde/muestra los 3 botones flotantes (voz, +, chat) — se usa en
+// modales de pantalla completa cuyo fondo semitransparente cubre justo
+// donde viven estos botones, para que no se vean "encimados" ni queden
+// bloqueados sin poder tocarlos mientras el modal está abierto.
+function ocultarFabsFlotantes(ocultar){
+['fab-comando-voz','fab-mas-productor','btn-chat-flotante-productor'].forEach(id => {
+const el = document.getElementById(id);
+if (el) el.classList.toggle('fabs-ocultos-temporalmente', ocultar);
+});
+}
 function abrirResumenRapido(){
 const activos = estado.animales.filter(a => a.estatus !== 'vendido' && a.estatus !== 'finado').length;
 const notas = calcularNotificaciones();
@@ -12748,8 +12759,9 @@ document.getElementById('cuerpo-resumen-rapido').innerHTML = filas.map(f => `
 <p class="text-sm font-semibold">${f.texto}</p>
 </div>`).join('');
 document.getElementById('modal-resumen-rapido').classList.remove('hidden');
+ocultarFabsFlotantes(true);
 }
-function cerrarResumenRapido(){ document.getElementById('modal-resumen-rapido').classList.add('hidden'); }
+function cerrarResumenRapido(){ document.getElementById('modal-resumen-rapido').classList.add('hidden'); ocultarFabsFlotantes(false); }
 let scannerCampoDestino = null;
 let scannerStream = null;
 let scannerActivo = false;
@@ -23350,7 +23362,7 @@ menu.innerHTML = Object.entries(MODULOS)
 .map(([letra, m]) => `
 <button onclick="toggleFab(); irModulo('${letra}');" class="w-full flex items-center gap-3 p-3 rounded-2xl text-left font-bold transition-transform active:scale-95 hover:-translate-y-0.5" style="background:var(--parchment);">
 <span class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${m.bg}" style="color:#fff;"><i class="fa-solid ${m.icono}"></i></span>
-<span class="text-sm">${letra}. ${nombreModulo(letra)}</span>
+<span class="text-sm">${nombreModulo(letra)}</span>
 </button>`).join('');
 }
 menu.classList.toggle('hidden', !abrir);
